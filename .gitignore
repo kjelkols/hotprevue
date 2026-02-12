@@ -201,7 +201,30 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
-# Marimo
-marimo/_static/
-marimo/_lsp/
-__marimo__/
+# Next.js
+.next/
+
+# Electron
+/dist/
+/electron/dist/
+/electron/out/
+
+# Node.js
+node_modules/
+
+# Frontend build artifacts
+frontend/build/
+frontend/dist/
+
+# User data (should be outside repo, but extra safety)
+data/
+data/*
+
+# Logs
+*.log
+logs/
+
+# Misc
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
