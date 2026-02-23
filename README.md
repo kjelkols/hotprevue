@@ -1,29 +1,62 @@
 # Hotprevue
 
-Hotprevue er et program for organisering, visning og enkel tilgang til store bildesamlinger. Systemet er designet for fotografer og entusiaster som ønsker full kontroll over originalbildene, samtidig som de får kraftige verktøy for søk, visning og metadata.
-
-## Hensikt
- Gi brukeren oversikt, søk og visning av bilder uten å endre eller flytte originalfiler.
- Støtte fleksibel organisering med collections, events, stacks og tagging.
- Tilby støtteverktøy for batch-registrering, statuskontroll og ekstern åpning av bilder.
- Gjøre det enkelt å generere porteføljer, slideshow, panoramaer og andre visninger.
-
-- Registrering og indeksering av bilder (JPEG, PNG, RAW, m.fl.)
-- Automatisk og manuell metadatahåndtering
-- Registrer bilder (kun metadata lagres) og utforsk funksjonene.
-- Stack-funksjon for grupperte bilder
-- Collections (ordnede grupper) og events (uordnede grupper)
-- Tagging, søk og filtrering
-- Companion files (f.eks. RAW, JPEG, XMP, sidecar)
-- Brukerkontroll over metadata og arbeidsflyt
-
-## Prosjektstruktur
-Se `CLAUDE.md` for arkitektur, tekniske beslutninger og utviklingsretningslinjer. Detaljert roadmap og kravspesifikasjon ligger i `docs/agent-instructions.md`.
+Bildehåndteringssystem for fotografer. Indekserer og organiserer store bildesamlinger uten å flytte eller endre originalfilene — kun metadata og forhåndsvisninger lagres.
 
 ## Kom i gang
-1. Klon repoet og følg instruksjonene i agent-instructions.md.
-2. Start backend og frontend via Docker Compose eller egne scripts.
-3. Registrer bilder (kun metadata lagres) og utforsk funksjonene.
 
----
-For mer informasjon, se dokumentasjonen i docs/.
+**Krav:** Docker Desktop
+
+```bash
+git clone https://github.com/kjelkols/hotprevue.git
+cd hotprevue
+docker compose up
+```
+
+API er tilgjengelig på `http://localhost:8000` og interaktiv dokumentasjon på `http://localhost:8000/docs`.
+
+## Funksjoner
+
+- **Registrering** — leser EXIF, genererer hotpreview (150×150 px, lagret i DB) og coldpreview (opptil 1200 px, lagret på disk)
+- **Events** — grupper bilder etter hendelse, med støtte for hierarki (parent/child)
+- **Tagging og rating** — fritekst-tags og stjerneskala 1–5
+- **Søk og filtrering** — filtrer på event, tags, rating og filnavn
+- **Ingen filflytting** — originalfiler røres aldri
+
+## API-oversikt
+
+| Metode | Sti | Beskrivelse |
+|--------|-----|-------------|
+| `POST` | `/images/register` | Registrer bilde fra filsti |
+| `GET` | `/images` | List bilder (filtrering via query-params) |
+| `GET` | `/images/{hothash}` | Hent ett bilde |
+| `PATCH` | `/images/{hothash}` | Oppdater rating, tags, event |
+| `DELETE` | `/images/{hothash}` | Slett metadata og coldpreview |
+| `GET` | `/images/{hothash}/coldpreview` | Last ned coldpreview-fil |
+| `POST` | `/events` | Opprett event |
+| `GET` | `/events` | List events med bildeantall |
+| `GET` | `/events/{id}` | Hent event med bilder |
+| `PATCH` | `/events/{id}` | Oppdater event |
+| `DELETE` | `/events/{id}` | Slett event (bilder beholdes) |
+
+## Arkitektur
+
+```
+backend/        FastAPI · SQLAlchemy async · Alembic · Pillow
+frontend/       (kommer)
+tests/          pytest · httpx · testcontainers (PostgreSQL)
+```
+
+Databasen er PostgreSQL. Coldpreviews lagres i `$COLDPREVIEW_DIR/<ab>/<cd>/<hothash>.jpg`.
+
+## Utvikling
+
+```bash
+# Kjør tester (krever Docker)
+cd backend
+uv run pytest ../tests/ -v
+
+# Start server lokalt med hot-reload
+docker compose up
+```
+
+Miljøvariabler konfigureres i `backend/.env` (se `.env.example`).
