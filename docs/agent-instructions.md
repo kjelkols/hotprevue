@@ -107,14 +107,14 @@ Dette dokumentet skal ligge i /docs/agent-instructions.md og oppdateres fortløp
 	- Ikke-destruktiv korreksjon av tid, sted og visning (rotasjon, crop, eksponering)
 	- Korreksjoner lagres separat fra originaldata
 
-- **Import/eksport**
-	- Import fra lokale mapper
+- **Registrering/eksport**
+	- Registrering fra lokale mapper
 	- Eksport av bilder og metadata
 
 - **Companion files og fleksibel filstruktur**
 	- Hvert bilde kan ha flere tilknyttede filer (“companion files”), f.eks. RAW, JPEG, XMP, sidecar, tekst eller andre metadatafiler.
 	- Datamodellen skal støtte en liste over companion files per bilde, med type (RAW, JPEG, XMP, etc.), filsti og evt. ekstra metadata.
-	- Import- og visningslogikk skal håndtere og vise alle relevante companion files.
+	- Registrerings- og visningslogikk skal håndtere og vise alle relevante companion files.
 	- Dette gir fleksibilitet for fremtidige filtyper og arbeidsflyter, og gjør det enkelt å utvide systemet uten endring i grunnstrukturen.
 
 ## Arkitektur og tekniske valg
@@ -136,7 +136,7 @@ Dette dokumentet skal ligge i /docs/agent-instructions.md og oppdateres fortløp
 - **Database:**
   - Inneholder all metadata om bilder (EXIF, brukerdata, hothash, filstier til originaler, base64 hotpreview).
 - **Coldpreview-filer:**
-  - Genereres ved import, lagres i dedikert katalogtre (hash-basert).
+  - Genereres ved registrering, lagres i dedikert katalogtre (hash-basert).
   - Brukes til visning i frontend (rask, mellomstor forhåndsvisning).
   - Kan alltid regenereres fra originalfilene.
 - **Originalfiler:**
@@ -145,8 +145,8 @@ Dette dokumentet skal ligge i /docs/agent-instructions.md og oppdateres fortløp
   - Kun filsti og metadata lagres i databasen.
 
 ## 2. Bruksscenario
-- **Import på bærbar:**
-  - Importer bilder, generer hotpreview/coldpreview, lagre metadata og coldpreview-filer lokalt.
+- **Registrering på bærbar:**
+  - Registrer bilder, generer hotpreview/coldpreview, lagre metadata og coldpreview-filer lokalt.
 - **Synkronisering:**
   - Synkroniser database og coldpreview-filer til hjemmelab-server når du er tilbake.
 - **Visning:**
@@ -169,9 +169,9 @@ Dette dokumentet skal ligge i /docs/agent-instructions.md og oppdateres fortløp
    - Implementer periodisk sjekk for å validere at filstier fortsatt er gyldige.
    - Ved visning/eksport, hent originalfil fra lagret sti.
 
-3. **Import og synkronisering**
-   - Importer alltid via frontend på bærbar/server.
-   - Etter import, synkroniser database og coldpreview til hjemmelab-server (f.eks. via rsync, Nextcloud, Syncthing).
+3. **Registrering og synkronisering**
+   - Registrer alltid via frontend på bærbar/server.
+   - Etter registrering, synkroniser database og coldpreview til hjemmelab-server (f.eks. via rsync, Nextcloud, Syncthing).
    - Unngå å endre data på to steder samtidig for å unngå konflikter.
 
 4. **Regenerering av coldpreview**
@@ -198,7 +198,7 @@ Hotprevue skal ikke flytte, endre eller ta eierskap over originalbildene. Bruker
 - Søk og filtrering: Søk på filstier, mapper, filnavn, og vis hvor originalene er lagret.
 - Batch-verktøy: Mulighet for å batch-oppdatere filstier hvis bilder flyttes.
 - Organiseringshjelp: Visualiser hvor bildene er lagret, f.eks. trestruktur, kart, eller liste.
-- Import-assistent: Veilede brukeren ved import, f.eks. "Velg mappe for originaler", "Importer fra valgt kilde".
+- Registrerings-assistent: Veilede brukeren ved registrering, f.eks. "Velg mappe for originaler", "Registrer fra valgt kilde".
 - Ekstern åpning: Mulighet for å åpne originalfilen i eksternt program (f.eks. Lightroom, Photoshop) direkte fra Hotprevue.
 - Status og validering: Periodisk sjekk av filstier, og vis status for tilgjengelighet.
 
