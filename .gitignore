@@ -224,6 +224,9 @@ data/*
 *.log
 logs/
 
+# Test images (downloaded separately, not committed)
+.test-images/
+
 # Misc
 npm-debug.log*
 yarn-debug.log*

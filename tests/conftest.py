@@ -121,6 +121,45 @@ async def client(database_url):
 
 
 # ---------------------------------------------------------------------------
+# Real images fixture (requires downloaded test assets)
+# ---------------------------------------------------------------------------
+
+TEST_IMAGES_DIR = Path(__file__).parent.parent / ".test-images"
+
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--real-images",
+        action="store_true",
+        default=False,
+        help="Run tests marked with @pytest.mark.real_images (requires downloaded test assets).",
+    )
+
+
+def pytest_collection_modifyitems(config, items):
+    if config.getoption("--real-images"):
+        return
+    skip = pytest.mark.skip(reason="Pass --real-images to run (see: make download-test-images)")
+    for item in items:
+        if item.get_closest_marker("real_images"):
+            item.add_marker(skip)
+
+
+@pytest.fixture(scope="session")
+def real_image_dir():
+    """Path to the downloaded test image directory.
+
+    Structure expected:
+        .test-images/
+            jpeg/   ← JPEG files from various cameras
+            raw/    ← RAW files (optional)
+    """
+    if not TEST_IMAGES_DIR.exists() or not any(TEST_IMAGES_DIR.iterdir()):
+        pytest.skip("Test images not downloaded. Run: make download-test-images")
+    return TEST_IMAGES_DIR
+
+
+# ---------------------------------------------------------------------------
 # Shared helpers
 # ---------------------------------------------------------------------------
 
