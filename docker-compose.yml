@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: hotprevue
+      POSTGRES_PASSWORD: hotprevue
+      POSTGRES_DB: hotprevue
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hotprevue"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+asyncpg://hotprevue:hotprevue@db:5432/hotprevue
+      COLDPREVIEW_DIR: /data/coldpreviews
+    volumes:
+      - coldpreviews:/data/coldpreviews
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
+
+volumes:
+  db_data:
+  coldpreviews:
