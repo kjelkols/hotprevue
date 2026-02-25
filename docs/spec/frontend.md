@@ -16,6 +16,9 @@ Ikke låst. Kandidater: React, Vue, Svelte. Kommuniserer med backend via HTTP AP
 | `/collections/:id` | Collection i rekkefølge |
 | `/input-sessions` | Registreringsassistent |
 | `/input-sessions/:id` | Pågående eller fullført sesjon |
+| `/photographers` | Liste over fotografer |
+| `/photographers/:id` | Fotograf med tilhørende photos |
+| `/duplicates` | Oversikt over duplikatfiler |
 | `/search` | Søk og filtrering |
 | `/admin` | Systemstatus, filstivalidering, sesjoner |
 
