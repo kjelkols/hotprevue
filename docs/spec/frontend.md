@@ -54,4 +54,4 @@ Ikke låst. Kandidater: React, Vue, Svelte. Kommuniserer med backend via HTTP AP
 - Originalfilsti alltid synlig i detaljvisning
 - Tydelig varsling når originalfil ikke er tilgjengelig
 - Ingen destruktive operasjoner uten bekreftelse
-- Batch-operasjoner (tagging, rating, event-tilknytning) skal støttes i gallerivisning
+- Batch-operasjoner (rating, event-tilknytning, kategori) skal støttes i gallerivisning

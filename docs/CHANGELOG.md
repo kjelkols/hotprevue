@@ -23,7 +23,7 @@ Format: `## YYYY-MM-DD — Kort beskrivelse`
 - Event-modell med self-referential hierarki
 - Hotpreview og coldpreview-generering (Pillow)
 - EXIF-ekstraksjon
-- Tags (PostgreSQL ARRAY) og rating
+- Rating
 - Testinfrastruktur: testcontainers + Alembic
 - Docker Compose og Dockerfile for backend
 - Infrastruktur for testbilder fra GitHub Releases

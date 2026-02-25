@@ -70,12 +70,12 @@ Dette dokumentet skal ligge i /docs/agent-instructions.md og oppdateres fortløp
 	- Detaljvisning med metadata
 
 - **Metadataredigering**
-	- Rediger rating (1-5), tags, lokasjon, beskrivelse
+	- Rediger rating (1-5), lokasjon
 	- Støtte for batch-redigering
 
 - **Søk og filtrering**
 	- Tekstsøk på metadata
-	- Filtrering på tags, rating, dato, event
+	- Filtrering på rating, dato, event, kategori
 
 - **Collections**
 	- En collection er en ordnet gruppe med bilder, hvor rekkefølgen er viktig.
@@ -98,10 +98,6 @@ Dette dokumentet skal ligge i /docs/agent-instructions.md og oppdateres fortløp
 - **Stories (PhotoText)**
 	- Block-basert editor for artikler med bilder og tekst
 	- Knytt bilder til stories
-
-- **Tagging**
-	- Legg til/fjern tags (case-insensitive, autocomplete)
-	- Søk og filtrer på tags
 
 - **Bildekorreksjoner**
 	- Ikke-destruktiv korreksjon av tid, sted og visning (rotasjon, crop, eksponering)

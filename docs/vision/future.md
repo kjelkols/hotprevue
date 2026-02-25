@@ -93,9 +93,9 @@ Hothash håndterer eksakte duplikater. Perceptual hashing (f.eks. pHash) kan bru
 
 Systemet kan foreslå events basert på tidsluker mellom bilder, eller stacks basert på motivlikhet. Forslagene er aldri automatisk gjennomført — brukeren godkjenner alltid.
 
-## AI-assistert tagging og beskrivelse
+## AI-assistert kategorisering og beskrivelse
 
-Bildebeskrivelse og automatisk tagging via bildegjenkjenning. Nyttig for store arkiver. Resultatene er forslag — brukeren korrigerer.
+Automatisk kategorisering og beskrivelse via bildegjenkjenning. Nyttig for store arkiver. Resultatene er forslag — brukeren korrigerer.
 
 ## Tidslinje og kart
 
