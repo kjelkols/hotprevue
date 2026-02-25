@@ -3,20 +3,22 @@
 ## Entiteter og relasjoner
 
 ```
-Photographer (1) ◄─── default ─── InputSession (1) ──── (many) Photo
-                                                               │
-Photographer (1) ◄──────────────────────── photographer_id ───┤
-                                                               │
-                                                    (many) ImageFile
-                                                               │
-Photo ──── Event (many-to-one, nullable)                       │
-  │                                                    file_path, file_type,
-  ├── Stack (via stack_id, self-grouped)                is_master
-  │
-  └── CollectionItem (many-to-many via Collection)
-              │
-         Collection
+                    ┌─ default_photographer_id ──► Photographer ◄── photographer_id ─┐
+                    │                                                                  │
+InputSession ───────┤─ default_event_id ─────────► Event ◄──── event_id ─────────────┤
+                    │                                                                  │
+                    ├──── (many) Photo ─────────────────────────────────────────────── ┘
+                    │           │
+                    │           ├── (many) ImageFile
+                    │           ├── Stack (self-grouped via stack_id)
+                    │           └── CollectionItem ──► Collection
+                    │
+                    ├──── (many) SessionError
+                    │
+                    └──── (many) DuplicateFile ──► Photo (eksisterende duplikat)
 ```
+
+---
 
 ## Photographer
 
@@ -31,6 +33,8 @@ Photo ──── Event (many-to-one, nullable)                       │
 | `is_unknown` | bool | Markerer plassholderen "Ukjent fotograf" |
 | `created_at` | datetime | — |
 
+---
+
 ## InputSession
 
 | Felt | Type | Beskrivelse |
@@ -38,9 +42,17 @@ Photo ──── Event (many-to-one, nullable)                       │
 | `id` | UUID PK | — |
 | `name` | string | Navn på kilde/sesjon, f.eks. "Kjells iPhone" |
 | `source_path` | string | Katalog som ble registrert |
-| `default_photographer_id` | UUID FK | Standardfotograf for denne sesjonen |
-| `started_at` | datetime | Tidspunkt for registreringskjøring |
-| `image_count` | int | Antall Photos registrert |
+| `recursive` | bool | Skann underkataloger? (standard: true) |
+| `default_photographer_id` | UUID FK | Standardfotograf — aldri null |
+| `default_event_id` | UUID FK (nullable) | Standardevent — null betyr ingen event |
+| `status` | string | `pending` / `scanning` / `awaiting_confirmation` / `processing` / `completed` / `failed` |
+| `started_at` | datetime | Tidspunkt for opprettelse |
+| `completed_at` | datetime (nullable) | Tidspunkt for fullføring |
+| `photo_count` | int | Antall Photos registrert (oppdateres ved fullføring) |
+| `duplicate_count` | int | Antall duplikater funnet (oppdateres ved fullføring) |
+| `error_count` | int | Antall filer som feilet (oppdateres ved fullføring) |
+
+---
 
 ## Photo
 
@@ -56,11 +68,13 @@ Photo ──── Event (many-to-one, nullable)                       │
 | `tags` | string[] | PostgreSQL ARRAY |
 | `description` | text (nullable) | Fritekstbeskrivelse |
 | `photographer_id` | UUID FK | Aldri null |
-| `input_session_id` | UUID FK (nullable) | — |
+| `input_session_id` | UUID FK (nullable) | Null for historiske photos uten sesjonskontekst |
 | `event_id` | UUID FK (nullable) | — |
 | `stack_id` | UUID (nullable) | — |
 | `is_stack_cover` | bool | — |
 | `registered_at` | datetime | — |
+
+---
 
 ## ImageFile
 
@@ -71,6 +85,32 @@ Photo ──── Event (many-to-one, nullable)                       │
 | `file_path` | string | Absolutt sti til filen |
 | `file_type` | string | `RAW`, `JPEG`, `TIFF`, `PNG`, `HEIC`, `XMP` |
 | `is_master` | bool | Kildefil for Photo sin hotpreview og EXIF (alltid false for XMP) |
+
+---
+
+## DuplicateFile
+
+| Felt | Type | Beskrivelse |
+|---|---|---|
+| `id` | UUID PK | — |
+| `photo_id` | UUID FK (cascade delete) | Photo denne filen er duplikat av |
+| `file_path` | string (unique) | Absolutt sti til duplikatfilen |
+| `session_id` | UUID FK | Sesjonen som oppdaget duplikatet |
+| `detected_at` | datetime | — |
+
+---
+
+## SessionError
+
+| Felt | Type | Beskrivelse |
+|---|---|---|
+| `id` | UUID PK | — |
+| `session_id` | UUID FK (cascade delete) | Tilhørende sesjon |
+| `file_path` | string | Filen som feilet |
+| `error` | string | Feilmelding fra systemet |
+| `occurred_at` | datetime | — |
+
+---
 
 ## Event
 
@@ -84,6 +124,8 @@ Photo ──── Event (many-to-one, nullable)                       │
 | `parent_id` | UUID FK (nullable) | Hierarki — peker på overordnet event |
 | `created_at` | datetime | — |
 
+---
+
 ## Collection
 
 | Felt | Type | Beskrivelse |
@@ -93,6 +135,8 @@ Photo ──── Event (many-to-one, nullable)                       │
 | `description` | text (nullable) | — |
 | `cover_hothash` | string (nullable) | Hothash til coverbilde |
 | `created_at` | datetime | — |
+
+---
 
 ## CollectionItem
 

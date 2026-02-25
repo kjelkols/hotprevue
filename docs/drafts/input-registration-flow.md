@@ -1,22 +1,26 @@
 # Utkast: Registreringsflyt og datamodell for input-sesjon
 
-Status: **avklart — innhold overført til spec**
+Status: **avklart og overført til spec**
 Sist oppdatert: 2026-02-25
 
-Alle åpne spørsmål er avklart. Innholdet er fordelt til:
-- `spec/domain.md` — Photo, ImageFile
-- `spec/data-model.md` — oppdaterte tabeller
-- `spec/api.md` — input-sesjoner, fotografer, photos
+Alle spørsmål er avklart. Innholdet er fordelt til:
+- `spec/domain.md` — Photo, ImageFile, Input-sesjon, DuplicateFile, SessionError
+- `spec/data-model.md` — alle tabeller med korrekte felt
+- `spec/api.md` — alle endepunkter inkl. duplikater og sesjonsfeil
 
 ---
 
-## Avklarte spørsmål
+## Avklarte beslutninger
 
-| Nr | Spørsmål | Svar |
-|---|---|---|
-| 1 | RAW eller JPEG som master? | RAW prioriteres alltid |
-| 2 | rawpy som avhengighet? | Ja, fra start |
-| 3 | Review-steg? | Ja, standard — kan slås av via API-parameter |
-| 4 | Synkron eller asynkron? | Synkron |
-| 5 | 3+ filer flagges? | Ja, i review-steget |
-| 6 | XMP-deteksjon? | Ja — lagres som ImageFile med file_type="XMP", ingen innholdslesing |
+| Emne | Beslutning |
+|---|---|
+| Master ved RAW+JPEG | RAW prioriteres alltid |
+| rawpy | Avhengighet fra start |
+| Review-steg | Standard — kan slås av med `skip_review: true` |
+| Prosessering | Synkron |
+| Grupper med 3+ filer | Flagges i scan-responsen |
+| XMP-filer | Lagres som ImageFile med `file_type = "XMP"`, ingen innholdslesing |
+| Duplikathåndtering | Egen `DuplicateFile`-tabell — backend passiv, frontend presenterer |
+| Stille sletting av duplikater | Ved neste skanning eller manuell validering |
+| Event i sesjon | `none` eller `single` (`default_event_id` nullable) — auto er frontend-ansvar |
+| SessionError | Egen tabell med filsti og feilmelding, cascade-slettes med sesjon |

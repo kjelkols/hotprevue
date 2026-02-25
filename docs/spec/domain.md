@@ -30,9 +30,39 @@ Feltene `name`, `website` og `bio` er de som publiseres til Hotprevue Global. `n
 
 ## Input-sesjon
 
-En navngitt registreringskjøring — f.eks. "Kjells iPhone" eller "Familiekamera SD-kort". Kombinerer kildeaspektet (hvem sitt utstyr, hvilken kilde) med hendelsesaspektet (én konkret kjøring med tidspunkt og filsti). Alle Photos registrert i en sesjon knyttes til den. Gir sporbarhet og mulighet for å filtrere eller angre en hel batch.
+En navngitt registreringskjøring som kombinerer kildeaspektet (hvem sitt utstyr, hvilken kilde) med hendelsesaspektet (én konkret kjøring med tidspunkt og filsti). Eksempler: "Kjells iPhone", "Familiekamera SD-kort", "Arkiv 1990–2000".
 
-Input-sesjonen har en standardfotograf: Photos registrert via sesjonen får denne fotografen som standardverdi.
+Alle Photos registrert i en sesjon knyttes til den og kan alltid søkes ut via `input_session_id`. Sesjonen er et organisatorisk ankerpunkt — Photos behøver ikke ha event ved registrering.
+
+**Standardverdier:** Sesjonen har en obligatorisk standardfotograf (`default_photographer_id`) og et valgfritt standardevent (`default_event_id`). Photos arver disse som standardverdier. Begge kan overstyres per Photo i etterkant.
+
+**Event-tilknytning:** To alternativer — ingen event (`default_event_id` er null) eller ett spesifikt event (satt av brukeren). Automatisk event-generering fra katalogstruktur er et frontend-ansvar og skjer ikke i backend.
+
+**Rekursiv skanning:** Styres av `recursive`-flagget (standard: true). Kan deaktiveres hvis brukeren kun vil skanne toppnivåkatalogen.
+
+**Status:** Sesjonen har en livssyklus: `pending` → `scanning` → `awaiting_confirmation` → `processing` → `completed`. Ved feil settes status til `failed`. `awaiting_confirmation` betyr at scan er utført og systemet venter på at brukeren bekrefter prosessering.
+
+**Rescan:** En sesjon kan rescanned mot samme `source_path` uavhengig av tidligere status. Filer med hothash som allerede finnes i databasen hoppes over stille. Nye filer registreres og telles i `photo_count`.
+
+**Duplikater:** Filer med hothash som matcher et eksisterende Photo, men med en ny ukjent filsti, registreres i `DuplicateFile`-tabellen og telles i `duplicate_count`.
+
+**Feil:** Filer som feiler under prosessering logges i `SessionError`-tabellen og telles i `error_count`.
+
+## DuplicateFile
+
+Et register over filer oppdaget under skanning som har identisk hothash som et eksisterende Photo, men en ukjent filsti. Indikerer at samme bilde finnes på flere steder i filsystemet — en uønsket tilstand brukeren bør rydde opp i.
+
+Backend registrerer duplikater passivt under skanning. Ingen statuslogikk, ingen arbeidsflyt i backend. Frontend presenterer listen og gir brukeren informasjonen som trengs for å handle utenfor systemet. Hotprevue sletter eller flytter aldri filer.
+
+En DuplicateFile-rad fjernes stille fra databasen når filen ikke lenger finnes på disk — oppdaget under neste skanning av samme katalog eller ved manuell filsti-validering. Cascade-slettes når tilhørende Photo slettes.
+
+Unik constraint på `file_path`: samme fil registreres aldri to ganger som duplikat, uavhengig av hvilken sesjon som finner den.
+
+## SessionError
+
+En logg over filer som feilet under prosessering i en InputSession — f.eks. ulesbare filer, ødelagte bildefiler eller manglende lesetilgang. Gir sporbarhet for problemer brukeren bør undersøke.
+
+Cascade-slettes når sesjonen de tilhører slettes.
 
 ## Hothash
 
