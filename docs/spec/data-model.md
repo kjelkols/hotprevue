@@ -65,7 +65,6 @@ InputSession ───────┤─ default_event_id ───────�
 | `exif_data` | jsonb | EXIF fra masterfil |
 | `taken_at` | datetime (nullable) | Fra EXIF |
 | `rating` | int (nullable) | 1–5 |
-| `tags` | string[] | PostgreSQL ARRAY |
 | `description` | text (nullable) | Fritekstbeskrivelse |
 | `photographer_id` | UUID FK | Aldri null |
 | `input_session_id` | UUID FK (nullable) | Null for historiske photos uten sesjonskontekst |

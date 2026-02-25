@@ -19,7 +19,7 @@ Teknisk API-dokumentasjon genereres automatisk fra kjørende backend (se `script
 |---|---|---|
 | `GET` | `/photos` | List photos (filtrering via query-params) |
 | `GET` | `/photos/{hothash}` | Hent ett photo med metadata |
-| `PATCH` | `/photos/{hothash}` | Oppdater rating, tags, event, beskrivelse, fotograf |
+| `PATCH` | `/photos/{hothash}` | Oppdater rating, event, beskrivelse, fotograf |
 | `DELETE` | `/photos/{hothash}` | Mykt slett photo (setter `deleted_at`) |
 | `POST` | `/photos/{hothash}/restore` | Gjenopprett mykt slettet photo |
 | `POST` | `/photos/empty-trash` | Hard-slett alle mykt slettede photos og deres coldpreviews |
@@ -150,7 +150,6 @@ Avvises med `409 Conflict` hvis eventen har child-events. Brukeren må slette ch
 | `photographer_id` | UUID | Filtrer på fotograf |
 | `event_id` | UUID | Filtrer på event |
 | `session_id` | UUID | Filtrer på input-sesjon |
-| `tags` | string[] | Filtrer på én eller flere tags |
 | `rating_min` | int | Minimumsrating (1–5) |
 | `rating_max` | int | Maksimumsrating (1–5) |
 | `taken_after` | datetime | Tidligste tidspunkt |

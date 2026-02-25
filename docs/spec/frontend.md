@@ -28,11 +28,11 @@ Ikke låst. Kandidater: React, Vue, Svelte. Kommuniserer med backend via HTTP AP
 - Grid-visning av hotpreviews
 - Stacks vises som ett photo (coverbilde) med indikator
 - Lazy loading og paginering
-- Filtrering på fotograf, event, tags, rating, dato
+- Filtrering på fotograf, event, rating, dato
 
 ### Detaljvisning
 - Coldpreview i stor størrelse
-- Alle metadata: EXIF, tags, rating, event, fotograf, beskrivelse
+- Alle metadata: EXIF, rating, event, fotograf, beskrivelse
 - Liste over tilknyttede ImageFiles med filtype og sti
 - Knapp for å åpne originalfil i eksternt program
 - Navigasjon til forrige/neste photo

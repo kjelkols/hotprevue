@@ -20,7 +20,7 @@ Løsningen er en tydelig todelt arkitektur:
 Global er ikke en skylagring. Det er en metadata- og oppdagelsesdatabase. Den inneholder:
 - hothash og hotpreview (150×150) for publiserte bilder
 - Fotograf/author-informasjon og copyright
-- Beskrivelse, tags og collections
+- Beskrivelse og collections
 - En kontaktmekanisme mellom publikum og fotograf
 
 Originaler forblir alltid på fotografens maskin. Global letter oppdagelse og kontakt — ikke lagring.
@@ -40,7 +40,7 @@ hothash er en inneholdsbasert ID — SHA256 av hotpreview-bytene. Det gir:
 
 ### Synkronisering lokalt → globalt
 
-Når metadata oppdateres lokalt etter publisering (ny beskrivelse, endret copyright, nye tags), bør endringene kunne pushes til Global. Dette krever:
+Når metadata oppdateres lokalt etter publisering (ny beskrivelse, endret copyright), bør endringene kunne pushes til Global. Dette krever:
 - En publiseringsstatus per bilde i lokal DB (`published_at`, `global_id`)
 - En push-mekanisme (API-kall fra lokal til Global ved eksplisitt brukerhandling)
 - Global behandler lokalt som autoritativ kilde for publisert innhold
