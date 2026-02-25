@@ -7,7 +7,8 @@
                     │                                                                  │
 InputSession ───────┤─ default_event_id ─────────► Event ◄──── event_id ─────────────┤
                     │                                                                  │
-                    ├──── (many) Photo ─────────────────────────────────────────────── ┘
+                    ├──── (many) Photo ──── category_id ──► Category
+                    │           │                                                         ┘
                     │           │
                     │           ├── (many) ImageFile
                     │           ├── Stack (self-grouped via stack_id)
@@ -77,6 +78,7 @@ InputSession ───────┤─ default_event_id ───────�
 | `shutter_speed` | string (nullable) | Fra EXIF — f.eks. `"1/250"` |
 | `aperture` | float (nullable) | Fra EXIF — f-tall, f.eks. `2.8` |
 | `focal_length` | float (nullable) | Fra EXIF — i mm |
+| `category_id` | UUID FK (nullable) | Brukerdefinert kategori. Null = ingen kategori, alltid i strømmen. |
 | `rating` | int (nullable) | 1–5 |
 | `photographer_id` | UUID FK | Aldri null |
 | `input_session_id` | UUID FK (nullable) | Null for historiske photos uten sesjonskontekst |
@@ -163,3 +165,15 @@ InputSession ───────┤─ default_event_id ───────�
 | `is_text_card` | bool | Er dette et tekstkort (ikke bilde)? |
 | `title` | text (nullable) | Tittel for tekstkort |
 | `text_content` | text (nullable) | Innhold for tekstkort |
+
+---
+
+## Category
+
+| Felt | Type | Beskrivelse |
+|---|---|---|
+| `id` | UUID PK | — |
+| `name` | string (unique) | Visningsnavn — f.eks. `"Botanikk"` |
+| `excluded_from_stream` | bool | Ekskluderes fra standard gallerivisning |
+| `display_order` | int | Rekkefølge i dropdown |
+| `created_at` | datetime | — |

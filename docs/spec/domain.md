@@ -110,6 +110,16 @@ En ordnet gruppe Photos der rekkefølgen er viktig. Mange-til-mange: ett Photo k
 
 **Coverbilde:** Se felles coverbilde-regel nedenfor. Cover settes via `PATCH /collections/{id}` (`cover_hothash`).
 
+## Category
+
+En brukerdefinert kategori som klassifiserer et Photo etter type eller tema — f.eks. `"Botanikk"`, `"Geologi"`, `"Dokumentasjon"`. Kategorier varierer fra bruker til bruker og administreres i systemet.
+
+Hvert Photo har maksimalt én kategori (`category_id`, nullable). Null betyr ingen kategori — slike Photos er alltid synlige i hovedstrømmen.
+
+Kategorier kan merkes som ekskludert fra standard gallerivisning (`excluded_from_stream`). Dette brukes til å holde spesialiserte bilder ute av den vanlige strømmen uten å slette dem.
+
+`category_id`-parameteren i `GET /photos` er designet som array-parameter for fremtidig støtte for filtrering på flere kategorier og ekskludering av kategorier.
+
 ## Coverbilde
 
 Felles regel for alle modeller med coverbilde (Stack, Event, Collection):

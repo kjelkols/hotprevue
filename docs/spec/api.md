@@ -101,6 +101,15 @@ Returnerer rot-events med children nøstet inn. Hver event inkluderer `photo_cou
 **`DELETE /events/{id}`:**
 Avvises med `409 Conflict` hvis eventen har child-events. Brukeren må slette children manuelt først.
 
+### Categories
+
+| Metode | Sti | Beskrivelse |
+|---|---|---|
+| `GET` | `/categories` | List alle kategorier (for dropdown) |
+| `POST` | `/categories` | Opprett kategori |
+| `PATCH` | `/categories/{id}` | Oppdater navn, rekkefølge, strøm-ekskludering |
+| `DELETE` | `/categories/{id}` | Slett — setter `category_id = null` på tilknyttede Photos |
+
 ### Collections
 
 | Metode | Sti | Beskrivelse |
@@ -152,12 +161,18 @@ Avvises med `409 Conflict` hvis eventen har child-events. Brukeren må slette ch
 | `photographer_id` | UUID | Filtrer på fotograf |
 | `event_id` | UUID | Filtrer på event |
 | `session_id` | UUID | Filtrer på input-sesjon |
+| `category_id` | UUID | Filtrer på kategori. `null` = Photos uten kategori. |
+| `in_stream` | bool | `true` = kun Photos der kategorien ikke er ekskludert fra strøm (inkl. Photos uten kategori) |
 | `rating_min` | int | Minimumsrating (1–5) |
 | `rating_max` | int | Maksimumsrating (1–5) |
 | `taken_after` | datetime | Tidligste tidspunkt |
 | `taken_before` | datetime | Seneste tidspunkt |
 | `limit` | int | Antall resultater (paginering) |
 | `offset` | int | Startposisjon (paginering) |
+
+**Utvidelsespunkt:** `category_id` er designet som en array-parameter — initielt aksepteres én verdi, men parameteren er strukturert slik at følgende kan legges til uten breaking changes:
+- `?category_id=id1&category_id=id2` — filtrer på flere kategorier (OR)
+- `?exclude_category_id=id1&exclude_category_id=id2` — ekskluder én eller flere kategorier
 
 ---
 
