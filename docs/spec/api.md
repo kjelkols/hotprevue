@@ -98,6 +98,28 @@ Teknisk API-dokumentasjon genereres automatisk fra kjørende backend (se `script
 | `POST` | `/collections/{id}/items` | Legg til photo eller tekstkort |
 | `DELETE` | `/collections/{id}/items/{item_id}` | Fjern element |
 
+### Stacks
+
+| Metode | Sti | Beskrivelse |
+|---|---|---|
+| `POST` | `/stacks` | Opprett stack med ett Photo — blir automatisk coverbilde |
+| `GET` | `/stacks` | List alle stacks med coverbilde og antall Photos |
+| `GET` | `/stacks/{stack_id}` | Hent alle Photos i en stack |
+| `POST` | `/stacks/{stack_id}/photos` | Legg til Photo i stack |
+| `DELETE` | `/stacks/{stack_id}/photos/{hothash}` | Fjern Photo fra stack |
+| `PUT` | `/stacks/{stack_id}/cover/{hothash}` | Sett coverbilde |
+| `DELETE` | `/stacks/{stack_id}` | Slett hele stacken og løs opp alle Photos |
+
+**Parametere for `POST /stacks`:**
+- `hothash` (string, påkrevd) — Photo som blir første og eneste medlem, settes automatisk som coverbilde
+
+**Parametere for `POST /stacks/{stack_id}/photos`:**
+- `hothash` (string, påkrevd) — Photo som legges til. Returnerer `409 Conflict` hvis Photo allerede tilhører en annen stack.
+
+**Automatisk coverbilde:** Hvis coverbilde fjernes fra stacken via `DELETE /stacks/{stack_id}/photos/{hothash}`, settes det første gjenværende Photo automatisk som nytt coverbilde.
+
+**Automatisk sletting:** Hvis siste Photo fjernes fra en stack, slettes stacken automatisk. Eksplisitt `DELETE /stacks/{stack_id}` løser opp alle Photos uten å slette dem.
+
 ---
 
 ## Filtrering (GET /photos)

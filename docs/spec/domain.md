@@ -78,7 +78,13 @@ Opptil 1200 px JPEG, lagret på disk i en hash-basert katalogstruktur (`$COLDPRE
 
 ## Stack
 
-En visuell gruppering av flere Photos av samme motiv. Én stack vises som ett Photo (coverbilde) i galleriet, men kan ekspanderes. Stack har ingen egne metadata — all informasjon ligger på enkelt-Photos. Implementert via `stack_id` på Photo-entiteten. Ett Photo er markert som `is_stack_cover`.
+En visuell gruppering av flere Photos av samme motiv. Én stack vises som ett Photo (coverbilde) i galleriet, men kan ekspanderes. Stack har ingen egne metadata — all informasjon ligger på enkelt-Photos. Implementert via `stack_id` på Photo-entiteten.
+
+**Coverbilde:** Alltid eksakt ett Photo per stack er markert som `is_stack_cover`. Coverbilde settes automatisk til det første Photo ved opprettelse. Hvis coverbilde fjernes fra stacken, settes det første gjenværende Photo automatisk som nytt coverbilde.
+
+**Eksklusivt medlemskap:** Et Photo kan kun tilhøre én stack. Forsøk på å legge et Photo som allerede er i en annen stack inn i en ny stack avvises med feil.
+
+**Levetid:** En stack opprettes alltid med minst ett Photo. Hvis siste Photo fjernes fra en stack, slettes stacken automatisk (`stack_id` settes til `null` på alle gjenværende Photos). En stack kan også slettes eksplisitt — da løses alle Photos fra stacken.
 
 ## Event
 

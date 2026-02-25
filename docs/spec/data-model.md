@@ -70,8 +70,8 @@ InputSession ───────┤─ default_event_id ───────�
 | `photographer_id` | UUID FK | Aldri null |
 | `input_session_id` | UUID FK (nullable) | Null for historiske photos uten sesjonskontekst |
 | `event_id` | UUID FK (nullable) | — |
-| `stack_id` | UUID (nullable) | — |
-| `is_stack_cover` | bool | — |
+| `stack_id` | UUID (nullable) | Grupperings-ID — Photos med samme `stack_id` tilhører én stack. Et Photo kan kun tilhøre én stack. |
+| `is_stack_cover` | bool | Om dette Photo er coverbilde for stacken. Alltid eksakt ett per stack. |
 | `registered_at` | datetime | — |
 
 ---
