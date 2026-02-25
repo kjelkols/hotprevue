@@ -4,58 +4,62 @@ Denne filen er den autoritative kilden til terminologi i Hotprevue. Ved tvil om 
 
 ---
 
-## Bilde
+## Photo
 
-Den grunnleggende enheten i systemet. Et bilde representerer én originalfil. Systemet lagrer metadata og forhåndsvisninger — ikke selve filen.
+Den grunnleggende enheten i systemet. Et Photo representerer ett logisk fotografi — ett opptak, én kreativ enhet. Det som vises i galleriet, knyttes til events og collections, og får rating, tags og beskrivelse. Et Photo kan ha én eller flere tilknyttede originalfiler (se ImageFile).
+
+## ImageFile
+
+En fysisk fil på disk tilknyttet et Photo. Et Photo har alltid minst én ImageFile. ImageFile er en ren filpeker — den brukes til å finne originalfiler og gjøre dem tilgjengelige for eksterne programmer. Den har ingen egen hotpreview eller EXIF.
+
+Én ImageFile er master: den filen som ble brukt som kilde for Photo sin hotpreview og EXIF ved registrering. Mastervalget er permanent og kan ikke endres etter registrering.
+
+Filtyper som lagres: `RAW`, `JPEG`, `TIFF`, `PNG`, `HEIC`, `XMP`. XMP-sidecar-filer registreres som ImageFile med `file_type = "XMP"` — innholdet leses ikke, men filstien bevares slik at eksterne programmer (f.eks. Lightroom, Darktable) kan bruke dem.
 
 ## Registrering
 
-Prosessen der et bilde legges inn i systemet. Aldri kalt "import". Registrering leses, eksif trekkes ut, previews genereres — originalen røres ikke.
+Prosessen der bilder legges inn i systemet. Aldri kalt "import". Backend leser originalfiler, trekker ut EXIF, genererer hotpreview og coldpreview — originalfilene røres ikke.
 
 ## Fotograf
 
-En person som har tatt ett eller flere bilder i systemet. Ikke en systembruker — ingen innlogging eller tilgangskontroll. Eieren av systemet administrerer fotograflisten på vegne av alle. Hvert bilde må ha én fotograf (aldri null). Systemet har alltid én standardfotograf (`is_default`) og én plassholder for ukjent fotograf (`is_unknown`).
+En person som har tatt ett eller flere Photos i systemet. Ikke en systembruker — ingen innlogging eller tilgangskontroll. Eieren av systemet administrerer fotograflisten på vegne av alle. Hvert Photo må ha én fotograf (aldri null). Systemet har alltid én standardfotograf (`is_default`) og én plassholder for ukjent fotograf (`is_unknown`).
 
 Fotograf settes automatisk ved registrering basert på input-sesjonen, men kan korrigeres i etterkant på enkeltbilder eller i batch.
 
 ## Input-sesjon
 
-En navngitt registreringskjøring — f.eks. "Kjells iPhone" eller "Familiekamera SD-kort". Kombinerer kildeaspektet (hvem sitt utstyr, hvilken kilde) med hendelseaspektet (én konkret kjøring med tidspunkt og filsti). Alle bilder registrert i en sesjon knyttes til den. Gir sporbarhet og mulighet for å filtrere eller angre en hel batch.
+En navngitt registreringskjøring — f.eks. "Kjells iPhone" eller "Familiekamera SD-kort". Kombinerer kildeaspektet (hvem sitt utstyr, hvilken kilde) med hendelsesaspektet (én konkret kjøring med tidspunkt og filsti). Alle Photos registrert i en sesjon knyttes til den. Gir sporbarhet og mulighet for å filtrere eller angre en hel batch.
 
-Input-sesjonen har en standardfotograf: bilder registrert via sesjonen får denne fotografen som standardverdi, med mindre noe annet er angitt.
+Input-sesjonen har en standardfotograf: Photos registrert via sesjonen får denne fotografen som standardverdi.
 
 ## Hothash
 
-SHA256 av hotpreview-JPEG-bytene. Brukes som unik ID for et bilde i hele systemet.
+SHA256 av hotpreview-JPEG-bytene. Brukes som unik ID for et Photo i hele systemet — i databasen, i API-et og i filstier for coldpreviews. Hothash er uforanderlig etter registrering.
 
 ## Hotpreview
 
-150×150 px JPEG, base64-kodet, lagret direkte i databasen. Brukes til rask visning i gallerier uten diskaksess.
+150×150 px JPEG, base64-kodet, lagret direkte i databasen. Generert fra masterfilens innhold ved registrering. Brukes til rask visning i gallerier uten diskaksess.
 
 ## Coldpreview
 
-Opptil 1200 px JPEG, lagret på disk i en hash-basert katalogstruktur (`$COLDPREVIEW_DIR/<ab>/<cd>/<hothash>.jpg`). Brukes til detaljvisning. Kan alltid regenereres fra originalfilen.
+Opptil 1200 px JPEG, lagret på disk i en hash-basert katalogstruktur (`$COLDPREVIEW_DIR/<ab>/<cd>/<hothash>.jpg`). Brukes til detaljvisning. Kan regenereres fra masterfilens originalfil hvis den er tilgjengelig.
 
 ## Stack
 
-En visuell gruppering av flere bilder av samme motiv. Én stack vises som ett bilde (coverbilde) i galleriet, men kan ekspanderes. Stack har ingen egne metadata — all informasjon ligger på enkeltbildene. Implementert via `stack_id` på bilde-entiteten. Ett bilde er markert som `is_stack_cover`.
+En visuell gruppering av flere Photos av samme motiv. Én stack vises som ett Photo (coverbilde) i galleriet, men kan ekspanderes. Stack har ingen egne metadata — all informasjon ligger på enkelt-Photos. Implementert via `stack_id` på Photo-entiteten. Ett Photo er markert som `is_stack_cover`.
 
 ## Event
 
-En uordnet gruppe bilder knyttet til en hendelse, et tidspunkt eller et sted. Hvert bilde tilhører maksimalt én event (one-to-many). Events støtter hierarki (parent/child). Ingen rekkefølge på bildene — alle er likestilte.
+En uordnet gruppe Photos knyttet til en hendelse, et tidspunkt eller et sted. Hvert Photo tilhører maksimalt én event (one-to-many). Events støtter hierarki (parent/child). Ingen rekkefølge på Photos — alle er likestilte.
 
 ## Collection
 
-En ordnet gruppe bilder der rekkefølgen er viktig. Hvert bilde kan ha en bildetekst (caption). Tekstkort kan legges inn mellom bilder. Mange-til-mange: ett bilde kan inngå i flere collections. Brukes til lysbildeserier, porteføljer, leveranser og kuratering.
+En ordnet gruppe Photos der rekkefølgen er viktig. Hvert Photo kan ha en bildetekst (caption). Tekstkort kan legges inn mellom Photos. Mange-til-mange: ett Photo kan inngå i flere collections. Brukes til lysbildeserier, porteføljer, leveranser og kuratering.
 
 ## Story (PhotoText)
 
-En blokk-basert artikkel som kombinerer bilder og tekst. Lar brukeren fortelle en historie rundt bildene.
-
-## Companion files
-
-Tilknyttede filer til et bilde — f.eks. RAW, JPEG, XMP, sidecar. Lagres som en liste per bilde med type og filsti.
+En blokk-basert artikkel som kombinerer Photos og tekst. Lar brukeren fortelle en historie rundt bildene.
 
 ## Korreksjon
 
-Ikke-destruktiv endring av bilde-metadata: tid, sted, rotasjon, eksponering. Lagres separat fra originaldata og EXIF.
+Ikke-destruktiv endring av Photo-metadata: tid, sted, rotasjon, eksponering. Lagres separat fra originaldata og EXIF.

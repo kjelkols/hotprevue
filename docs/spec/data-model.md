@@ -3,21 +3,19 @@
 ## Entiteter og relasjoner
 
 ```
-Photographer (1) ◄─── default ─── InputSession (1) ──── (many) Image
+Photographer (1) ◄─── default ─── InputSession (1) ──── (many) Photo
                                                                │
-Photographer (1) ◄─────────────────────────────────── photographer_id
+Photographer (1) ◄──────────────────────── photographer_id ───┤
                                                                │
-Image ──── Event (many-to-one, nullable)                       │
-  │                                                            │
-  ├── Stack (via stack_id, self-grouped)                       │
-  │                                                            │
-  ├── CompanionFile (one-to-many)                              │
-  │                                                            │
-  └── CollectionItem (many-to-many via Collection)             │
-              │                                                │
-         Collection                                            │
+                                                    (many) ImageFile
                                                                │
-InputSession (1) ◄──────────────────────── input_session_id ──┘
+Photo ──── Event (many-to-one, nullable)                       │
+  │                                                    file_path, file_type,
+  ├── Stack (via stack_id, self-grouped)                is_master
+  │
+  └── CollectionItem (many-to-many via Collection)
+              │
+         Collection
 ```
 
 ## Photographer
@@ -40,28 +38,37 @@ InputSession (1) ◄────────────────────
 | `source_path` | string | Katalog som ble registrert |
 | `default_photographer_id` | UUID FK | Standardfotograf for denne sesjonen |
 | `started_at` | datetime | Tidspunkt for registreringskjøring |
-| `image_count` | int | Antall bilder registrert |
+| `image_count` | int | Antall Photos registrert |
 
-## Image
+## Photo
 
 | Felt | Type | Beskrivelse |
 |---|---|---|
 | `id` | UUID PK | Intern database-ID |
 | `hothash` | string (unique) | SHA256 av hotpreview — brukes som ID i API og filstier |
-| `file_path` | string | Absolutt sti til originalfil |
-| `hotpreview_b64` | text | Base64-kodet 150×150 JPEG |
+| `hotpreview_b64` | text | Base64-kodet 150×150 JPEG, generert fra masterfil |
 | `coldpreview_path` | string (nullable) | Sti til coldpreview-fil på disk |
-| `taken_at` | datetime (nullable) | Tidspunkt fra EXIF |
+| `exif_data` | jsonb | EXIF fra masterfil |
+| `taken_at` | datetime (nullable) | Fra EXIF |
 | `rating` | int (nullable) | 1–5 |
 | `tags` | string[] | PostgreSQL ARRAY |
 | `description` | text (nullable) | Fritekstbeskrivelse |
-| `exif_data` | jsonb | Rå EXIF-data |
-| `photographer_id` | UUID FK | Fotografen som tok bildet (aldri null) |
-| `input_session_id` | UUID FK (nullable) | Hvilken sesjon bildet ble registrert i |
-| `event_id` | UUID FK (nullable) | Tilknyttet event |
-| `stack_id` | UUID (nullable) | Stack-gruppering |
-| `is_stack_cover` | bool | Er dette stackens coverbilde? |
-| `registered_at` | datetime | Tidspunkt for registrering |
+| `photographer_id` | UUID FK | Aldri null |
+| `input_session_id` | UUID FK (nullable) | — |
+| `event_id` | UUID FK (nullable) | — |
+| `stack_id` | UUID (nullable) | — |
+| `is_stack_cover` | bool | — |
+| `registered_at` | datetime | — |
+
+## ImageFile
+
+| Felt | Type | Beskrivelse |
+|---|---|---|
+| `id` | UUID PK | — |
+| `photo_id` | UUID FK | Tilhørende Photo |
+| `file_path` | string | Absolutt sti til filen |
+| `file_type` | string | `RAW`, `JPEG`, `TIFF`, `PNG`, `HEIC`, `XMP` |
+| `is_master` | bool | Kildefil for Photo sin hotpreview og EXIF (alltid false for XMP) |
 
 ## Event
 
@@ -96,12 +103,3 @@ InputSession (1) ◄────────────────────
 | `caption` | text (nullable) | Bildetekst |
 | `is_text_card` | bool | Er dette et tekstkort (ikke bilde)? |
 | `text_content` | text (nullable) | Innhold hvis tekstkort |
-
-## CompanionFile
-
-| Felt | Type | Beskrivelse |
-|---|---|---|
-| `id` | UUID PK | — |
-| `hothash` | string (FK) | Tilknyttet bilde |
-| `file_type` | string | RAW, JPEG, XMP, etc. |
-| `file_path` | string | Absolutt sti |
