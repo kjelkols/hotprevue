@@ -62,8 +62,21 @@ InputSession ───────┤─ default_event_id ───────�
 | `hothash` | string (unique) | SHA256 av hotpreview — brukes som ID i API og filstier |
 | `hotpreview_b64` | text | Base64-kodet 150×150 JPEG, generert fra masterfil |
 | `coldpreview_path` | string (nullable) | Sti til coldpreview-fil på disk |
-| `exif_data` | jsonb | EXIF fra masterfil |
-| `taken_at` | datetime (nullable) | Fra EXIF |
+| `exif_data` | jsonb | Rå EXIF fra masterfil — referanse og kilde for reset |
+| `taken_at` | datetime (nullable) | Effektivt tidspunkt — fra EXIF eller korrigert |
+| `taken_at_source` | int | `0`=EXIF, `1`=Justert fra EXIF, `2`=Manuelt satt |
+| `taken_at_accuracy` | string | `second` / `hour` / `day` / `month` / `year` |
+| `location_lat` | float (nullable) | Effektiv breddegrad — fra EXIF GPS eller korrigert |
+| `location_lng` | float (nullable) | Effektiv lengdegrad — fra EXIF GPS eller korrigert |
+| `location_source` | int (nullable) | `0`=EXIF, `1`=Justert fra EXIF, `2`=Manuelt satt. Null hvis ingen posisjon. |
+| `location_accuracy` | string (nullable) | `exact` / `street` / `city` / `region` / `country`. Null hvis ingen posisjon. |
+| `camera_make` | string (nullable) | Fra EXIF — f.eks. `"Canon"` |
+| `camera_model` | string (nullable) | Fra EXIF — f.eks. `"EOS R5"` |
+| `lens_model` | string (nullable) | Fra EXIF |
+| `iso` | int (nullable) | Fra EXIF |
+| `shutter_speed` | string (nullable) | Fra EXIF — f.eks. `"1/250"` |
+| `aperture` | float (nullable) | Fra EXIF — f-tall, f.eks. `2.8` |
+| `focal_length` | float (nullable) | Fra EXIF — i mm |
 | `rating` | int (nullable) | 1–5 |
 | `description` | text (nullable) | Fritekstbeskrivelse |
 | `photographer_id` | UUID FK | Aldri null |

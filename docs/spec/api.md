@@ -19,7 +19,9 @@ Teknisk API-dokumentasjon genereres automatisk fra kjørende backend (se `script
 |---|---|---|
 | `GET` | `/photos` | List photos (filtrering via query-params) |
 | `GET` | `/photos/{hothash}` | Hent ett photo med metadata |
-| `PATCH` | `/photos/{hothash}` | Oppdater rating, event, beskrivelse, fotograf |
+| `PATCH` | `/photos/{hothash}` | Oppdater rating, event, beskrivelse, fotograf, taken_at, location |
+| `POST` | `/photos/{hothash}/reset-time` | Tilbakestill taken_at til original EXIF-verdi |
+| `POST` | `/photos/{hothash}/reset-location` | Tilbakestill location til original EXIF GPS-verdi |
 | `DELETE` | `/photos/{hothash}` | Mykt slett photo (setter `deleted_at`) |
 | `POST` | `/photos/{hothash}/restore` | Gjenopprett mykt slettet photo |
 | `POST` | `/photos/empty-trash` | Hard-slett alle mykt slettede photos og deres coldpreviews |

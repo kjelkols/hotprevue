@@ -142,4 +142,36 @@ En blokk-basert artikkel som kombinerer Photos og tekst. Lar brukeren fortelle e
 
 ## Korreksjon
 
-Ikke-destruktiv endring av Photo-metadata: tid, sted, rotasjon, eksponering. Lagres separat fra originaldata og EXIF.
+Brukerkorrigering av `taken_at` og `location` — de to feltene som oftest trenger justering. Typiske tilfeller: feil klokke i kamera, manglende GPS, scannede bilder uten EXIF.
+
+Korreksjon lagres direkte i Photo-feltene (`taken_at`, `location_lat`, `location_lng`). Original-EXIF er alltid bevart i `exif_data` og kan brukes til å tilbakestille. To kildeflagg dokumenterer hvordan den gjeldende verdien ble satt:
+
+**`taken_at_source` og `location_source`:**
+
+| Verdi | Betydning |
+|---|---|
+| `0` | Fra EXIF — original, uendret |
+| `1` | Justert fra EXIF — f.eks. tidsoffset lagt til |
+| `2` | Satt manuelt — ingen EXIF-kilde |
+
+**`taken_at_accuracy`** — hvor presis er tidspunktet:
+
+| Verdi | Visningseksempel |
+|---|---|
+| `second` | 15. juni 2023, 14:32:07 |
+| `hour` | 15. juni 2023, ca. 14:00 |
+| `day` | 15. juni 2023 |
+| `month` | Juni 2023 |
+| `year` | 1975 |
+
+**`location_accuracy`** — hvor presis er posisjonen:
+
+| Verdi | Typisk radius |
+|---|---|
+| `exact` | < 50m — GPS eller presis kartpin |
+| `street` | ~500m — nabolag |
+| `city` | ~10km — by |
+| `region` | ~100km — fylke/region |
+| `country` | — |
+
+Frontend bruker accuracy til å bestemme visning: presis pin på kart ved `exact`, uskarpt område ved `city`, bare stedsnavn ved `region`/`country`.
