@@ -34,3 +34,4 @@ Hva innebærer denne beslutningen fremover?
 | Nr | Tittel | Status |
 |---|---|---|
 | 001 | Hothash som unik bilde-ID | Godkjent |
+| 002 | Backend kjører der filene er | Godkjent |

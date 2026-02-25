@@ -5,30 +5,37 @@ Sist oppdatert: 2026-02-25
 
 ---
 
-## Bakgrunn
+## Avklart: Photo og ImageFile
 
-Dette dokumentet beskriver et forslag til hvordan registrering av bilder via katalogskanning skal fungere, og introduserer to nye entiteter: `Photo` og `ImageFile`. Mange ting er ikke avklart ennå.
+### Photo
 
----
+`Photo` erstatter `Image` fullt ut. Den har alle egenskapene `Image` har i dag, pluss fotograf og input-sesjon. Det er den logiske og kreative enheten — det som vises i galleriet, knyttes til events og collections, får rating og tags.
 
-## Kjerneendring: Photo og ImageFile erstatter Image
+### ImageFile
 
-Nåværende `Image`-entitet representerer én fil og ett logisk fotografi i ett. Det holder ikke for RAW+JPEG-par og liknende.
+`ImageFile` er et enkelt register over originalfiler knyttet til et Photo. Den har ingen egen hotpreview, hothash eller EXIF. Den er kun en filpeker — brukes for å finne originalfilene tilhørende et Photo.
 
-Forslaget er å dele dette i to:
+Én ImageFile er master: den filen som ble brukt som kilde for Photo sin hotpreview og EXIF ved registrering.
 
-- **Photo** — det logiske fotografiet (ett opptak, én kreativ enhet). Det som vises i galleriet, knyttes til events og collections, får rating og tags.
-- **ImageFile** — én fysisk fil på disk. Et Photo har én eller flere ImageFiles. Én av dem er master.
+| Felt | Type | Beskrivelse |
+|---|---|---|
+| `id` | UUID PK | — |
+| `photo_id` | UUID FK | Tilhørende Photo |
+| `file_path` | string | Absolutt sti til originalfilen |
+| `file_type` | string | `RAW`, `JPEG`, `TIFF`, `PNG`, `HEIC` |
+| `is_master` | bool | Kildefil for Photo sin hotpreview og EXIF |
 
-Eksisterende `Image`-tabell og all tilhørende kode må erstattes. Dette er en stor endring og må gjøres koordinert.
+### Eksisterende Image-kode
+
+All eksisterende kode med `Image`-entiteten slettes når implementasjon starter. Variabelnavnet `image` passer ikke inn i strukturen og vil skape forvirring. Kodebasen tagges (`pre-spec-cleanup`) slik at nyttige utiliteter (EXIF, preview-generering) kan konsulteres ved behov.
 
 ---
 
 ## Masterfil
 
-Én ImageFile i en gruppe er master. Masterfilens hotpreview kopieres til Photo. Photo.hothash = masterfilens hothash. **Valget er permanent** — kan ikke endres etter registrering uten å endre hothash, som bryter alle referanser (events, collections, global publisering).
+Masterfilens hotpreview og EXIF brukes som Photo sitt grunnlag. **Valget er permanent** — kan ikke endres etter registrering uten å endre hothash, som bryter alle referanser (events, collections, global publisering).
 
-Foreslått prioritetsrekkefølge:
+Foreslått prioritetsrekkefølge innen en gruppe:
 1. RAW (CR2, CR3, NEF, ARW, ORF, RW2, DNG, RAF, PEF)
 2. JPEG/JPG
 3. TIFF, PNG, HEIC
@@ -36,26 +43,24 @@ Foreslått prioritetsrekkefølge:
 
 Første fil etter prioritet, deretter alfabetisk, blir master.
 
-> **Uavklart:** Er RAW-prioritet riktig? Fotografer forventer gjerne at RAW er primær, men det krever rawpy for preview-generering. Alternativet er å alltid bruke JPEG som master hvis den finnes — enklere implementasjon, men avviker fra faglig konvensjon.
+> **Uavklart:** Er RAW-prioritet riktig? Fotografer forventer gjerne at RAW er primær, men preview-generering fra RAW krever rawpy. Alternativet er å alltid bruke JPEG som master hvis den finnes.
 
 ---
 
 ## Grupperingsalgoritme
 
-Skanning finner alle bildefiler i katalogtreet. Gruppering skjer på:
+Skanning finner alle bildefiler i katalogtreet rekursivt. Gruppering skjer på:
 
 ```
 nøkkel = (katalogsti, filnavn-uten-extension, lowercased)
 ```
 
-Filer med samme nøkkel havner i samme gruppe og blir én Photo med flere ImageFiles.
+Filer med samme nøkkel havner i samme gruppe og blir én Photo med én eller flere ImageFiles.
 
-Filtyper som behandles som bildefiler:
+Filtyper som behandles:
 `.jpg`, `.jpeg`, `.png`, `.tiff`, `.tif`, `.heic`, `.heif`, `.cr2`, `.cr3`, `.nef`, `.arw`, `.orf`, `.rw2`, `.dng`, `.raf`, `.pef`
 
-XMP/sidecar-filer (`.xmp`) grupperes på samme nøkkel, men er ikke ImageFiles — de knyttes som companion til tilhørende ImageFile.
-
-> **Uavklart:** Er XMP-deteksjon i scope for første versjon av registrering?
+> **Uavklart:** Skal XMP/sidecar-filer detekteres og knyttes til ImageFile? Kan utsettes.
 
 ---
 
@@ -73,11 +78,7 @@ XMP/sidecar-filer (`.xmp`) grupperes på samme nøkkel, men er ikke ImageFiles �
 5. Ekstraher EXIF fra masterfil
 6. Opprett Photo (hothash, hotpreview, exif, photographer_id, session_id)
 7. Generer coldpreview → skriv til disk
-8. For hver fil i gruppen:
-     a. Generer hotpreview
-     b. Beregn hothash
-     c. Ekstraher EXIF
-     d. Opprett ImageFile (photo_id, file_path, file_type, hotpreview, hothash, is_master)
+8. Opprett én ImageFile per fil i gruppen (file_path, file_type, is_master)
 ```
 
 ---
@@ -90,7 +91,7 @@ XMP/sidecar-filer (`.xmp`) grupperes på samme nøkkel, men er ikke ImageFiles �
 |---|---|---|
 | `id` | UUID PK | — |
 | `hothash` | string (unique) | SHA256 av masterfilens hotpreview |
-| `hotpreview_b64` | text | Kopi av masterfilens hotpreview |
+| `hotpreview_b64` | text | Generert fra masterfil |
 | `coldpreview_path` | string (nullable) | — |
 | `exif_data` | jsonb | EXIF fra masterfil |
 | `taken_at` | datetime (nullable) | Fra EXIF |
@@ -110,12 +111,9 @@ XMP/sidecar-filer (`.xmp`) grupperes på samme nøkkel, men er ikke ImageFiles �
 |---|---|---|
 | `id` | UUID PK | — |
 | `photo_id` | UUID FK | Tilhørende Photo |
-| `file_path` | string | Absolutt sti |
+| `file_path` | string | Absolutt sti til originalfilen |
 | `file_type` | string | `RAW`, `JPEG`, `TIFF`, `PNG`, `HEIC` |
-| `hothash` | string (unique) | SHA256 av denne filens hotpreview |
-| `hotpreview_b64` | text | Denne filens egen hotpreview |
-| `exif_data` | jsonb (nullable) | Denne filens EXIF |
-| `is_master` | bool | Er dette masterfilen? |
+| `is_master` | bool | Kildefil for Photo sin hotpreview og EXIF |
 
 ---
 
@@ -146,20 +144,19 @@ XMP/sidecar-filer (`.xmp`) grupperes på samme nøkkel, men er ikke ImageFiles �
 
 | Nr | Spørsmål | Konsekvens |
 |---|---|---|
-| 1 | RAW eller JPEG som master ved par? | Påvirker preview-kvalitet og avhengigheter (rawpy) |
+| 1 | RAW eller JPEG som master ved par? | Påvirker avhengigheter (rawpy) |
 | 2 | Skal rawpy være en avhengighet fra start? | RAW-only grupper uten rawpy kan ikke registreres |
 | 3 | Review-steg i frontend — ja eller nei? | Påvirker API-design (to endepunkter vs ett) |
 | 4 | Synkron eller asynkron prosessering? | Asynkron er bedre UX for store kataloger, men mer kompleksitet |
 | 5 | Grupper med 3+ filer — flagges for bruker? | Kan indikere navnekollisjon eller usikker gruppering |
 | 6 | XMP/companion-deteksjon i scope for MVP? | Kan utsettes |
-| 7 | Hva skjer med eksisterende `Image`-kode og tester? | Må migreres/slettes koordinert |
 
 ---
 
 ## Neste steg
 
-Når spørsmålene over er avklart, skal innholdet herfra fordeles til:
-- `spec/domain.md` — Photo, ImageFile, oppdatert Bilde-seksjon
+Når spørsmålene over er avklart, fordeles innholdet til:
+- `spec/domain.md` — Photo, ImageFile, oppdatert terminologi
 - `spec/data-model.md` — nye tabeller, oppdaterte relasjoner
 - `spec/api.md` — nye endepunkter for input-sesjon og registrering
-- `decisions/` — én ADR per større beslutning (master-valg, rawpy, synkron/asynkron)
+- `decisions/` — ADR for master-valg og rawpy
