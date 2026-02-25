@@ -23,8 +23,10 @@ Photo ──── Event (many-to-one, nullable)                       │
 | Felt | Type | Beskrivelse |
 |---|---|---|
 | `id` | UUID PK | — |
-| `name` | string | Visningsnavn |
-| `notes` | text (nullable) | Valgfri merknad |
+| `name` | string | Visningsnavn og copyright-attributering |
+| `website` | string (nullable) | Portefølje eller personlig side |
+| `bio` | text (nullable) | Kort presentasjon — brukes i Global-profil |
+| `notes` | text (nullable) | Intern merknad — publiseres aldri |
 | `is_default` | bool | Systemets primærfotograf (eieren) |
 | `is_unknown` | bool | Markerer plassholderen "Ukjent fotograf" |
 | `created_at` | datetime | — |

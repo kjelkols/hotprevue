@@ -26,6 +26,8 @@ En person som har tatt ett eller flere Photos i systemet. Ikke en systembruker �
 
 Fotograf settes automatisk ved registrering basert på input-sesjonen, men kan korrigeres i etterkant på enkeltbilder eller i batch.
 
+Feltene `name`, `website` og `bio` er de som publiseres til Hotprevue Global. `notes` er intern og publiseres aldri.
+
 ## Input-sesjon
 
 En navngitt registreringskjøring — f.eks. "Kjells iPhone" eller "Familiekamera SD-kort". Kombinerer kildeaspektet (hvem sitt utstyr, hvilken kilde) med hendelsesaspektet (én konkret kjøring med tidspunkt og filsti). Alle Photos registrert i en sesjon knyttes til den. Gir sporbarhet og mulighet for å filtrere eller angre en hel batch.
