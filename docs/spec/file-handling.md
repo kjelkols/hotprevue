@@ -3,11 +3,26 @@
 ## Originalfiler
 
 Hotprevue rører aldri originalfilene. Systemet lagrer kun:
-- Absolutt filsti til originalfilen
+- Absolutt filsti til originalfilen (via ImageFile)
 - Metadata og EXIF lest ved registrering
 - Hotpreview (generert kopi, 150×150)
 
 Brukeren har full kontroll over hvor og hvordan originalene organiseres. Systemet gir oversikt og støtte — ingen automatisk flytting, omdøping eller sletting.
+
+## ImageFile og tilknyttede filer
+
+Hvert Photo har én eller flere ImageFiles — filpekere til originalfiler på disk. Følgende filtyper registreres:
+
+| Type | Eksempel |
+|---|---|
+| `RAW` | `.cr2`, `.cr3`, `.nef`, `.arw` |
+| `JPEG` | `.jpg`, `.jpeg` |
+| `TIFF` | `.tif`, `.tiff` |
+| `PNG` | `.png` |
+| `HEIC` | `.heic`, `.heif` |
+| `XMP` | Adobe/Darktable sidecar med redigeringshistorikk |
+
+ImageFiles detekteres automatisk ved registrering ved gruppering på filnavnstamme. XMP-filer lagres som ImageFile med `file_type = "XMP"` — innholdet leses ikke, men filstien bevares for bruk med eksterne programmer.
 
 ## Filstivalidering
 
@@ -17,19 +32,6 @@ Systemet bør periodisk sjekke at lagrede filstier fortsatt er gyldige:
 - Fil funnet men endret (størrelse/dato) → status `modified`
 
 Brukeren varsles om manglende filer og kan oppdatere filstien manuelt (f.eks. ved at originalene er flyttet til ny disk).
-
-## Companion files
-
-Hvert bilde kan ha en liste av tilknyttede filer med ulik rolle:
-
-| Type | Eksempel |
-|---|---|
-| `RAW` | `.cr2`, `.nef`, `.arw` |
-| `JPEG` | Alternativ JPEG-versjon |
-| `XMP` | Adobe sidecar med redigeringshistorikk |
-| `SIDECAR` | Andre metadatafiler |
-
-Companion files registreres manuelt eller automatisk ved registrering (f.eks. RAW+JPEG-par detekteres basert på filnavn). Filstier valideres på samme måte som originalfiler.
 
 ## Batch-oppdatering av filstier
 

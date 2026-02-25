@@ -4,11 +4,11 @@
 
 - **Størrelse:** 150×150 px, kvadratisk (crop til midten)
 - **Format:** JPEG
-- **Lagring:** Base64-kodet direkte i databasen (`Image.hotpreview`)
+- **Lagring:** Base64-kodet direkte i databasen (`Photo.hotpreview_b64`)
 - **Formål:** Rask gallerivisning uten diskaksess
-- **Hothash:** SHA256 av JPEG-bytene — brukes som unik bilde-ID i hele systemet
+- **Hothash:** SHA256 av JPEG-bytene — brukes som unik Photo-ID i hele systemet
 
-Hotpreview genereres én gang ved registrering og endres aldri. Hvis hotpreview må regenereres, vil hothash endre seg og bildet behandles som et nytt bilde.
+Hotpreview genereres én gang ved registrering og endres aldri. Hvis hotpreview må regenereres, vil hothash endre seg og Photo behandles som et nytt bilde.
 
 ## Coldpreview
 
@@ -18,7 +18,7 @@ Hotpreview genereres én gang ved registrering og endres aldri. Hvis hotpreview 
 - **Katalogstruktur:** `<COLDPREVIEW_DIR>/<ab>/<cd>/<hothash>.jpg` der `ab` og `cd` er de første 4 tegnene av hothash
 - **Formål:** Detaljvisning i frontend
 
-Coldpreview kan alltid regenereres fra originalfilen. Hvis originalfilen er utilgjengelig og coldpreview mangler, markeres bildet som utilgjengelig.
+Coldpreview kan alltid regenereres fra masterfilens originalfil. Hvis originalfilen er utilgjengelig og coldpreview mangler, markeres Photo som utilgjengelig.
 
 ## Generering
 

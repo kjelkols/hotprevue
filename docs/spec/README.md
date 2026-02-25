@@ -11,7 +11,7 @@ Denne katalogen inneholder den autoritative kravspesifikasjonen for Hotprevue. F
 | `data-model.md` | Datamodell, entiteter og relasjoner |
 | `api.md` | API-kontrakter, konvensjoner og endepunktoversikt (menneskelig lesbar) |
 | `previews.md` | Hotpreview og coldpreview — generering, lagring og synkronisering |
-| `file-handling.md` | Originalfiler, companion files, filstivalidering og synkstrategi |
+| `file-handling.md` | Originalfiler, ImageFiles, filstivalidering og synkstrategi |
 | `frontend.md` | Ruter, visninger og UX-krav |
 
 ## Bruk

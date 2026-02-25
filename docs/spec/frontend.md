@@ -9,12 +9,13 @@ Ikke låst. Kandidater: React, Vue, Svelte. Kommuniserer med backend via HTTP AP
 | Rute | Visning |
 |---|---|
 | `/` | Hovedgalleri / timeline |
-| `/images/:hothash` | Detaljvisning for ett bilde |
+| `/photos/:hothash` | Detaljvisning for ett photo |
 | `/events` | Liste over events |
-| `/events/:id` | Event med tilhørende bilder |
+| `/events/:id` | Event med tilhørende photos |
 | `/collections` | Liste over collections |
 | `/collections/:id` | Collection i rekkefølge |
-| `/import` | Registreringsassistent |
+| `/input-sessions` | Registreringsassistent |
+| `/input-sessions/:id` | Pågående eller fullført sesjon |
 | `/search` | Søk og filtrering |
 | `/admin` | Systemstatus, filstivalidering, sesjoner |
 
@@ -22,26 +23,28 @@ Ikke låst. Kandidater: React, Vue, Svelte. Kommuniserer med backend via HTTP AP
 
 ### Galleri / timeline
 - Grid-visning av hotpreviews
-- Stacks vises som ett bilde (coverbilde) med indikator
+- Stacks vises som ett photo (coverbilde) med indikator
 - Lazy loading og paginering
-- Filtrering på event, tags, rating, dato
+- Filtrering på fotograf, event, tags, rating, dato
 
 ### Detaljvisning
 - Coldpreview i stor størrelse
-- Alle metadata: EXIF, tags, rating, event, beskrivelse
+- Alle metadata: EXIF, tags, rating, event, fotograf, beskrivelse
+- Liste over tilknyttede ImageFiles med filtype og sti
 - Knapp for å åpne originalfil i eksternt program
-- Navigasjon til forrige/neste bilde
+- Navigasjon til forrige/neste photo
 
 ### Registreringsassistent
-- Velg katalog (eller enkeltfiler)
-- Vis fremgang under registrering
-- Oppsummering med antall registrerte, duplikater og feil
+- Opprett input-sesjon: navn, fotograf, kildekatalog
+- Skann-steg: vis gruppesammendrag før prosessering
+- Fremgangsvisning under registrering
+- Oppsummering: antall registrerte, duplikater og feil
 
 ### Admin
 - Status for filstier (ok / missing / modified)
 - Batch-oppdatering av stiprefikser
-- Oversikt over registreringssesjoner
-- Systeminfo (databasestørrelse, antall bilder, coldpreview-størrelse)
+- Oversikt over input-sesjoner
+- Systeminfo (databasestørrelse, antall photos, coldpreview-størrelse)
 
 ## UX-prinsipper
 
