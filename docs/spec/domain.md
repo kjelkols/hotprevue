@@ -88,7 +88,15 @@ En visuell gruppering av flere Photos av samme motiv. Én stack vises som ett Ph
 
 ## Event
 
-En uordnet gruppe Photos knyttet til en hendelse, et tidspunkt eller et sted. Hvert Photo tilhører maksimalt én event (one-to-many). Events støtter hierarki (parent/child). Ingen rekkefølge på Photos — alle er likestilte.
+En uordnet gruppe Photos knyttet til en hendelse, et tidspunkt eller et sted. Hvert Photo tilhører maksimalt én event (one-to-many). Ingen rekkefølge på Photos — alle er likestilte.
+
+**Hierarki:** Events støtter ett nivå nesting — en rot-event kan ha child-events, men en child-event kan ikke ha egne children. Hierarkiet er rent organisatorisk: Photos knyttes alltid direkte til én event, og arver ingen tilhørighet oppover. `photo_count` er alltid kun direkte tilknyttede Photos.
+
+**Sletting:** `DELETE /events/{id}` avvises med feil hvis eventen har child-events. Brukeren må slette children manuelt først. Photos som tilhørte eventen beholdes — `event_id` settes til `null`.
+
+**Flytte:** En event kan flyttes ved å endre `parent_id` via `PATCH`. En rot-event med children kan ikke gjøres om til child-event — det ville gitt tre nivåer. En child-event kan løsrives til rot-event ved å sette `parent_id` til `null`.
+
+**Navn:** Ingen unik constraint — brukeren bestemmer selv.
 
 ## Collection
 

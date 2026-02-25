@@ -80,10 +80,22 @@ Teknisk API-dokumentasjon genereres automatisk fra kjørende backend (se `script
 | Metode | Sti | Beskrivelse |
 |---|---|---|
 | `POST` | `/events` | Opprett event |
-| `GET` | `/events` | List events med antall photos |
-| `GET` | `/events/{id}` | Hent event med tilhørende photos |
-| `PATCH` | `/events/{id}` | Oppdater event |
-| `DELETE` | `/events/{id}` | Slett event (photos beholdes) |
+| `GET` | `/events` | List alle events som trestruktur |
+| `GET` | `/events/{id}` | Hent event med direkte tilknyttede photos |
+| `PATCH` | `/events/{id}` | Oppdater event (inkl. flytte via `parent_id`) |
+| `DELETE` | `/events/{id}` | Slett event — photos beholdes (`event_id` settes til `null`) |
+
+**`GET /events` — trestruktur:**
+Returnerer rot-events med children nøstet inn. Hver event inkluderer `photo_count` (kun direkte tilknyttede Photos).
+
+**`PATCH /events/{id}` — flytte event:**
+- Sett `parent_id` til en rot-event for å gjøre eventen til child
+- Sett `parent_id` til `null` for å løsrive child-event til rot-event
+- Avvises med feil hvis ny `parent_id` peker på en child-event (ville gitt tre nivåer)
+- Avvises med feil hvis eventen har children og `parent_id` settes til en annen event (rot-event med children kan ikke flyttes)
+
+**`DELETE /events/{id}`:**
+Avvises med `409 Conflict` hvis eventen har child-events. Brukeren må slette children manuelt først.
 
 ### Collections
 

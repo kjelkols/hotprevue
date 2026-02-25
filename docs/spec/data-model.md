@@ -121,7 +121,7 @@ InputSession ───────┤─ default_event_id ───────�
 | `description` | text (nullable) | — |
 | `date` | date (nullable) | — |
 | `location` | string (nullable) | — |
-| `parent_id` | UUID FK (nullable) | Hierarki — peker på overordnet event |
+| `parent_id` | UUID FK (nullable) | Hierarki — peker på overordnet event. Maks ett nivå: en child-event kan ikke selv ha children. |
 | `created_at` | datetime | — |
 
 ---
