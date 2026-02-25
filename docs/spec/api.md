@@ -19,7 +19,7 @@ Teknisk API-dokumentasjon genereres automatisk fra kjørende backend (se `script
 |---|---|---|
 | `GET` | `/photos` | List photos (filtrering via query-params) |
 | `GET` | `/photos/{hothash}` | Hent ett photo med metadata |
-| `PATCH` | `/photos/{hothash}` | Oppdater rating, event, beskrivelse, fotograf, taken_at, location |
+| `PATCH` | `/photos/{hothash}` | Oppdater rating, event, fotograf, taken_at, location |
 | `POST` | `/photos/{hothash}/reset-time` | Tilbakestill taken_at til original EXIF-verdi |
 | `POST` | `/photos/{hothash}/reset-location` | Tilbakestill location til original EXIF GPS-verdi |
 | `DELETE` | `/photos/{hothash}` | Mykt slett photo (setter `deleted_at`) |
@@ -156,7 +156,6 @@ Avvises med `409 Conflict` hvis eventen har child-events. Brukeren må slette ch
 | `rating_max` | int | Maksimumsrating (1–5) |
 | `taken_after` | datetime | Tidligste tidspunkt |
 | `taken_before` | datetime | Seneste tidspunkt |
-| `q` | string | Tekstsøk på beskrivelse |
 | `limit` | int | Antall resultater (paginering) |
 | `offset` | int | Startposisjon (paginering) |
 

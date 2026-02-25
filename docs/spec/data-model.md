@@ -78,7 +78,6 @@ InputSession ───────┤─ default_event_id ───────�
 | `aperture` | float (nullable) | Fra EXIF — f-tall, f.eks. `2.8` |
 | `focal_length` | float (nullable) | Fra EXIF — i mm |
 | `rating` | int (nullable) | 1–5 |
-| `description` | text (nullable) | Fritekstbeskrivelse |
 | `photographer_id` | UUID FK | Aldri null |
 | `input_session_id` | UUID FK (nullable) | Null for historiske photos uten sesjonskontekst |
 | `event_id` | UUID FK (nullable) | — |

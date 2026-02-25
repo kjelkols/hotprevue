@@ -6,7 +6,7 @@ Denne filen er den autoritative kilden til terminologi i Hotprevue. Ved tvil om 
 
 ## Photo
 
-Den grunnleggende enheten i systemet. Et Photo representerer ett logisk fotografi — ett opptak, én kreativ enhet. Det som vises i galleriet, knyttes til events og collections, og får rating og beskrivelse. Et Photo kan ha én eller flere tilknyttede originalfiler (se ImageFile).
+Den grunnleggende enheten i systemet. Et Photo representerer ett logisk fotografi — ett opptak, én kreativ enhet. Det som vises i galleriet, knyttes til events og collections, og får rating. Et Photo kan ha én eller flere tilknyttede originalfiler (se ImageFile).
 
 ## ImageFile
 

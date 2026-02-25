@@ -32,7 +32,7 @@ Ikke låst. Kandidater: React, Vue, Svelte. Kommuniserer med backend via HTTP AP
 
 ### Detaljvisning
 - Coldpreview i stor størrelse
-- Alle metadata: EXIF, rating, event, fotograf, beskrivelse
+- Alle metadata: EXIF, rating, event, fotograf
 - Liste over tilknyttede ImageFiles med filtype og sti
 - Knapp for å åpne originalfil i eksternt program
 - Navigasjon til forrige/neste photo
