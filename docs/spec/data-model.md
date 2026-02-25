@@ -73,6 +73,7 @@ InputSession ───────┤─ default_event_id ───────�
 | `stack_id` | UUID (nullable) | Grupperings-ID — Photos med samme `stack_id` tilhører én stack. Et Photo kan kun tilhøre én stack. |
 | `is_stack_cover` | bool | Om dette Photo er coverbilde for stacken. Alltid eksakt ett per stack. |
 | `registered_at` | datetime | — |
+| `deleted_at` | datetime (nullable) | Null = aktiv. Satt = mykt slettet. Hard-slettes via `empty-trash`. |
 
 ---
 
@@ -122,6 +123,7 @@ InputSession ───────┤─ default_event_id ───────�
 | `date` | date (nullable) | — |
 | `location` | string (nullable) | — |
 | `parent_id` | UUID FK (nullable) | Hierarki — peker på overordnet event. Maks ett nivå: en child-event kan ikke selv ha children. |
+| `cover_hothash` | string (nullable) | Eksplisitt coverbilde. Null = bruk første Photo etter `taken_at ASC`. |
 | `created_at` | datetime | — |
 
 ---
@@ -133,7 +135,7 @@ InputSession ───────┤─ default_event_id ───────�
 | `id` | UUID PK | — |
 | `name` | string | — |
 | `description` | text (nullable) | — |
-| `cover_hothash` | string (nullable) | Hothash til coverbilde |
+| `cover_hothash` | string (nullable) | Eksplisitt coverbilde. Null = bruk første CollectionItem etter `position ASC`. |
 | `created_at` | datetime | — |
 
 ---
@@ -145,7 +147,8 @@ InputSession ───────┤─ default_event_id ───────�
 | `id` | UUID PK | — |
 | `collection_id` | UUID FK | — |
 | `hothash` | string (nullable) | Null hvis tekstkort |
-| `position` | int | Rekkefølge |
-| `caption` | text (nullable) | Bildetekst |
+| `position` | int | Rekkefølge. Ingen unik constraint — oppdateres samlet via PUT. |
+| `caption` | text (nullable) | Bildetekst for photo-items |
 | `is_text_card` | bool | Er dette et tekstkort (ikke bilde)? |
-| `text_content` | text (nullable) | Innhold hvis tekstkort |
+| `title` | text (nullable) | Tittel for tekstkort |
+| `text_content` | text (nullable) | Innhold for tekstkort |

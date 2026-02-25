@@ -100,7 +100,41 @@ En uordnet gruppe Photos knyttet til en hendelse, et tidspunkt eller et sted. Hv
 
 ## Collection
 
-En ordnet gruppe Photos der rekkefølgen er viktig. Hvert Photo kan ha en bildetekst (caption). Tekstkort kan legges inn mellom Photos. Mange-til-mange: ett Photo kan inngå i flere collections. Brukes til lysbildeserier, porteføljer, leveranser og kuratering.
+En ordnet gruppe Photos der rekkefølgen er viktig. Mange-til-mange: ett Photo kan inngå i flere collections. Brukes til lysbildeserier, porteføljer, leveranser og kuratering.
+
+**Rekkefølge:** Hvert CollectionItem har en heltallsposisjon. Rekkefølge endres via `PUT /collections/{id}/items` som tar inn en sortert liste av item-IDer og oppdaterer kun `position` — innhold røres ikke. Ingen unik constraint på `position`.
+
+**CollectionItem:** En selvstendig entitet med egen UUID. Innholdsendringer (caption, title, text_content) skjer via `PATCH /collections/{id}/items/{item_id}`. Item-IDer er stabile og endres ikke ved resortering.
+
+**Tekstkort:** Et CollectionItem uten tilknyttet Photo. Har `title` og `text_content` — vises som en visuell slide i collection. Kan brukes til å sette kontekst mellom bilder.
+
+**Coverbilde:** Se felles coverbilde-regel nedenfor. Cover settes via `PATCH /collections/{id}` (`cover_hothash`).
+
+## Coverbilde
+
+Felles regel for alle modeller med coverbilde (Stack, Event, Collection):
+
+1. Hvis et eksplisitt coverbilde er satt og Photo er aktivt — bruk det.
+2. Hvis coverbilde er mykt slettet — vis det med "slettet"-indikator. Brukeren velger nytt.
+3. Hvis ingen eksplisitt cover er satt — bruk første Photo etter modellens naturlige rekkefølge.
+4. Ved `empty-trash`: hvis cover-Photo hard-slettes, nullstilles `cover_hothash` automatisk og fallback-regelen trer i kraft.
+
+| Modell | Cover lagret som | Fallback-rekkefølge |
+|---|---|---|
+| Stack | `is_stack_cover` på Photo | Registreringsrekkefølge |
+| Event | `cover_hothash` på Event | `taken_at ASC` |
+| Collection | `cover_hothash` på Collection | `position ASC` |
+
+Stack skiller seg fra de andre ved at `is_stack_cover` alltid auto-settes (ved opprettelse og ved fjerning av cover). Event og Collection holder `cover_hothash` nullable — brukeren setter det manuelt.
+
+## Soft delete
+
+Photos slettes ikke direkte fra databasen. `DELETE /photos/{hothash}` setter `deleted_at = now()` — Photo er fortsatt i databasen men filtreres ut fra alle visninger som standard.
+
+- `POST /photos/{hothash}/restore` — gjenoppretter et mykt slettet Photo (`deleted_at = null`)
+- `POST /photos/empty-trash` — hard-sletter alle Photos med `deleted_at` satt, inkludert coldpreview-filer på disk
+
+**Re-registrering:** Hvis en fil med samme hothash som et mykt slettet Photo skannes på nytt, gjenopprettes Photo stille (`deleted_at = null`) uten duplikatvarsel.
 
 ## Story (PhotoText)
 

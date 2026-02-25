@@ -20,7 +20,9 @@ Teknisk API-dokumentasjon genereres automatisk fra kjørende backend (se `script
 | `GET` | `/photos` | List photos (filtrering via query-params) |
 | `GET` | `/photos/{hothash}` | Hent ett photo med metadata |
 | `PATCH` | `/photos/{hothash}` | Oppdater rating, tags, event, beskrivelse, fotograf |
-| `DELETE` | `/photos/{hothash}` | Slett metadata og coldpreview |
+| `DELETE` | `/photos/{hothash}` | Mykt slett photo (setter `deleted_at`) |
+| `POST` | `/photos/{hothash}/restore` | Gjenopprett mykt slettet photo |
+| `POST` | `/photos/empty-trash` | Hard-slett alle mykt slettede photos og deres coldpreviews |
 | `GET` | `/photos/{hothash}/coldpreview` | Last ned coldpreview-fil |
 | `GET` | `/photos/{hothash}/files` | List ImageFiles tilknyttet photo |
 
@@ -106,9 +108,16 @@ Avvises med `409 Conflict` hvis eventen har child-events. Brukeren må slette ch
 | `GET` | `/collections/{id}` | Hent collection med photos i rekkefølge |
 | `PATCH` | `/collections/{id}` | Oppdater collection |
 | `DELETE` | `/collections/{id}` | Slett collection |
-| `PUT` | `/collections/{id}/items` | Erstatt hele rekkefølgen |
-| `POST` | `/collections/{id}/items` | Legg til photo eller tekstkort |
+| `PUT` | `/collections/{id}/items` | Oppdater rekkefølge — send sortert liste av item-IDer |
+| `POST` | `/collections/{id}/items` | Legg til photo eller tekstkort (legges til bakerst) |
+| `PATCH` | `/collections/{id}/items/{item_id}` | Oppdater caption, title eller text_content |
 | `DELETE` | `/collections/{id}/items/{item_id}` | Fjern element |
+
+**`PUT /collections/{id}/items`** tar inn en sortert liste av eksisterende item-IDer og oppdaterer kun `position`. Innhold (caption, text_content) røres ikke. Nye items legges til via `POST`, ikke via `PUT`.
+
+**`POST /collections/{id}/items`** — parametere:
+- For photo: `hothash` (string, påkrevd)
+- For tekstkort: `is_text_card: true`, `title` (string, valgfri), `text_content` (string, valgfri)
 
 ### Stacks
 
