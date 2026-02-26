@@ -78,6 +78,7 @@ InputSession ───────┤─ default_event_id ───────�
 | `shutter_speed` | string (nullable) | Fra EXIF — f.eks. `"1/250"` |
 | `aperture` | float (nullable) | Fra EXIF — f-tall, f.eks. `2.8` |
 | `focal_length` | float (nullable) | Fra EXIF — i mm |
+| `tags` | TEXT[] | Fritekstetiketter. GIN-indeksert. Normalisert til lowercase ved skriving. |
 | `category_id` | UUID FK (nullable) | Brukerdefinert kategori. Null = ingen kategori, alltid i strømmen. |
 | `rating` | int (nullable) | 1–5 |
 | `photographer_id` | UUID FK | Aldri null |

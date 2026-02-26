@@ -110,6 +110,20 @@ En ordnet gruppe Photos der rekkefølgen er viktig. Mange-til-mange: ett Photo k
 
 **Coverbilde:** Se felles coverbilde-regel nedenfor. Cover settes via `PATCH /collections/{id}` (`cover_hothash`).
 
+## Tags
+
+Et sett med fritekstetiketter på et Photo — f.eks. `solnedgang`, `fjell`, `familie`. Et Photo kan ha mange tags. Tags er rene strenger uten egne attributter.
+
+**Normalisering:** Tags skrives alltid som lowercase og trimmet for whitespace. `"Solnedgang "` → `"solnedgang"`. Normalisering skjer i backend ved skriving.
+
+**Lagring:** `TEXT[]` på Photo med PostgreSQL GIN-indeks. GIN (Generalized Inverted Index) indekserer hver enkelt tag og gir meget rask søking uten å skanne hele tabellen — standard praksis for tag-søk i store bildesamlinger.
+
+**Autocomplete:** `GET /tags` returnerer alle distinkte tags i bruk, med valgfri prefiks-filtrering. Bygges fra `unnest(tags)` — ingen egen Tag-tabell.
+
+**Filtrering:** `GET /photos?tags=solnedgang&tags=fjell` — standard er AND (Photos som har *alle* angitte tags). OR-støtte kan legges til via `?tag_operator=or` uten breaking changes.
+
+**Hotprevue Global:** Tags publiseres som string-array. `"solnedgang"` fra én bruker og `"solnedgang"` fra en annen bruker er samme tag globalt — sømløs sammenslåing uten koordinering.
+
 ## Category
 
 En brukerdefinert kategori som klassifiserer et Photo etter type eller tema — f.eks. `"Botanikk"`, `"Geologi"`, `"Dokumentasjon"`. Kategorier varierer fra bruker til bruker og administreres i systemet.

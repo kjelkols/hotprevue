@@ -19,7 +19,7 @@ Teknisk API-dokumentasjon genereres automatisk fra kjørende backend (se `script
 |---|---|---|
 | `GET` | `/photos` | List photos (filtrering via query-params) |
 | `GET` | `/photos/{hothash}` | Hent ett photo med metadata |
-| `PATCH` | `/photos/{hothash}` | Oppdater rating, event, fotograf, taken_at, location |
+| `PATCH` | `/photos/{hothash}` | Oppdater rating, tags, event, fotograf, taken_at, location |
 | `POST` | `/photos/{hothash}/reset-time` | Tilbakestill taken_at til original EXIF-verdi |
 | `POST` | `/photos/{hothash}/reset-location` | Tilbakestill location til original EXIF GPS-verdi |
 | `DELETE` | `/photos/{hothash}` | Mykt slett photo (setter `deleted_at`) |
@@ -101,6 +101,16 @@ Returnerer rot-events med children nøstet inn. Hver event inkluderer `photo_cou
 **`DELETE /events/{id}`:**
 Avvises med `409 Conflict` hvis eventen har child-events. Brukeren må slette children manuelt først.
 
+### Tags
+
+| Metode | Sti | Beskrivelse |
+|---|---|---|
+| `GET` | `/tags` | List alle distinkte tags i bruk |
+
+**`GET /tags` — parametere:**
+- `q` (string, valgfri) — prefiks-filtrering for autocomplete, f.eks. `?q=sol` returnerer `solnedgang`, `soloppgang`
+- `with_count` (bool, valgfri) — inkluder antall Photos per tag
+
 ### Categories
 
 | Metode | Sti | Beskrivelse |
@@ -161,6 +171,7 @@ Avvises med `409 Conflict` hvis eventen har child-events. Brukeren må slette ch
 | `photographer_id` | UUID | Filtrer på fotograf |
 | `event_id` | UUID | Filtrer på event |
 | `session_id` | UUID | Filtrer på input-sesjon |
+| `tags` | string[] | Filtrer på tags — standard AND (Photos med *alle* angitte tags). |
 | `category_id` | UUID | Filtrer på kategori. `null` = Photos uten kategori. |
 | `in_stream` | bool | `true` = kun Photos der kategorien ikke er ekskludert fra strøm (inkl. Photos uten kategori) |
 | `rating_min` | int | Minimumsrating (1–5) |
@@ -170,9 +181,10 @@ Avvises med `409 Conflict` hvis eventen har child-events. Brukeren må slette ch
 | `limit` | int | Antall resultater (paginering) |
 | `offset` | int | Startposisjon (paginering) |
 
-**Utvidelsespunkt:** `category_id` er designet som en array-parameter — initielt aksepteres én verdi, men parameteren er strukturert slik at følgende kan legges til uten breaking changes:
+**Utvidelsespunkt:** `tags` og `category_id` er designet som array-parametere — initielt aksepteres én verdi, men parameteren er strukturert slik at følgende kan legges til uten breaking changes:
 - `?category_id=id1&category_id=id2` — filtrer på flere kategorier (OR)
 - `?exclude_category_id=id1&exclude_category_id=id2` — ekskluder én eller flere kategorier
+- `?tag_operator=or` — bytt tags-filtrering fra AND til OR
 
 ---
 
