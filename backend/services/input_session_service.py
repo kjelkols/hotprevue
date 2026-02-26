@@ -1,7 +1,9 @@
-"""InputSession service — create, scan, process."""
+"""InputSession service — create, check, register groups, complete."""
 
+import tempfile
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
@@ -10,10 +12,16 @@ from core.config import settings as app_settings
 from models.input_session import InputSession, SessionError
 from models.photo import DuplicateFile, ImageFile, Photo
 from models.settings import SystemSettings
-from schemas.input_session import InputSessionCreate, ProcessResult, ScanSummary
+from schemas.input_session import (
+    CheckRequest,
+    CheckResponse,
+    GroupMetadata,
+    GroupResult,
+    InputSessionCreate,
+    ProcessResult,
+)
 from utils.exif import extract_camera_fields, extract_exif, extract_gps, extract_taken_at
 from utils.previews import generate_coldpreview, generate_hotpreview, hotpreview_b64
-from utils.registration import KNOWN_EXTENSIONS, SIDECAR_EXTENSIONS, file_type_from_suffix, scan_directory
 
 
 def create(db: Session, data: InputSessionCreate) -> InputSession:
@@ -64,152 +72,168 @@ def delete(db: Session, session_id: uuid.UUID) -> None:
     db.commit()
 
 
-def scan(db: Session, session_id: uuid.UUID) -> ScanSummary:
-    """Scan source directory and return a summary without registering anything."""
+def check(db: Session, session_id: uuid.UUID, data: CheckRequest) -> CheckResponse:
+    """Return which master paths are already registered and which are new."""
+    get_or_404(db, session_id)
+    known_paths = {
+        r[0]
+        for r in db.query(ImageFile.file_path)
+        .filter(ImageFile.file_path.in_(data.master_paths))
+        .all()
+    }
+    known = [p for p in data.master_paths if p in known_paths]
+    unknown = [p for p in data.master_paths if p not in known_paths]
+    return CheckResponse(known=known, unknown=unknown)
+
+
+def register_group(
+    db: Session,
+    session_id: uuid.UUID,
+    file_bytes: bytes,
+    meta: GroupMetadata,
+) -> GroupResult:
+    """Register one file group. Returns GroupResult with status registered|duplicate|already_registered."""
     s = get_or_404(db, session_id)
-    s.status = "scanning"
-    db.commit()
 
+    # Already registered by path?
+    existing_file = (
+        db.query(ImageFile).filter(ImageFile.file_path == meta.master_path).first()
+    )
+    if existing_file:
+        photo = db.get(Photo, existing_file.photo_id)
+        return GroupResult(
+            status="already_registered",
+            hothash=photo.hothash,
+            photo_id=photo.id,
+        )
+
+    suffix = Path(meta.master_path).suffix or ".jpg"
+    tmp_path = None
     try:
-        groups, unknown_count = scan_directory(s.source_path, s.recursive)
-    except Exception as exc:
-        s.status = "failed"
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+            tmp.write(file_bytes)
+            tmp_path = tmp.name
+
+        jpeg_bytes, hothash = generate_hotpreview(tmp_path)
+
+        # Duplicate by content?
+        existing_photo = db.query(Photo).filter(Photo.hothash == hothash).first()
+        if existing_photo:
+            db.add(DuplicateFile(
+                photo_id=existing_photo.id,
+                file_path=meta.master_path,
+                session_id=session_id,
+            ))
+            db.commit()
+            _increment(db, session_id, duplicate_count=1)
+            return GroupResult(
+                status="duplicate",
+                hothash=hothash,
+                photo_id=existing_photo.id,
+            )
+
+        sys_settings = db.query(SystemSettings).first()
+        max_px = sys_settings.coldpreview_max_px if sys_settings else 1200
+        quality = sys_settings.coldpreview_quality if sys_settings else 85
+
+        exif_data = extract_exif(tmp_path)
+        camera_fields = extract_camera_fields(tmp_path)
+        taken_at = extract_taken_at(exif_data)
+        lat, lng = extract_gps(exif_data)
+
+        coldpreview_path = generate_coldpreview(
+            tmp_path, hothash, app_settings.coldpreview_dir,
+            max_px=max_px, quality=quality,
+        )
+
+        photographer_id = meta.photographer_id or s.default_photographer_id
+        event_id = meta.event_id if meta.event_id is not None else s.default_event_id
+
+        photo = Photo(
+            hothash=hothash,
+            hotpreview_b64=hotpreview_b64(jpeg_bytes),
+            coldpreview_path=coldpreview_path,
+            exif_data=exif_data,
+            taken_at=taken_at,
+            taken_at_source=0,
+            taken_at_accuracy="second",
+            location_lat=lat,
+            location_lng=lng,
+            location_source=0 if lat is not None else None,
+            location_accuracy="exact" if lat is not None else None,
+            photographer_id=photographer_id,
+            input_session_id=session_id,
+            event_id=event_id,
+            **camera_fields,
+        )
+        db.add(photo)
+        db.flush()
+
+        db.add(ImageFile(
+            photo_id=photo.id,
+            file_path=meta.master_path,
+            file_type=meta.master_type,
+            is_master=True,
+        ))
+        for comp in meta.companions:
+            db.add(ImageFile(
+                photo_id=photo.id,
+                file_path=comp.path,
+                file_type=comp.type,
+                is_master=False,
+            ))
+
         db.commit()
-        raise HTTPException(status_code=400, detail=str(exc))
+        _increment(db, session_id, photo_count=1)
 
-    known_paths = {r[0] for r in db.query(ImageFile.file_path).all()}
+        # Mark session as uploading on first registration
+        s = get_or_404(db, session_id)
+        if s.status == "pending":
+            s.status = "uploading"
+            db.commit()
 
-    raw_jpeg = sum(1 for g in groups if g.has_raw and g.has_jpeg)
-    raw_only = sum(1 for g in groups if g.has_raw and not g.has_jpeg)
-    jpeg_only = sum(1 for g in groups if not g.has_raw)
-    already = sum(1 for g in groups if str(g.master) in known_paths)
+        return GroupResult(status="registered", hothash=hothash, photo_id=photo.id)
 
-    s.status = "awaiting_confirmation"
-    db.commit()
+    except HTTPException:
+        raise
+    except Exception as exc:
+        db.rollback()
+        s = db.get(InputSession, session_id)
+        db.add(SessionError(
+            session_id=session_id,
+            file_path=meta.master_path,
+            error=str(exc),
+        ))
+        db.commit()
+        _increment(db, session_id, error_count=1)
+        raise HTTPException(status_code=422, detail=str(exc))
+    finally:
+        if tmp_path:
+            Path(tmp_path).unlink(missing_ok=True)
 
-    return ScanSummary(
-        total_groups=len(groups),
-        raw_jpeg_pairs=raw_jpeg,
-        raw_only=raw_only,
-        jpeg_only=jpeg_only,
-        already_registered=already,
-        unknown_files=unknown_count,
+
+def complete(db: Session, session_id: uuid.UUID) -> ProcessResult:
+    """Mark session as completed and return final counts."""
+    s = get_or_404(db, session_id)
+    if s.status != "completed":
+        s.status = "completed"
+        s.completed_at = datetime.now(timezone.utc)
+        db.commit()
+        db.refresh(s)
+    return ProcessResult(
+        registered=s.photo_count,
+        duplicates=s.duplicate_count,
+        errors=s.error_count,
     )
 
 
-def process(db: Session, session_id: uuid.UUID) -> ProcessResult:
-    """Register all files in the source directory."""
-    s = get_or_404(db, session_id)
-    s.status = "processing"
+def _increment(db: Session, session_id: uuid.UUID, **fields: int) -> None:
+    """Atomically increment counter fields on InputSession."""
+    from sqlalchemy import update
+
+    db.execute(
+        update(InputSession)
+        .where(InputSession.id == session_id)
+        .values(**{k: getattr(InputSession, k) + v for k, v in fields.items()})
+    )
     db.commit()
-
-    sys = db.query(SystemSettings).first()
-    max_px = sys.coldpreview_max_px if sys else 1200
-    quality = sys.coldpreview_quality if sys else 85
-    coldpreview_dir = app_settings.coldpreview_dir
-
-    try:
-        groups, _ = scan_directory(s.source_path, s.recursive)
-    except Exception as exc:
-        s.status = "failed"
-        db.commit()
-        raise HTTPException(status_code=400, detail=str(exc))
-
-    known_paths = {r[0] for r in db.query(ImageFile.file_path).all()}
-
-    photo_count = 0
-    duplicate_count = 0
-    error_count = 0
-
-    for group in groups:
-        master_path = str(group.master)
-
-        if master_path in known_paths:
-            continue  # Already registered — skip silently
-
-        try:
-            jpeg_bytes, hothash = generate_hotpreview(master_path)
-
-            # Duplicate check by hothash
-            existing = db.query(Photo).filter(Photo.hothash == hothash).first()
-            if existing:
-                db.add(DuplicateFile(
-                    photo_id=existing.id,
-                    file_path=master_path,
-                    session_id=session_id,
-                ))
-                db.commit()
-                duplicate_count += 1
-                continue
-
-            exif_data = extract_exif(master_path)
-            camera_fields = extract_camera_fields(master_path)
-            taken_at = extract_taken_at(exif_data)
-            lat, lng = extract_gps(exif_data)
-
-            coldpreview_path = generate_coldpreview(
-                master_path, hothash, coldpreview_dir,
-                max_px=max_px, quality=quality,
-            )
-
-            photo = Photo(
-                hothash=hothash,
-                hotpreview_b64=hotpreview_b64(jpeg_bytes),
-                coldpreview_path=coldpreview_path,
-                exif_data=exif_data,
-                taken_at=taken_at,
-                taken_at_source=0,
-                taken_at_accuracy="second",
-                location_lat=lat,
-                location_lng=lng,
-                location_source=0 if lat is not None else None,
-                location_accuracy="exact" if lat is not None else None,
-                photographer_id=s.default_photographer_id,
-                input_session_id=session_id,
-                event_id=s.default_event_id,
-                **camera_fields,
-            )
-            db.add(photo)
-            db.flush()
-
-            # Master ImageFile
-            db.add(ImageFile(
-                photo_id=photo.id,
-                file_path=master_path,
-                file_type=file_type_from_suffix(group.master.suffix.lower()),
-                is_master=True,
-            ))
-
-            # Companion ImageFiles (skip unknown extensions)
-            for companion in group.companions:
-                c_suffix = companion.suffix.lower()
-                if c_suffix in KNOWN_EXTENSIONS:
-                    db.add(ImageFile(
-                        photo_id=photo.id,
-                        file_path=str(companion),
-                        file_type=file_type_from_suffix(c_suffix),
-                        is_master=False,
-                    ))
-
-            db.commit()
-            photo_count += 1
-
-        except Exception as exc:
-            db.rollback()
-            s = db.get(InputSession, session_id)  # re-fetch after rollback
-            db.add(SessionError(
-                session_id=session_id,
-                file_path=master_path,
-                error=str(exc),
-            ))
-            db.commit()
-            error_count += 1
-
-    s.photo_count = photo_count
-    s.duplicate_count = duplicate_count
-    s.error_count = error_count
-    s.status = "completed"
-    s.completed_at = datetime.now(timezone.utc)
-    db.commit()
-
-    return ProcessResult(registered=photo_count, duplicates=duplicate_count, errors=error_count)

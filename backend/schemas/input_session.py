@@ -39,13 +39,32 @@ class SessionErrorOut(BaseModel):
     occurred_at: datetime
 
 
-class ScanSummary(BaseModel):
-    total_groups: int
-    raw_jpeg_pairs: int
-    raw_only: int
-    jpeg_only: int
-    already_registered: int
-    unknown_files: int
+class CheckRequest(BaseModel):
+    master_paths: list[str]
+
+
+class CheckResponse(BaseModel):
+    known: list[str]
+    unknown: list[str]
+
+
+class CompanionMeta(BaseModel):
+    path: str
+    type: str
+
+
+class GroupMetadata(BaseModel):
+    master_path: str
+    master_type: str
+    companions: list[CompanionMeta] = []
+    photographer_id: uuid.UUID | None = None
+    event_id: uuid.UUID | None = None
+
+
+class GroupResult(BaseModel):
+    status: str  # "registered" | "duplicate" | "already_registered"
+    hothash: str
+    photo_id: uuid.UUID
 
 
 class ProcessResult(BaseModel):

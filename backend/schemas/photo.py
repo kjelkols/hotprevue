@@ -56,6 +56,15 @@ class PhotoListItem(BaseModel):
     focal_length: float | None
 
 
+class CompanionCreate(BaseModel):
+    path: str
+    type: str
+
+
+class ReprocessResult(BaseModel):
+    coldpreview_path: str
+
+
 class PhotoDetail(PhotoListItem):
     coldpreview_path: str | None
     exif_data: dict

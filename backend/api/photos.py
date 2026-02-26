@@ -5,7 +5,15 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from database.session import get_db
-from schemas.photo import ImageFileSchema, PhotoDetail, PhotoListItem
+from fastapi import File, Form, UploadFile
+
+from schemas.photo import (
+    CompanionCreate,
+    ImageFileSchema,
+    PhotoDetail,
+    PhotoListItem,
+    ReprocessResult,
+)
 from services import photo_service
 
 router = APIRouter(prefix="/photos", tags=["photos"])
@@ -59,3 +67,21 @@ def get_photo(hothash: str, db: Session = Depends(get_db)):
 def get_photo_files(hothash: str, db: Session = Depends(get_db)):
     files = photo_service.get_image_files(db, hothash)
     return [ImageFileSchema.model_validate(f) for f in files]
+
+
+@router.post("/{hothash}/companions", response_model=ImageFileSchema, status_code=201)
+def add_companion(hothash: str, data: CompanionCreate, db: Session = Depends(get_db)):
+    companion = photo_service.add_companion(db, hothash, data)
+    return ImageFileSchema.model_validate(companion)
+
+
+@router.post("/{hothash}/reprocess", response_model=ReprocessResult)
+def reprocess_photo(
+    hothash: str,
+    master_file: UploadFile = File(...),
+    master_path: str = Form(None),
+    db: Session = Depends(get_db),
+):
+    file_bytes = master_file.file.read()
+    coldpreview_path = photo_service.reprocess(db, hothash, file_bytes, master_path)
+    return ReprocessResult(coldpreview_path=coldpreview_path)

@@ -1,10 +1,13 @@
+import tempfile
 import uuid
 from datetime import datetime
+from pathlib import Path
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session, selectinload
 
 from models.photo import ImageFile, Photo
+from schemas.photo import CompanionCreate
 
 
 def list_photos(
@@ -83,6 +86,84 @@ def get_image_files(db: Session, hothash: str) -> list[ImageFile]:
     if photo is None:
         raise HTTPException(status_code=404, detail="Photo not found")
     return db.query(ImageFile).filter(ImageFile.photo_id == photo.id).all()
+
+
+# ---------------------------------------------------------------------------
+# Companions and reprocess
+# ---------------------------------------------------------------------------
+
+def add_companion(db: Session, hothash: str, data: CompanionCreate) -> ImageFile:
+    photo = db.query(Photo).filter(Photo.hothash == hothash).first()
+    if photo is None:
+        raise HTTPException(status_code=404, detail="Photo not found")
+    existing = db.query(ImageFile).filter(ImageFile.file_path == data.path).first()
+    if existing:
+        raise HTTPException(status_code=409, detail="File path already registered")
+    companion = ImageFile(
+        photo_id=photo.id,
+        file_path=data.path,
+        file_type=data.type,
+        is_master=False,
+    )
+    db.add(companion)
+    db.commit()
+    db.refresh(companion)
+    return companion
+
+
+def reprocess(
+    db: Session,
+    hothash: str,
+    file_bytes: bytes,
+    master_path: str | None,
+) -> str:
+    """Regenerate coldpreview from new file content. Returns new coldpreview_path."""
+    from core.config import settings as app_settings
+    from models.settings import SystemSettings
+    from utils.previews import generate_coldpreview, generate_hotpreview
+
+    photo = db.query(Photo).filter(Photo.hothash == hothash).first()
+    if photo is None:
+        raise HTTPException(status_code=404, detail="Photo not found")
+
+    suffix = Path(master_path).suffix if master_path else ".jpg"
+    tmp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+            tmp.write(file_bytes)
+            tmp_path = tmp.name
+
+        _, new_hothash = generate_hotpreview(tmp_path)
+        if new_hothash != hothash:
+            raise HTTPException(
+                status_code=409,
+                detail="File content does not match the existing photo (hothash mismatch)",
+            )
+
+        sys_settings = db.query(SystemSettings).first()
+        max_px = sys_settings.coldpreview_max_px if sys_settings else 1200
+        quality = sys_settings.coldpreview_quality if sys_settings else 85
+
+        coldpreview_path = generate_coldpreview(
+            tmp_path, hothash, app_settings.coldpreview_dir,
+            max_px=max_px, quality=quality,
+        )
+        photo.coldpreview_path = coldpreview_path
+
+        if master_path:
+            master_file = (
+                db.query(ImageFile)
+                .filter(ImageFile.photo_id == photo.id, ImageFile.is_master.is_(True))
+                .first()
+            )
+            if master_file:
+                master_file.file_path = master_path
+
+        db.commit()
+        return coldpreview_path
+    finally:
+        if tmp_path:
+            Path(tmp_path).unlink(missing_ok=True)
 
 
 # ---------------------------------------------------------------------------
