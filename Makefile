@@ -16,10 +16,14 @@ test:
 test-all: download-test-images
 	cd backend && TESTCONTAINERS_RYUK_DISABLED=true uv run pytest tests/ -v --real-images
 
-# Last ned testbilder fra GitHub Release
+# Last ned lite testsett fra GitHub Release (standard)
 download-test-images:
-	cd backend && uv run python ../scripts/download-test-images.py
+	uv run python scripts/download-test-images.py
+
+# Last ned fullt testsett (~350 MB)
+download-test-images-full:
+	uv run python scripts/download-test-images.py --full
 
 # Last ned på nytt selv om cache finnes
 download-test-images-force:
-	cd backend && uv run python ../scripts/download-test-images.py --force
+	uv run python scripts/download-test-images.py --force

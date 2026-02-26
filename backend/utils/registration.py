@@ -53,7 +53,7 @@ def scan_directory(source_path: str, recursive: bool = True) -> tuple[list[FileG
         if not image_files:
             continue  # Only sidecars — skip
 
-        master = raws[0] if raws else (jpegs + others)[0]
+        master = (jpegs + others)[0] if (jpegs or others) else raws[0]
         companions = [f for f in files if f != master]
 
         result.append(FileGroup(

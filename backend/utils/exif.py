@@ -140,12 +140,14 @@ def _float_to_shutter(value: float) -> str:
 
 
 def _coerce(value) -> str | int | float | list | None:
-    """Coerce an EXIF value to a JSON-serialisable type."""
-    if isinstance(value, (str, int, float)):
+    """Coerce an EXIF value to a JSON-serialisable type safe for PostgreSQL JSONB."""
+    if isinstance(value, str):
+        return value.replace("\x00", "")
+    if isinstance(value, (int, float)):
         return value
     if isinstance(value, bytes):
         try:
-            return value.decode("utf-8", errors="replace")
+            return value.decode("utf-8", errors="replace").replace("\x00", "")
         except Exception:
             return None
     if isinstance(value, tuple):
@@ -157,6 +159,6 @@ def _coerce(value) -> str | int | float | list | None:
     except (TypeError, ValueError, ZeroDivisionError):
         pass
     try:
-        return str(value)
+        return str(value).replace("\x00", "")
     except Exception:
         return None
