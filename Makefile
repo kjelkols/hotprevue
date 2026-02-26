@@ -10,11 +10,11 @@ down:
 
 # Syntetiske tester (ingen bildenedlasting nødvendig)
 test:
-	cd backend && uv run pytest ../tests/ -v
+	cd backend && uv run pytest tests/ -v
 
 # Alle tester inkludert reelle kamerabilder
 test-all: download-test-images
-	cd backend && uv run pytest ../tests/ -v --real-images
+	cd backend && uv run pytest tests/ -v --real-images
 
 # Last ned testbilder fra GitHub Release
 download-test-images:

@@ -12,13 +12,14 @@ Hotpreview genereres én gang ved registrering og endres aldri. Hvis hotpreview 
 
 ## Coldpreview
 
-- **Størrelse:** Opptil 1200 px på lengste kant, proporsjonalt skalert
+- **Størrelse:** Opptil `coldpreview_max_px` px på lengste kant (standard 1200), proporsjonalt skalert. Styres av `SystemSettings.coldpreview_max_px`.
+- **Kvalitet:** JPEG-kvalitet styres av `SystemSettings.coldpreview_quality` (standard 85).
 - **Format:** JPEG
 - **Lagring:** Disk, under `$COLDPREVIEW_DIR`
 - **Katalogstruktur:** `<COLDPREVIEW_DIR>/<ab>/<cd>/<hothash>.jpg` der `ab` og `cd` er de første 4 tegnene av hothash
 - **Formål:** Detaljvisning i frontend
 
-Coldpreview kan alltid regenereres fra masterfilens originalfil. Hvis originalfilen er utilgjengelig og coldpreview mangler, markeres Photo som utilgjengelig.
+Coldpreview er statisk etter generering — endres aldri. Innstillinger i SystemSettings påvirker kun nye registreringer. Korrigert coldpreview følger PhotoCorrection sitt livsløp og genereres fra original coldpreview (ikke fra originalfilen).
 
 ## Generering
 
