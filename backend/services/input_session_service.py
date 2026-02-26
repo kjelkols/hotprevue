@@ -143,9 +143,9 @@ def process(db: Session, session_id: uuid.UUID) -> ProcessResult:
                 continue
 
             exif_data = extract_exif(master_path)
-            camera_fields = extract_camera_fields(exif_data)
+            camera_fields = extract_camera_fields(master_path)
             taken_at = extract_taken_at(exif_data)
-            lat, lng = extract_gps(master_path)
+            lat, lng = extract_gps(exif_data)
 
             coldpreview_path = generate_coldpreview(
                 master_path, hothash, coldpreview_dir,

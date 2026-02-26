@@ -1,7 +1,10 @@
 """EXIF extraction utilities.
 
-Uses Pillow's built-in EXIF support plus piexif for structured tag decoding.
-Returns plain Python dicts (JSON-serialisable) suitable for the JSONB column.
+Public API:
+    extract_exif(file_path)       → curated dict stored in Photo.exif_data (JSONB)
+    extract_camera_fields(file_path) → dict of dedicated Photo column values
+    extract_taken_at(exif_data)   → datetime | None  (reads from curated dict)
+    extract_gps(exif_data)        → (lat, lng) | (None, None)  (reads from curated dict)
 """
 
 import logging
@@ -12,67 +15,177 @@ from PIL.ExifTags import TAGS
 
 log = logging.getLogger(__name__)
 
-_DATETIME_TAGS = {"DateTimeOriginal", "DateTime", "DateTimeDigitized"}
 _DATETIME_FMT = "%Y:%m:%d %H:%M:%S"
 
+# ---------------------------------------------------------------------------
+# Enum → human-readable string mappings
+# ---------------------------------------------------------------------------
+
+_EXPOSURE_PROGRAM = {
+    0: "undefined", 1: "manual", 2: "normal", 3: "aperture priority",
+    4: "shutter priority", 5: "creative", 6: "action",
+    7: "portrait", 8: "landscape",
+}
+_EXPOSURE_MODE = {0: "auto", 1: "manual", 2: "auto bracket"}
+_WHITE_BALANCE = {0: "auto", 1: "manual"}
+_METERING_MODE = {
+    0: "unknown", 1: "average", 2: "center weighted", 3: "spot",
+    4: "multi spot", 5: "pattern", 6: "partial", 255: "other",
+}
+_COLOR_SPACE = {1: "sRGB", 65535: "uncalibrated"}
+_SCENE_TYPE = {0: "standard", 1: "landscape", 2: "portrait", 3: "night"}
+_LIGHT_SOURCE = {
+    0: "unknown", 1: "daylight", 2: "fluorescent", 3: "tungsten",
+    4: "flash", 9: "fine weather", 10: "cloudy", 11: "shade",
+    255: "other",
+}
+
+
+def _flash_str(value: int) -> str:
+    """Interpret Flash bitmask as a short human-readable string."""
+    fired = bool(value & 0x1)
+    return "fired" if fired else "no flash"
+
+
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
 
 def extract_exif(file_path: str) -> dict:
-    """Extract EXIF metadata from an image file.
+    """Return a curated EXIF dict for storage in Photo.exif_data (JSONB).
 
-    Returns a dict with human-readable tag names as keys.
-    Values are coerced to JSON-serialisable types (str, int, float, list).
-    Unknown or unreadable tags are silently skipped.
+    Includes DateTimeOriginal and GPS for double-storage (user can override
+    taken_at and location_* columns; exif_data preserves the original values).
+
+    Fields with no value are omitted entirely.
     """
-    result: dict = {}
+    raw = _read_raw(file_path)
+    if not raw:
+        return {}
+    return _build_curated(raw)
+
+
+def extract_camera_fields(file_path: str) -> dict:
+    """Return camera metadata for dedicated Photo columns.
+
+    Keys: camera_make, camera_model, lens_model, iso,
+          shutter_speed, aperture, focal_length.
+    Only keys with actual values are included.
+    """
+    raw = _read_raw(file_path)
+    if not raw:
+        return {}
+    return _build_camera_fields(raw)
+
+
+def extract_taken_at(exif_data: dict) -> datetime | None:
+    """Parse taken_at from the curated exif dict (date_time_original field)."""
+    raw_dt = exif_data.get("date_time_original")
+    if raw_dt:
+        try:
+            return datetime.strptime(raw_dt, _DATETIME_FMT)
+        except (ValueError, TypeError):
+            pass
+    return None
+
+
+def extract_gps(exif_data: dict) -> tuple[float | None, float | None]:
+    """Return (lat, lng) from the curated exif dict, or (None, None)."""
+    return exif_data.get("gps_lat"), exif_data.get("gps_lng")
+
+
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
+
+def _read_raw(file_path: str) -> dict | None:
+    """Open image and return the raw Pillow EXIF tag dict, or None on failure."""
     try:
         with Image.open(file_path) as img:
-            raw = img._getexif()  # type: ignore[attr-defined]
-            if raw is None:
-                return result
-            for tag_id, value in raw.items():
-                tag_name = TAGS.get(tag_id, str(tag_id))
-                coerced = _coerce(value)
-                if coerced is not None:
-                    result[tag_name] = coerced
+            return img._getexif()  # type: ignore[attr-defined]
     except Exception as exc:
         log.warning("Could not read EXIF from %s: %s", file_path, exc)
+        return None
+
+
+def _build_curated(raw: dict) -> dict:
+    """Build the curated exif_data dict from raw Pillow tags."""
+    by_name = {TAGS.get(k, str(k)): v for k, v in raw.items()}
+
+    result: dict = {}
+
+    def _set(key, value):
+        if value is not None:
+            result[key] = value
+
+    # --- Double-stored: user can override taken_at and location columns ---
+    _set("date_time_original", _str_or_none(by_name.get("DateTimeOriginal")))
+    _set("date_time_subsec",   _str_or_none(by_name.get("SubsecTimeOriginal")))
+    _set("datetime_digitized", _str_or_none(by_name.get("DateTimeDigitized")))
+
+    lat, lng = _extract_gps_from_raw(raw)
+    _set("gps_lat", lat)
+    _set("gps_lng", lng)
+
+    # --- Image geometry ---
+    _set("width",       _int_or_none(by_name.get("ExifImageWidth")))
+    _set("height",      _int_or_none(by_name.get("ExifImageHeight")))
+    _set("orientation", _int_or_none(by_name.get("Orientation")))
+
+    # --- Exposure ---
+    _set("focal_length_35mm", _int_or_none(by_name.get("FocalLengthIn35mmFilm")))
+    _set("ev_comp", _round_or_none(by_name.get("ExposureBiasValue"), 2))
+    _set("exposure_program", _lookup(by_name.get("ExposureProgram"), _EXPOSURE_PROGRAM))
+    _set("exposure_mode",    _lookup(by_name.get("ExposureMode"), _EXPOSURE_MODE))
+    if (flash := by_name.get("Flash")) is not None:
+        result["flash"] = _flash_str(int(flash))
+
+    # --- Camera settings ---
+    _set("white_balance",  _lookup(by_name.get("WhiteBalance"), _WHITE_BALANCE))
+    _set("metering_mode",  _lookup(by_name.get("MeteringMode"), _METERING_MODE))
+    _set("color_space",    _lookup(by_name.get("ColorSpace"), _COLOR_SPACE))
+    _set("scene_type",     _lookup(by_name.get("SceneCaptureType"), _SCENE_TYPE))
+    _set("light_source",   _lookup(by_name.get("LightSource"), _LIGHT_SOURCE))
+
+    # --- Origin / attribution ---
+    _set("software",  _str_or_none(by_name.get("Software")))
+    _set("artist",    _nonempty_str(by_name.get("Artist")))
+    _set("copyright", _nonempty_str(by_name.get("Copyright")))
+
     return result
 
 
-def extract_camera_fields(exif_data: dict) -> dict:
-    """Extract structured camera metadata from the coerced exif dict.
-
-    Returns a dict with keys matching Photo column names (camera_make, camera_model, etc.).
-    Only keys with actual values are included.
-    """
+def _build_camera_fields(raw: dict) -> dict:
+    """Build dedicated Photo column values from raw Pillow tags."""
+    by_name = {TAGS.get(k, str(k)): v for k, v in raw.items()}
     result: dict = {}
 
-    if make := exif_data.get("Make"):
-        result["camera_make"] = str(make).strip()
-    if model := exif_data.get("Model"):
-        result["camera_model"] = str(model).strip()
-    if lens := exif_data.get("LensModel"):
-        result["lens_model"] = str(lens).strip()
+    if make := _str_or_none(by_name.get("Make")):
+        result["camera_make"] = make.strip()
+    if model := _str_or_none(by_name.get("Model")):
+        result["camera_model"] = model.strip()
+    if lens := _str_or_none(by_name.get("LensModel")):
+        result["lens_model"] = lens.strip()
 
-    iso = exif_data.get("ISOSpeedRatings")
+    iso = by_name.get("ISOSpeedRatings")
     if isinstance(iso, (int, float)):
         result["iso"] = int(iso)
-    elif isinstance(iso, list) and iso:
+    elif isinstance(iso, (list, tuple)) and iso:
         result["iso"] = int(iso[0])
 
-    if (et := exif_data.get("ExposureTime")) is not None:
+    if (et := by_name.get("ExposureTime")) is not None:
         try:
             result["shutter_speed"] = _float_to_shutter(float(et))
         except (TypeError, ValueError, ZeroDivisionError):
             pass
 
-    if (fn := exif_data.get("FNumber")) is not None:
+    if (fn := by_name.get("FNumber")) is not None:
         try:
             result["aperture"] = round(float(fn), 1)
         except (TypeError, ValueError):
             pass
 
-    if (fl := exif_data.get("FocalLength")) is not None:
+    if (fl := by_name.get("FocalLength")) is not None:
         try:
             result["focal_length"] = round(float(fl), 1)
         except (TypeError, ValueError):
@@ -81,44 +194,17 @@ def extract_camera_fields(exif_data: dict) -> dict:
     return result
 
 
-def extract_gps(file_path: str) -> tuple[float | None, float | None]:
-    """Extract GPS latitude and longitude from image EXIF.
-
-    Returns (lat, lng) in decimal degrees, or (None, None) if not available.
-    """
-    try:
-        with Image.open(file_path) as img:
-            raw = img._getexif()  # type: ignore[attr-defined]
-            if raw is None:
-                return None, None
-            gps_raw = raw.get(34853)  # GPSInfo tag ID
-            if not gps_raw or not isinstance(gps_raw, dict):
-                return None, None
-            lat = _dms_to_decimal(gps_raw.get(2), gps_raw.get(1))
-            lng = _dms_to_decimal(gps_raw.get(4), gps_raw.get(3))
-            return lat, lng
-    except Exception:
+def _extract_gps_from_raw(raw: dict) -> tuple[float | None, float | None]:
+    """Extract GPS lat/lng from raw Pillow EXIF dict."""
+    gps_raw = raw.get(34853)  # GPSInfo tag ID
+    if not gps_raw or not isinstance(gps_raw, dict):
         return None, None
+    lat = _dms_to_decimal(gps_raw.get(2), gps_raw.get(1))
+    lng = _dms_to_decimal(gps_raw.get(4), gps_raw.get(3))
+    return lat, lng
 
-
-def extract_taken_at(exif_data: dict) -> datetime | None:
-    """Parse DateTimeOriginal (or DateTime) from the exif dict into a datetime."""
-    for key in ("DateTimeOriginal", "DateTime", "DateTimeDigitized"):
-        raw = exif_data.get(key)
-        if raw:
-            try:
-                return datetime.strptime(raw, _DATETIME_FMT)
-            except (ValueError, TypeError):
-                continue
-    return None
-
-
-# ---------------------------------------------------------------------------
-# Internal helpers
-# ---------------------------------------------------------------------------
 
 def _dms_to_decimal(dms, ref) -> float | None:
-    """Convert degrees/minutes/seconds + hemisphere ref to decimal degrees."""
     if not dms or not ref:
         return None
     try:
@@ -132,33 +218,44 @@ def _dms_to_decimal(dms, ref) -> float | None:
 
 
 def _float_to_shutter(value: float) -> str:
-    """Convert float exposure time to a human-readable fraction, e.g. 0.004 → '1/250'."""
     if value >= 1:
         return f"{value:.0f}s"
-    denom = round(1 / value)
-    return f"1/{denom}"
+    return f"1/{round(1 / value)}"
 
 
-def _coerce(value) -> str | int | float | list | None:
-    """Coerce an EXIF value to a JSON-serialisable type safe for PostgreSQL JSONB."""
-    if isinstance(value, str):
-        return value.replace("\x00", "")
-    if isinstance(value, (int, float)):
-        return value
-    if isinstance(value, bytes):
-        try:
-            return value.decode("utf-8", errors="replace").replace("\x00", "")
-        except Exception:
-            return None
-    if isinstance(value, tuple):
-        coerced = [_coerce(v) for v in value]
-        return [v for v in coerced if v is not None]
-    # IFDRational and similar numeric types
-    try:
-        return float(value)
-    except (TypeError, ValueError, ZeroDivisionError):
-        pass
-    try:
-        return str(value).replace("\x00", "")
-    except Exception:
+def _str_or_none(value) -> str | None:
+    if value is None:
         return None
+    if isinstance(value, bytes):
+        value = value.decode("utf-8", errors="replace")
+    return str(value).replace("\x00", "") or None
+
+
+def _nonempty_str(value) -> str | None:
+    """Like _str_or_none but also returns None for whitespace-only strings."""
+    s = _str_or_none(value)
+    return s.strip() if s and s.strip() else None
+
+
+def _int_or_none(value) -> int | None:
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _round_or_none(value, decimals: int) -> float | None:
+    if value is None:
+        return None
+    try:
+        return round(float(value), decimals)
+    except (TypeError, ValueError, ZeroDivisionError):
+        return None
+
+
+def _lookup(value, mapping: dict) -> str | None:
+    if value is None:
+        return None
+    return mapping.get(int(value))
