@@ -197,3 +197,21 @@ InputSession ───────┤─ default_event_id ───────�
 | `excluded_from_stream` | bool | Ekskluderes fra standard gallerivisning |
 | `display_order` | int | Rekkefølge i dropdown |
 | `created_at` | datetime | — |
+
+---
+
+## SystemSettings
+
+Alltid eksakt én rad. Opprettes automatisk ved første oppstart med standardverdier og generert `installation_id`.
+
+| Felt | Type | Standard | Beskrivelse |
+|---|---|---|---|
+| `installation_id` | UUID | auto-generert | Immutabelt. Genereres ved første oppstart. Unik identifikator for denne installasjonen — brukes mot Hotprevue Global. |
+| `instance_name` | string | `""` | Visningsnavn for installasjonen, f.eks. `"Kjells fotoarkiv"`. Publiseres til Global. |
+| `owner_name` | string | `""` | Navn på eier/administrator. Publiseres til Global. |
+| `owner_website` | string (nullable) | `null` | Nettside for eier. Publiseres til Global. |
+| `owner_bio` | text (nullable) | `null` | Kort presentasjon av eier. Publiseres til Global. |
+| `default_sort` | string | `taken_at_desc` | Standardsortering for `GET /photos`. Gyldige verdier: se Sortering i api.md. |
+| `show_deleted_in_gallery` | bool | `false` | Vis mykt slettede Photos i galleriet med slettet-indikator. |
+| `coldpreview_max_px` | int | `1200` | Maks langside i piksler ved generering av coldpreview. |
+| `coldpreview_quality` | int | `85` | JPEG-kvalitet for coldpreview (1–100). Anbefalt: 85. |

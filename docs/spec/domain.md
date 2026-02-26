@@ -225,3 +225,15 @@ Korreksjon lagres direkte i Photo-feltene (`taken_at`, `location_lat`, `location
 | `country` | — |
 
 Frontend bruker accuracy til å bestemme visning: presis pin på kart ved `exact`, uskarpt område ved `city`, bare stedsnavn ved `region`/`country`.
+
+## SystemSettings
+
+Én enkelt rad i databasen som representerer hele systemkonfigurasjonen. Opprettes automatisk ved første oppstart — ingen manuell initialisering nødvendig.
+
+**Installasjons-ID:** En UUID som genereres én gang og aldri endres. Identifiserer denne installasjonen globalt — f.eks. mot Hotprevue Global. ID-en tilhører *arkivet*, ikke maskinen: ved synkronisering mellom maskiner følger ID-en med databasen og forblir den samme.
+
+**Eierinfo** (`owner_name`, `owner_website`, `owner_bio`, `instance_name`): Informasjon om hvem som driver installasjonen og hva den heter. Skilles bevisst fra Photographer-modellen — Photographer er kreativ attribuering per foto, eierinfo er avsenderidentitet på installasjons­nivå. Disse kan tilhøre samme person, men systemet kobler dem ikke automatisk.
+
+**Visningsinnstillinger:** `default_sort` og `show_deleted_in_gallery` styrer standardoppførselen i galleriet. Frontend bør respektere disse som innledende tilstand, men kan la brukeren overstyre midlertidig i sesjonen.
+
+**Coldpreview-innstillinger:** `coldpreview_max_px` og `coldpreview_quality` styrer generering av nye coldpreviews. Eksisterende coldpreviews regenereres ikke automatisk ved endring — kun nye photos påvirkes. Standardverdiene (1200 px langside, 85 % kvalitet) er anbefalte verdier og vises som hint i UI.

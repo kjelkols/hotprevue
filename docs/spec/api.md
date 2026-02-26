@@ -146,6 +146,17 @@ Returnerer rot-events med children nøstet inn. Hver event inkluderer `photo_cou
 **`DELETE /events/{id}`:**
 Avvises med `409 Conflict` hvis eventen har child-events. Brukeren må slette children manuelt først.
 
+### Settings
+
+| Metode | Sti | Beskrivelse |
+|---|---|---|
+| `GET` | `/settings` | Hent alle innstillinger (inkl. `installation_id`) |
+| `PATCH` | `/settings` | Oppdater én eller flere mutablete felt |
+
+`installation_id` returneres alltid i `GET`-responsen, men ignoreres stille i `PATCH` — verdien kan ikke endres via API.
+
+---
+
 ### Tags
 
 | Metode | Sti | Beskrivelse |
