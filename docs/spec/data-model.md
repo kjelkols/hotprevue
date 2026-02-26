@@ -169,6 +169,25 @@ InputSession ───────┤─ default_event_id ───────�
 
 ---
 
+## PhotoCorrection
+
+Én rad per Photo som har visningskorreksjoner. Tabellen er sparse — kun Photos med aktive korreksjoner har en rad.
+
+| Felt | Type | Beskrivelse |
+|---|---|---|
+| `photo_id` | UUID FK (unique) | Tilhørende Photo — én rad per Photo |
+| `rotation` | int (nullable) | `0`, `90`, `180`, `270` grader |
+| `horizon_angle` | float (nullable) | Grader å rette opp (±15°) |
+| `exposure_ev` | float (nullable) | EV-justering, f.eks. `+0.5`, `-1.0` |
+| `crop_left` | float (nullable) | 0.0–1.0 — andel av bredde fra venstre |
+| `crop_top` | float (nullable) | 0.0–1.0 — andel av høyde fra topp |
+| `crop_right` | float (nullable) | 0.0–1.0 — andel av bredde fra høyre |
+| `crop_bottom` | float (nullable) | 0.0–1.0 — andel av høyde fra bunn |
+| `corrected_coldpreview_path` | string (nullable) | Sti til korrigert coldpreview-fil. Null mens generering pågår. |
+| `updated_at` | datetime | — |
+
+---
+
 ## Category
 
 | Felt | Type | Beskrivelse |

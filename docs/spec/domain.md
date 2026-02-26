@@ -166,6 +166,32 @@ En blokk-basert artikkel som kombinerer Photos og tekst. Lar brukeren fortelle e
 
 ## Korreksjon
 
+To typer korreksjon i systemet:
+
+**1. Metadata-korreksjon** (`taken_at`, `location`) — se feltene `taken_at_source`, `taken_at_accuracy`, `location_source`, `location_accuracy` på Photo.
+
+**2. Visningskorreksjon** — rotasjon, horisont, eksponering og crop. Lagres i `PhotoCorrection`-tabellen (kun Photos som har korreksjoner).
+
+### Tre-lags-modell
+
+| Lag | Hva | Endres? |
+|---|---|---|
+| Originalfil | Kildefilen på disk | Aldri |
+| PhotoCorrection | Korreksjonens parametere + korrigert coldpreview-sti | Ja — brukeren justerer fritt |
+| Coldpreview (original) | Generert ved registrering, ingen korreksjon | Aldri |
+| Coldpreview (korrigert) | Cachet render med korreksjon — sti i PhotoCorrection | Regenereres automatisk |
+
+**Hotpreview er immutabel** — hothash er basert på hotpreview-bytes og kan ikke endres. Korreksjon på hotpreview anvendes kun ved visning i frontend (CSS transform/filter).
+
+**Coldpreview-logikk:** Frontend bruker `corrected_coldpreview_path` hvis den finnes, ellers `coldpreview_path`. Original coldpreview røres aldri.
+
+**Automatisk håndtering:**
+- `PUT /photos/{hothash}/correction` → lagrer korreksjon, genererer ny korrigert coldpreview
+- Korreksjon endres → gammel korrigert coldpreview overskrives
+- `DELETE /photos/{hothash}/correction` → sletter korreksjon og korrigert coldpreview-fil
+
+### Metadata-korreksjon
+
 Brukerkorrigering av `taken_at` og `location` — de to feltene som oftest trenger justering. Typiske tilfeller: feil klokke i kamera, manglende GPS, scannede bilder uten EXIF.
 
 Korreksjon lagres direkte i Photo-feltene (`taken_at`, `location_lat`, `location_lng`). Original-EXIF er alltid bevart i `exif_data` og kan brukes til å tilbakestille. To kildeflagg dokumenterer hvordan den gjeldende verdien ble satt:
