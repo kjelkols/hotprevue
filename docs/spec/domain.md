@@ -4,9 +4,25 @@ Denne filen er den autoritative kilden til terminologi i Hotprevue. Ved tvil om 
 
 ---
 
+## Terminologioversikt
+
+| Norsk | Engelsk (kode) | Komponent | Beskrivelse |
+|---|---|---|---|
+| Utvalg | `Browse` | `BrowseView` | Spørringsbasert, ikke-sekvensiell bildeliste. Grunnlag for avkryssingstilstand og batch-operasjoner. |
+| Kolleksjonsvisning | `Collection` | `CollectionView` | Kuratert, ordnet sekvens av CollectionItems. Caption, tekstkort, posisjonsmarkør. |
+| Lysbord | `Tray` | `SelectionTray` | Frittstående, flyttbart vindu med avkryssede bilder og handlingsverktøylinje. Midlertidig arbeidsflate. **NB:** «Lightbox» brukes ikke — det betyr fullskjermvisning av ett bilde i webprogrammering. |
+| Avkryssingstilstand | `Selection` | `useSelectionStore` | Hvilke photos er avkrysset. Deles mellom BrowseView og SelectionTray. Intern tilstand, ikke et domeneobjekt. |
+| Posisjonsmarkør | `InsertionPoint` | `InsertionPoint` | Innsettingspunkt i en kolleksjon — angir hvor avkryssede bilder settes inn. |
+| Hjem | `Home` | `HomePage` | Startside med programoversikt. Ingen bildestrøm. |
+| Taskbar | `Taskbar` | `Taskbar` | Persistent navigasjonslinje for funksjonsområder. |
+
+**«Gallery» brukes ikke** — verken i UI-tekst, komponentnavn eller kode.
+
+---
+
 ## Photo
 
-Den grunnleggende enheten i systemet. Et Photo representerer ett logisk fotografi — ett opptak, én kreativ enhet. Det som vises i galleriet, knyttes til events og collections, og får rating. Et Photo kan ha én eller flere tilknyttede originalfiler (se ImageFile).
+Den grunnleggende enheten i systemet. Et Photo representerer ett logisk fotografi — ett opptak, én kreativ enhet. Knyttes til events og collections, og får rating. Et Photo kan ha én eller flere tilknyttede originalfiler (se ImageFile).
 
 ## ImageFile
 
@@ -159,6 +175,92 @@ Photos slettes ikke direkte fra databasen. `DELETE /photos/{hothash}` setter `de
 - `POST /photos/empty-trash` — hard-sletter alle Photos med `deleted_at` satt, inkludert coldpreview-filer på disk
 
 **Re-registrering:** Hvis en fil med samme hothash som et mykt slettet Photo skannes på nytt, gjenopprettes Photo stille (`deleted_at = null`) uten duplikatvarsel.
+
+## BrowseView (Utvalg)
+
+En spørringsbasert, ikke-sekvensiell liste av Photos — resultatet av en filtrering, et søk eller en kontekstside (event, fotograf, osv.). BrowseView er den mest vanlige visningsformen i systemet.
+
+**Kjennetegn:**
+- Innholdet bestemmes av spørringsparametre, ikke av brukerens kuratering
+- Ingen fast rekkefølge — sorteres etter valgt sorteringskriterium
+- Støtter avkryssingstilstand — brukeren kan merke bilder for batch-operasjoner
+- Ingen caption, ingen tekstkort, ingen posisjonsmarkør
+
+BrowseView er en gjenbrukbar komponent som brukes overalt der et spørringsresultat vises: på Hjem, Event-sider, Fotograf-sider, Søk og andre steder.
+
+**«Gallery» brukes ikke** om denne eller noen annen visning.
+
+---
+
+## CollectionView (Kolleksjonsvisning)
+
+Visning av en Collection — en kuratert, ordnet sekvens av CollectionItems. CollectionView og BrowseView ser visuelt like ut, men har ulike regler og muligheter.
+
+**Kjennetegn:**
+- Innholdet er eksplisitt kuratert av brukeren
+- Rekkefølgen er brukerdefinert og kan endres ved å flytte elementer
+- Hvert element kan ha caption
+- Tekstkort (tittel + tekst) kan blandes inn mellom bilder
+- Har en posisjonsmarkør (InsertionPoint) som viser hvor nye elementer settes inn
+- Batch-operasjoner på bildemetadata er ikke tilgjengelig i CollectionView
+
+**Innsetting fra Lysbord:** Brukeren setter InsertionPoint i CollectionView, velger bilder i BrowseView via avkryssingstilstand, og setter dem inn via Lysbord. To flyter støttes:
+- *Markør-først:* InsertionPoint settes, deretter velges bilder og «Sett inn her» aktiveres
+- *Velg-og-plasser:* Bilder velges, Lysbord åpnes, kolleksjon og posisjon velges i dialog
+
+---
+
+## SelectionTray (Lysbord)
+
+Et frittstående, flyttbart vindu som viser Photos i avkryssingstilstand. Lysbord er brukerens midlertidige arbeidsflate — analogt med et fysisk lysbord der fotografen legger ut dias for å sammenligne og velge.
+
+**Kjennetegn:**
+- Samler avkryssede bilder fra alle kontekster (BrowseView, Event-sider, osv.)
+- Vises i et eget vindu utenfor hovedapplikasjonen
+- Har en verktøylinje med tilgjengelige handlinger
+- Beholdes inntil brukeren tømmer det manuelt
+
+**Handlinger fra Lysbord:**
+- Sett event, sett rating, legg til/fjern tags, sett fotograf
+- Legg til kolleksjon (med InsertionPoint)
+- Slett (soft delete)
+- Angre siste handling
+
+**Reversibilitet:** Én angre-operasjon per handling. Tidligere tilstand per photo lagres ved utføring og brukes til å PATCH tilbake. Multi-nivå angre støttes ikke — én angre-operasjon, deretter nullstilles angre-historikken.
+
+**NB:** «Lightbox» brukes ikke — dette begrepet betyr fullskjermvisning av ett bilde i webprogrammering og må ikke blandes med Lysbord.
+
+---
+
+## Avkryssingstilstand (Selection)
+
+Hvilke Photos som er avkrysset av brukeren til enhver tid. Avkryssingstilstand er en ren klient-tilstand — den lagres ikke i databasen og nullstilles ved sidenavigasjon eller manuelt.
+
+Avkryssingstilstand deles mellom BrowseView (der bilder merkes) og SelectionTray (der de vises og prosesseres). Implementert som en Zustand-store (`useSelectionStore`).
+
+Avkryssingstilstand er ikke det samme som Lysbord — Lysbord er vinduet og handlingene, avkryssingstilstand er listen over merkede hothashes.
+
+---
+
+## InsertionPoint (Posisjonsmarkør)
+
+Innsettingspunkt i en CollectionView — angir *mellom hvilke* CollectionItems nye elementer plasseres ved innsetting fra Lysbord. Analogt med tekstbehandlerens skrivemarkør.
+
+InsertionPoint settes av brukeren ved å klikke mellom elementer i CollectionView. Vises som en visuell indikator i rutenettet. Kun ett InsertionPoint er aktivt om gangen per Collection.
+
+---
+
+## Hjem (Home)
+
+Applikasjonens startside. Fokuserer på programstruktur og oversikt — ikke en bildestrøm. Brukeren har for mange bilder til fri scrolling; Hjem gir tilgang til funksjonsområdene og viser relevant kontekstuell informasjon (siste registrering, statistikk, snarveier).
+
+---
+
+## Taskbar
+
+Persistent navigasjonslinje som gir tilgang til applikasjonens funksjonsområder. Alltid synlig. Inkluderer indikator for aktiv avkryssingstilstand (antall merkede bilder).
+
+---
 
 ## Story (PhotoText)
 

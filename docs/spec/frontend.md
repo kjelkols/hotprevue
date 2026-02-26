@@ -104,16 +104,44 @@ frontend/
 
 ---
 
+## Kjernekomponenter
+
+To gjenbrukbare visningskomponenter brukes overalt i applikasjonen. Se `domain.md` for fullstendig beskrivelse.
+
+### BrowseView
+Spørringsbasert bildeliste. Brukes på Hjem, Event-sider, Fotograf-sider, Søk og alle andre steder der et spørringsresultat vises. Støtter avkryssingstilstand for batch-operasjoner via SelectionTray.
+
+### CollectionView
+Kuratert, ordnet sekvens. Brukes på `/collections/:id`. Har InsertionPoint, caption per element og tekstkort. Batch-operasjoner på bildemetadata er ikke tilgjengelig her.
+
+### SelectionTray
+Frittstående vindu med avkryssede bilder og handlingsverktøylinje. Åpnes fra Taskbar-indikatoren. Se `domain.md` for handlinger og reversibilitetsregler.
+
+---
+
 ## Visninger
 
-### Galleri / timeline
+### Hjem
+- Programoversikt — ingen bildestrøm
+- Snarveier til nylig brukte kolleksjoner og events
+- Statistikk: antall photos, siste registrering, papirkurv
+- Hurtighandlinger: start ny registrering, åpne søk
+
+### BrowseView — brukes på:
+- `/` — standard startutvalg (tomt, brukeren filtrerer)
+- `/events/:id` — photos i event
+- `/photographers/:id` — photos av fotograf
+- `/search` — søk og filtrering
+- `/stacks/:stack_id` — photos i stack
+
+Felles for alle BrowseView-kontekster:
 - Grid-visning av hotpreviews
 - Stacks vises som ett photo (coverbilde) med indikator for antall
 - Mykt slettede photos vises med slettet-indikator hvis `show_deleted_in_gallery` er på
 - Lazy loading og paginering
-- Filtrering på fotograf, event, tags, rating, dato, kategori
+- Filtrering på fotograf, event, tags, rating, dato, kategori (kontekstavhengig)
 - Sortering (følger `default_sort` fra settings, kan overstyres midlertidig)
-- Flervalgsmodus for batch-operasjoner
+- Avkryssingstilstand for batch-operasjoner via SelectionTray
 
 ### Detaljvisning
 - Coldpreview (korrigert versjon hvis korreksjon finnes, ellers original)
