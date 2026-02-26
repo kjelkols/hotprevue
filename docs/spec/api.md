@@ -31,6 +31,48 @@ Teknisk API-dokumentasjon genereres automatisk fra kjørende backend (se `script
 | `GET` | `/photos/{hothash}/coldpreview` | Last ned coldpreview-fil |
 | `GET` | `/photos/{hothash}/files` | List ImageFiles tilknyttet photo |
 
+### Photos — batch
+
+Alle batch-endepunkter tar `hothashes: []` + operasjonsspesifikke felt. Kjøres best-effort — gyldige photos oppdateres, ugyldige rapporteres i responsen.
+
+**Tags:**
+
+| Metode | Sti | Beskrivelse |
+|---|---|---|
+| `POST` | `/photos/batch/tags/add` | Legg til tags (merger med eksisterende) |
+| `POST` | `/photos/batch/tags/remove` | Fjern spesifikke tags |
+| `POST` | `/photos/batch/tags/set` | Erstatt alle tags |
+
+**Metadata:**
+
+| Metode | Sti | Beskrivelse |
+|---|---|---|
+| `POST` | `/photos/batch/rating` | Sett rating |
+| `POST` | `/photos/batch/event` | Sett event (`null` = fjern) |
+| `POST` | `/photos/batch/category` | Sett kategori (`null` = fjern) |
+| `POST` | `/photos/batch/photographer` | Sett fotograf |
+
+**Tid og posisjon:**
+
+| Metode | Sti | Beskrivelse |
+|---|---|---|
+| `POST` | `/photos/batch/taken-at` | Sett tidspunkt (med source og accuracy) |
+| `POST` | `/photos/batch/taken-at-offset` | Flytt tidspunkt med ±offset (timer/min/sek) |
+| `POST` | `/photos/batch/location` | Sett posisjon (med source og accuracy) |
+
+**Visningskorreksjon:**
+
+| Metode | Sti | Beskrivelse |
+|---|---|---|
+| `POST` | `/photos/batch/correction` | Anvend samme korreksjon på alle |
+
+**Livssyklus:**
+
+| Metode | Sti | Beskrivelse |
+|---|---|---|
+| `POST` | `/photos/batch/delete` | Mykt slett |
+| `POST` | `/photos/batch/restore` | Gjenopprett mykt slettede |
+
 ### Input-sesjoner
 
 | Metode | Sti | Beskrivelse |
@@ -132,6 +174,7 @@ Avvises med `409 Conflict` hvis eventen har child-events. Brukeren må slette ch
 | `GET` | `/collections/{id}` | Hent collection med photos i rekkefølge |
 | `PATCH` | `/collections/{id}` | Oppdater collection |
 | `DELETE` | `/collections/{id}` | Slett collection |
+| `POST` | `/collections/{id}/items/batch` | Legg til flere photos (best-effort) |
 | `PUT` | `/collections/{id}/items` | Oppdater rekkefølge — send sortert liste av item-IDer |
 | `POST` | `/collections/{id}/items` | Legg til photo eller tekstkort (legges til bakerst) |
 | `PATCH` | `/collections/{id}/items/{item_id}` | Oppdater caption, title eller text_content |
@@ -151,6 +194,7 @@ Avvises med `409 Conflict` hvis eventen har child-events. Brukeren må slette ch
 | `GET` | `/stacks` | List alle stacks med coverbilde og antall Photos |
 | `GET` | `/stacks/{stack_id}` | Hent alle Photos i en stack |
 | `POST` | `/stacks/{stack_id}/photos` | Legg til Photo i stack |
+| `POST` | `/stacks/{stack_id}/photos/batch` | Legg til flere photos (best-effort) |
 | `DELETE` | `/stacks/{stack_id}/photos/{hothash}` | Fjern Photo fra stack |
 | `PUT` | `/stacks/{stack_id}/cover/{hothash}` | Sett coverbilde |
 | `DELETE` | `/stacks/{stack_id}` | Slett hele stacken og løs opp alle Photos |
