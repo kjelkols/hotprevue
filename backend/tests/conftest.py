@@ -12,9 +12,9 @@ import subprocess
 from pathlib import Path
 
 import pytest
-import pytest_asyncio
-from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from starlette.testclient import TestClient
 
 from database.session import get_db
 from main import app
@@ -36,11 +36,13 @@ def _docker_available() -> bool:
 
 
 def _get_test_database_url() -> str | None:
-    """Return an asyncpg-compatible URL for the test database."""
+    """Return a psycopg2-compatible URL for the test database."""
     env_url = os.environ.get("TEST_DATABASE_URL")
     if env_url:
-        return env_url.replace("postgresql://", "postgresql+asyncpg://").replace(
-            "postgresql+psycopg2://", "postgresql+asyncpg://"
+        return (
+            env_url
+            .replace("postgresql+asyncpg://", "postgresql://")
+            .replace("postgresql+psycopg2://", "postgresql://")
         )
     if _docker_available():
         return None  # Signal to use testcontainers
@@ -68,8 +70,7 @@ def database_url():
     from testcontainers.postgres import PostgresContainer
 
     with PostgresContainer("postgres:16-alpine") as pg:
-        jdbc = pg.get_connection_url()
-        yield jdbc.replace("postgresql+psycopg2://", "postgresql+asyncpg://")
+        yield pg.get_connection_url()
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -84,28 +85,26 @@ def run_migrations(database_url):
 
 
 # ---------------------------------------------------------------------------
-# Per-test async client
+# Per-test client
 # ---------------------------------------------------------------------------
 
-@pytest_asyncio.fixture
-async def client(database_url):
-    """AsyncClient with the app wired to the test database."""
-    engine = create_async_engine(database_url)
-    factory = async_sessionmaker(engine, expire_on_commit=False)
+@pytest.fixture
+def client(database_url):
+    """TestClient with the app wired to the test database."""
+    engine = create_engine(database_url)
+    SessionLocal = sessionmaker(engine, expire_on_commit=False)
 
-    async def override_get_db():
-        async with factory() as session:
+    def override_get_db():
+        with SessionLocal() as session:
             yield session
 
     app.dependency_overrides[get_db] = override_get_db
 
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as ac:
-        yield ac
+    with TestClient(app) as c:
+        yield c
 
     app.dependency_overrides.clear()
-    await engine.dispose()
+    engine.dispose()
 
 
 # ---------------------------------------------------------------------------

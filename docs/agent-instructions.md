@@ -12,7 +12,7 @@ Dette dokumentet gir retningslinjer og beslutningsgrunnlag for AI-agenten og utv
 - **Tailscale**: Backend og frontend kan nås privat via Tailscale-nettverk.
 
 ## Teknologivalg
-- **Backend**: FastAPI, SQLAlchemy async (asyncpg), Alembic for migrering.
+- **Backend**: FastAPI, SQLAlchemy (sync, psycopg2-binary), Alembic for migrering. Aldri async — se backend-architecture.md.
 - **Frontend**: React 18 + TypeScript + Tailwind CSS + Vite. React Query for server-state, Zustand for klient-state, Radix UI for komplekse komponenter. Electron via electron-vite (valgfritt).
 - **CI/CD**: Github Actions, Docker Compose for lokal utvikling.
 

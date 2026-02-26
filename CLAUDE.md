@@ -10,11 +10,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Monorepo** with three main layers:
 
-- **`/backend`** — FastAPI (Python), async ORM (SQLAlchemy async, Tortoise ORM, or Gino), Alembic for migrations. Structure: `api/`, `core/`, `database/`, `models/`, `repositories/`, `schemas/`, `services/`, `utils/`.
+- **`/backend`** — FastAPI (Python), SQLAlchemy (sync, psycopg2), Alembic for migrations. Structure: `api/`, `core/`, `database/`, `models/`, `schemas/`, `services/`, `utils/`.
 - **`/frontend`** — React 18 + TypeScript + Tailwind CSS + Vite. State: React Query (server), Zustand (client). UI primitives: Radix UI. Optional Electron wrapper via electron-vite. Structure: `src/api/`, `src/types/`, `src/components/ui/`, `src/features/`, `src/pages/`, `src/stores/`, `src/hooks/`, `src/lib/`.
 - **`/tests`** — pytest-based tests.
 
 **Database:** PostgreSQL, run via Docker Compose.
+
+## Backend is Synchronous
+
+**Never use async in backend code.** Hotprevue is a single-user system — async adds complexity with zero benefit. Pillow (image processing) is synchronous anyway.
+
+- Route handlers: `def`, never `async def`
+- Database session: `Session`, never `AsyncSession`
+- Engine: `create_engine`, never `create_async_engine`
+- Driver: `psycopg2-binary`, never `asyncpg`
+- No `await` anywhere in backend code
+- Tests: `TestClient`, never `AsyncClient` or `pytest-asyncio`
 
 ## Frontend Coding Rules
 
