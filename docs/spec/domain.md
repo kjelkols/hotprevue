@@ -177,17 +177,19 @@ To typer korreksjon i systemet:
 | Lag | Hva | Endres? |
 |---|---|---|
 | Originalfil | Kildefilen på disk | Aldri |
-| PhotoCorrection | Korreksjonens parametere + korrigert coldpreview-sti | Ja — brukeren justerer fritt |
-| Coldpreview (original) | Generert ved registrering, ingen korreksjon | Aldri |
-| Coldpreview (korrigert) | Cachet render med korreksjon — sti i PhotoCorrection | Regenereres automatisk |
+| Coldpreview | Generert fra masterfil ved registrering — statisk for alltid | Aldri |
+| PhotoCorrection | Korreksjonens parametere + sti til korrigert coldpreview | Ja — brukeren justerer fritt |
+| Korrigert coldpreview | Generert fra original coldpreview + korreksjon. Sti lagret i PhotoCorrection. | Regenereres ved hver korreksjonseendring |
+
+**Coldpreview er kilden for korreksjon** — korrigert coldpreview genereres alltid fra original coldpreview, ikke fra originalfilen. Originalfilen er ikke nødvendig for å anvende eller endre korreksjoner.
 
 **Hotpreview er immutabel** — hothash er basert på hotpreview-bytes og kan ikke endres. Korreksjon på hotpreview anvendes kun ved visning i frontend (CSS transform/filter).
 
 **Coldpreview-logikk:** Frontend bruker `corrected_coldpreview_path` hvis den finnes, ellers `coldpreview_path`. Original coldpreview røres aldri.
 
 **Automatisk håndtering:**
-- `PUT /photos/{hothash}/correction` → lagrer korreksjon, genererer ny korrigert coldpreview
-- Korreksjon endres → gammel korrigert coldpreview overskrives
+- `PUT /photos/{hothash}/correction` → lagrer korreksjon, genererer korrigert coldpreview fra original coldpreview
+- Korreksjon endres → korrigert coldpreview regenereres fra original coldpreview, overskrives
 - `DELETE /photos/{hothash}/correction` → sletter korreksjon og korrigert coldpreview-fil
 
 ### Metadata-korreksjon
@@ -236,4 +238,4 @@ Frontend bruker accuracy til å bestemme visning: presis pin på kart ved `exact
 
 **Visningsinnstillinger:** `default_sort` og `show_deleted_in_gallery` styrer standardoppførselen i galleriet. Frontend bør respektere disse som innledende tilstand, men kan la brukeren overstyre midlertidig i sesjonen.
 
-**Coldpreview-innstillinger:** `coldpreview_max_px` og `coldpreview_quality` styrer generering av nye coldpreviews. Eksisterende coldpreviews regenereres ikke automatisk ved endring — kun nye photos påvirkes. Standardverdiene (1200 px langside, 85 % kvalitet) er anbefalte verdier og vises som hint i UI.
+**Coldpreview-innstillinger:** `coldpreview_max_px` og `coldpreview_quality` styrer generering av coldpreview ved registrering. Coldpreviews er statiske etter generering og påvirkes ikke av senere endringer i disse innstillingene. Standardverdiene (1200 px langside, 85 % kvalitet) er anbefalte verdier og vises som hint i UI.
