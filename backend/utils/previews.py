@@ -13,7 +13,7 @@ from pathlib import Path
 from PIL import Image
 
 HOTPREVIEW_SIZE = (150, 150)
-COLDPREVIEW_MAX = 1200  # longest edge
+COLDPREVIEW_MAX_DEFAULT = 1200  # longest edge — override via SystemSettings
 
 
 def generate_hotpreview(file_path: str) -> tuple[bytes, str]:
@@ -46,10 +46,20 @@ def hotpreview_b64(jpeg_bytes: bytes) -> str:
     return base64.b64encode(jpeg_bytes).decode("ascii")
 
 
-def generate_coldpreview(file_path: str, hothash: str, coldpreview_dir: str) -> str:
-    """Generate an 800–1200px JPEG coldpreview and save it to disk.
+def generate_coldpreview(
+    file_path: str,
+    hothash: str,
+    coldpreview_dir: str,
+    max_px: int = COLDPREVIEW_MAX_DEFAULT,
+    quality: int = 85,
+) -> str:
+    """Generate a JPEG coldpreview and save it to disk.
 
     Directory layout: <coldpreview_dir>/<hothash[0:2]>/<hothash[2:4]>/<hothash>.jpg
+
+    Args:
+        max_px: Maximum pixels on the longest edge. Comes from SystemSettings.coldpreview_max_px.
+        quality: JPEG quality 1–100. Comes from SystemSettings.coldpreview_quality.
 
     Returns:
         Absolute path to the saved coldpreview file.
@@ -60,13 +70,12 @@ def generate_coldpreview(file_path: str, hothash: str, coldpreview_dir: str) -> 
     with Image.open(file_path) as img:
         img = _to_rgb(img)
 
-        # Scale so the longest edge is at most COLDPREVIEW_MAX
         w, h = img.size
-        if max(w, h) > COLDPREVIEW_MAX:
-            scale = COLDPREVIEW_MAX / max(w, h)
+        if max(w, h) > max_px:
+            scale = max_px / max(w, h)
             img = img.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
 
-        img.save(str(dest_path), format="JPEG", quality=85, optimize=True)
+        img.save(str(dest_path), format="JPEG", quality=quality, optimize=True)
 
     return str(dest_path)
 

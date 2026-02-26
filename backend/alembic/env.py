@@ -8,9 +8,13 @@ from sqlalchemy import engine_from_config, pool
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from models.base import Base  # noqa: E402
-# Import model modules here as they are created to register tables with Base.metadata.
-# Example:
-#   import models.photo  # noqa: E402, F401
+import models.photographer  # noqa: E402, F401
+import models.category  # noqa: E402, F401
+import models.event  # noqa: E402, F401
+import models.collection  # noqa: E402, F401
+import models.input_session  # noqa: E402, F401
+import models.photo  # noqa: E402, F401
+import models.settings  # noqa: E402, F401
 
 config = context.config
 

@@ -20,7 +20,7 @@ services:
     build: ./backend
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql+asyncpg://hotprevue:hotprevue@db:5432/hotprevue
+      DATABASE_URL: postgresql+psycopg2://hotprevue:hotprevue@db:5432/hotprevue
       COLDPREVIEW_DIR: /data/coldpreviews
     volumes:
       - coldpreviews:/data/coldpreviews
