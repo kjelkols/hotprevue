@@ -12,9 +12,8 @@ Dette dokumentet gir retningslinjer og beslutningsgrunnlag for AI-agenten og utv
 - **Tailscale**: Backend og frontend kan nås privat via Tailscale-nettverk.
 
 ## Teknologivalg
-- **Backend**: FastAPI, async databaseklient (SQLAlchemy async, Tortoise ORM eller Gino), Alembic for migrering.
-- **Frontend**: Moderne rammeverk (React, Vue, Svelte – velg etter behov).
-- **Schemas**: Felles datamodeller i /schemas (Pydantic for Python, evt. TypeScript for frontend).
+- **Backend**: FastAPI, SQLAlchemy async (asyncpg), Alembic for migrering.
+- **Frontend**: React 18 + TypeScript + Tailwind CSS + Vite. React Query for server-state, Zustand for klient-state, Radix UI for komplekse komponenter. Electron via electron-vite (valgfritt).
 - **CI/CD**: Github Actions, Docker Compose for lokal utvikling.
 
 ## Viktige beslutninger

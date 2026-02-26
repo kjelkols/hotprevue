@@ -11,10 +11,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Monorepo** with three main layers:
 
 - **`/backend`** — FastAPI (Python), async ORM (SQLAlchemy async, Tortoise ORM, or Gino), Alembic for migrations. Structure: `api/`, `core/`, `database/`, `models/`, `repositories/`, `schemas/`, `services/`, `utils/`.
-- **`/frontend`** — Web app (React/Vue/Svelte) with Electron support. Route directories under `app/`: `admin`, `collections`, `events`, `import`, `input-channels`, `login`, `photographers`, `saved-searches`, `stories`, `timeline`.
+- **`/frontend`** — React 18 + TypeScript + Tailwind CSS + Vite. State: React Query (server), Zustand (client). UI primitives: Radix UI. Optional Electron wrapper via electron-vite. Structure: `src/api/`, `src/types/`, `src/components/ui/`, `src/features/`, `src/pages/`, `src/stores/`, `src/hooks/`, `src/lib/`.
 - **`/tests`** — pytest-based tests.
 
 **Database:** PostgreSQL, run via Docker Compose.
+
+## Frontend Coding Rules
+
+These rules apply to all frontend code and exist to prevent AI formatting errors:
+
+- **One component per file, max ~100 lines.** Split aggressively.
+- **All API calls go through `src/api/`.** Never use `fetch()` directly in components.
+- **No CSS files.** Tailwind utility classes only, inline in JSX.
+- **Radix UI for complex interactive components** (modals, dropdowns, tabs). Do not build these from scratch.
+- **TypeScript types in `src/types/`.** Never define domain types inline in component files.
+- **React Query for all server state.** No `useState` for data that comes from the API.
+- **Zustand for client-only state** (selection mode, active filters, etc.).
 
 ## Key Technical Decisions
 
@@ -36,8 +48,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Development Commands
 
-The project uses Docker Compose for local development. These commands assume a working `docker-compose.yml` (to be created):
-
 ```sh
 # Start backend and database
 docker compose up
@@ -45,11 +55,17 @@ docker compose up
 # Backend only (FastAPI with auto-reload)
 uvicorn main:app --reload --host 0.0.0.0
 
-# Run tests
+# Run backend tests
 pytest tests/
 
 # Run a single test
 pytest tests/path/to/test_file.py::test_function_name
+
+# Frontend dev server
+cd frontend && npm run dev
+
+# Frontend build
+cd frontend && npm run build
 ```
 
 ## Data Flow
