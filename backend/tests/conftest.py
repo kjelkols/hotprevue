@@ -9,7 +9,6 @@ Either way, Alembic migrations are applied before any test runs.
 
 import os
 import subprocess
-import sys
 from pathlib import Path
 
 import pytest
@@ -17,12 +16,10 @@ import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-# Make sure the backend package is importable
-BACKEND_DIR = Path(__file__).parent.parent / "backend"
-sys.path.insert(0, str(BACKEND_DIR))
+from database.session import get_db
+from main import app
 
-from database.session import get_db  # noqa: E402
-from main import app  # noqa: E402
+BACKEND_DIR = Path(__file__).parent.parent
 
 
 # ---------------------------------------------------------------------------
@@ -38,11 +35,10 @@ def _docker_available() -> bool:
         return False
 
 
-def _get_test_database_url() -> str:
+def _get_test_database_url() -> str | None:
     """Return an asyncpg-compatible URL for the test database."""
     env_url = os.environ.get("TEST_DATABASE_URL")
     if env_url:
-        # Normalise to asyncpg driver
         return env_url.replace("postgresql://", "postgresql+asyncpg://").replace(
             "postgresql+psycopg2://", "postgresql+asyncpg://"
         )
@@ -65,7 +61,8 @@ def _get_test_database_url() -> str:
 def database_url():
     url = _get_test_database_url()
     if url is not None:
-        return url
+        yield url
+        return
 
     # Docker is available — use testcontainers
     from testcontainers.postgres import PostgresContainer
@@ -73,20 +70,11 @@ def database_url():
     with PostgresContainer("postgres:16-alpine") as pg:
         jdbc = pg.get_connection_url()
         yield jdbc.replace("postgresql+psycopg2://", "postgresql+asyncpg://")
-        return  # container cleaned up by context manager
-
-    # Unreachable, but makes the generator valid
-    yield  # noqa: unreachable
 
 
 @pytest.fixture(scope="session", autouse=True)
 def run_migrations(database_url):
     """Run Alembic migrations against the test database."""
-    sync_url = (
-        database_url
-        .replace("postgresql+asyncpg://", "postgresql://")
-        .replace("postgresql+psycopg2://", "postgresql://")
-    )
     subprocess.run(
         ["alembic", "upgrade", "head"],
         cwd=str(BACKEND_DIR),
@@ -124,7 +112,7 @@ async def client(database_url):
 # Real images fixture (requires downloaded test assets)
 # ---------------------------------------------------------------------------
 
-TEST_IMAGES_DIR = Path(__file__).parent.parent / ".test-images"
+TEST_IMAGES_DIR = BACKEND_DIR.parent / ".test-images"
 
 
 def pytest_addoption(parser):
@@ -147,13 +135,7 @@ def pytest_collection_modifyitems(config, items):
 
 @pytest.fixture(scope="session")
 def real_image_dir():
-    """Path to the downloaded test image directory.
-
-    Structure expected:
-        .test-images/
-            jpeg/   ← JPEG files from various cameras
-            raw/    ← RAW files (optional)
-    """
+    """Path to the downloaded test image directory."""
     if not TEST_IMAGES_DIR.exists() or not any(TEST_IMAGES_DIR.iterdir()):
         pytest.skip("Test images not downloaded. Run: make download-test-images")
     return TEST_IMAGES_DIR

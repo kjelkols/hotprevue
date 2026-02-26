@@ -11,8 +11,9 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from models.base import Base  # noqa: E402
-import models.image  # noqa: E402, F401  — registers Image with Base.metadata
-import models.event  # noqa: E402, F401  — registers Event with Base.metadata
+# Model modules are imported here to register tables with Base.metadata.
+# Add imports as new models are created, e.g.:
+#   import models.photo  # noqa: E402, F401
 
 config = context.config
 
