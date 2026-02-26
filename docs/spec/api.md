@@ -225,6 +225,8 @@ Avvises med `409 Conflict` hvis eventen har child-events. Brukeren må slette ch
 | `rating_max` | int | Maksimumsrating (1–5) |
 | `taken_after` | datetime | Tidligste tidspunkt |
 | `taken_before` | datetime | Seneste tidspunkt |
+| `deleted` | bool | `false` (standard) = kun aktive. `true` = kun slettede. Utelat for kun aktive. |
+| `sort` | string | Sorteringsfelt — se Sortering nedenfor |
 | `limit` | int | Antall resultater (paginering) |
 | `offset` | int | Startposisjon (paginering) |
 
@@ -232,6 +234,59 @@ Avvises med `409 Conflict` hvis eventen har child-events. Brukeren må slette ch
 - `?category_id=id1&category_id=id2` — filtrer på flere kategorier (OR)
 - `?exclude_category_id=id1&exclude_category_id=id2` — ekskluder én eller flere kategorier
 - `?tag_operator=or` — bytt tags-filtrering fra AND til OR
+
+---
+
+## Sortering (GET /photos)
+
+| Verdi | Beskrivelse |
+|---|---|
+| `taken_at_desc` (standard) | Nyeste tidspunkt først. Photos uten `taken_at` havner sist. |
+| `taken_at_asc` | Eldste tidspunkt først. |
+| `registered_at_desc` | Sist registrert først. |
+| `registered_at_asc` | Først registrert først. |
+| `rating_desc` | Høyest rating først. Photos uten rating havner sist. |
+| `rating_asc` | Lavest rating først. |
+
+Standard: `taken_at_desc`. Alle sorteringer bruker `registered_at_asc` som sekundær nøkkel for stabil paginering.
+
+---
+
+## Liste vs. detaljrespons
+
+`GET /photos` returnerer en kompakt representasjon. `GET /photos/{hothash}` returnerer full detalj.
+
+**Inkludert i liste:**
+
+| Felt | Begrunnelse |
+|---|---|
+| `hothash` | Nøkkel-ID |
+| `hotpreview_b64` | Nødvendig for gallerivisning — rimelig størrelse for lokalt system |
+| `taken_at`, `taken_at_accuracy` | Nødvendig for sortering og visning |
+| `rating` | Nødvendig for filtrering og visning |
+| `tags` | Nødvendig for filtrering og visning |
+| `category_id` | Nødvendig for filtrering |
+| `event_id` | Nødvendig for filtrering og visning |
+| `photographer_id` | Nødvendig for filtrering og visning |
+| `location_lat`, `location_lng`, `location_accuracy` | Nødvendig for kartvisning og visning |
+| `stack_id`, `is_stack_cover` | Nødvendig for gallerilogikk |
+| `deleted_at` | Nødvendig for søppelkassvisning |
+| `has_correction` | Bool — indikerer om korreksjon finnes (frontend kan hente detaljer ved behov) |
+| `camera_make`, `camera_model` | Liten overhead — nyttig i liste |
+| `iso`, `shutter_speed`, `aperture`, `focal_length` | Liten overhead — nyttig i liste |
+
+**Kun i detalj (`GET /photos/{hothash}`):**
+
+| Felt | Begrunnelse |
+|---|---|
+| `coldpreview_path` | Kun nødvendig ved visning av enkeltbilder |
+| `exif_data` | Rå EXIF — kan være stor. Aldri i liste. |
+| `taken_at_source` | Implementasjonsdetalj — ikke nødvendig i liste |
+| `location_source` | Implementasjonsdetalj — ikke nødvendig i liste |
+| `input_session_id` | Ikke nødvendig i gallerisammenheng |
+| `registered_at` | Ikke nødvendig i gallerisammenheng |
+| Full `PhotoCorrection`-objekt | Kun nødvendig ved redigering |
+| `ImageFiles`-liste | Kun nødvendig i detaljvisning |
 
 ---
 
