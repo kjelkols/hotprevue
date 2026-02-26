@@ -24,8 +24,10 @@ import models.input_session  # noqa: F401
 import models.photo  # noqa: F401
 import models.settings  # noqa: F401
 
-from api import photographers, photos  # noqa: E402
+from api import events, input_sessions, photographers, photos  # noqa: E402
 app.include_router(photographers.router)
+app.include_router(events.router)
+app.include_router(input_sessions.router)
 app.include_router(photos.router)
 
 
