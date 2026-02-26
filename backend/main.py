@@ -15,6 +15,19 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Hotprevue", version="0.1.0", lifespan=lifespan)
 
+# Import all models so SQLAlchemy can resolve string FKs across the full schema
+import models.photographer  # noqa: F401
+import models.category  # noqa: F401
+import models.event  # noqa: F401
+import models.collection  # noqa: F401
+import models.input_session  # noqa: F401
+import models.photo  # noqa: F401
+import models.settings  # noqa: F401
+
+from api import photographers, photos  # noqa: E402
+app.include_router(photographers.router)
+app.include_router(photos.router)
+
 
 def _bootstrap_settings() -> None:
     """Create the single SystemSettings row if it does not exist yet."""

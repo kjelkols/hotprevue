@@ -76,8 +76,10 @@ def database_url():
 @pytest.fixture(scope="session", autouse=True)
 def run_migrations(database_url):
     """Run Alembic migrations against the test database."""
+    import sys
+    alembic_bin = str(Path(sys.executable).parent / "alembic")
     subprocess.run(
-        ["alembic", "upgrade", "head"],
+        [alembic_bin, "upgrade", "head"],
         cwd=str(BACKEND_DIR),
         env={**os.environ, "DATABASE_URL": database_url},
         check=True,
@@ -85,17 +87,40 @@ def run_migrations(database_url):
 
 
 # ---------------------------------------------------------------------------
-# Per-test client
+# Per-test cleanup — truncate all data tables for isolation
+# ---------------------------------------------------------------------------
+
+_DATA_TABLES = (
+    "photo_corrections", "image_files", "duplicate_files",
+    "collection_items", "session_errors",
+    "photos", "input_sessions", "collections",
+    "events", "categories", "photographers", "system_settings",
+)
+
+
+@pytest.fixture(autouse=True)
+def clean_db(database_url):
+    """Truncate all data tables before each test."""
+    from sqlalchemy import text
+    engine = create_engine(database_url)
+    with engine.connect() as conn:
+        conn.execute(text(f"TRUNCATE {', '.join(_DATA_TABLES)} RESTART IDENTITY CASCADE"))
+        conn.commit()
+    engine.dispose()
+
+
+# ---------------------------------------------------------------------------
+# Per-test client and direct DB session
 # ---------------------------------------------------------------------------
 
 @pytest.fixture
-def client(database_url):
+def client(database_url, clean_db):
     """TestClient with the app wired to the test database."""
     engine = create_engine(database_url)
-    SessionLocal = sessionmaker(engine, expire_on_commit=False)
+    TestSessionLocal = sessionmaker(engine, expire_on_commit=False)
 
     def override_get_db():
-        with SessionLocal() as session:
+        with TestSessionLocal() as session:
             yield session
 
     app.dependency_overrides[get_db] = override_get_db
@@ -104,6 +129,16 @@ def client(database_url):
         yield c
 
     app.dependency_overrides.clear()
+    engine.dispose()
+
+
+@pytest.fixture
+def db(database_url, clean_db):
+    """Direct DB session connected to the test database (for seeding data)."""
+    engine = create_engine(database_url)
+    TestSessionLocal = sessionmaker(engine, expire_on_commit=False)
+    with TestSessionLocal() as session:
+        yield session
     engine.dispose()
 
 

@@ -66,6 +66,11 @@ class Photo(Base):
     registered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    @property
+    def has_correction(self) -> bool:
+        """Read by PhotoListItem schema (from_attributes=True). Requires correction to be loaded."""
+        return self.correction is not None
+
     image_files: Mapped[list["ImageFile"]] = relationship(
         "ImageFile",
         back_populates="photo",
