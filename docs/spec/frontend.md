@@ -119,6 +119,77 @@ Frittstående vindu med avkryssede bilder og handlingsverktøylinje. Åpnes fra 
 
 ---
 
+## Lasting og scrolling
+
+BrowseView bruker **progressiv lasting** — kontinuerlig scroll uten separate sider, som Windows Explorer.
+
+- Initial last: `browse_buffer_size` photos (innstilling i SystemSettings, standard 100)
+- Neste batch lastes automatisk når brukeren scroller nær bunnen (`IntersectionObserver`)
+- Allerede lastede photos forblir i DOM
+- React Query `useInfiniteQuery` håndterer batching og caching
+
+**Virtualisering** (TanStack Virtual) legges til som ytelsesoptimering ved behov — ingen arkitekturendring kreves siden hotpreviews har fast størrelse (150×150px).
+
+---
+
+## Avkryssingstilstand — selection-modell
+
+Følger Windows Explorer-mønsteret:
+
+| Handling | Resultat |
+|---|---|
+| Klikk | Velg kun dette — fjern alle andre |
+| Ctrl+klikk | Toggle dette — behold resten |
+| Shift+klikk | Velg rekke fra anker til her |
+| Ctrl+Shift+klikk | Legg til rekke — behold resten |
+| Klikk på tom flate | Fjern alle |
+| Ctrl+A | Velg alle i gjeldende utvalg |
+| Escape | Fjern alle |
+
+**Anker:** Sist klikkede element uten Shift lagres som anker. Shift+klikk beregner rekke mellom anker og mål basert på dataindeks — fungerer selv om anker er scrollet ut av syne.
+
+**Rubber band selection** (dra for å tegne rektangel) — utsettes.
+
+`useSelectionStore` holder:
+- `selectedHashes: Set<string>` — merkede photos
+- `anchorHash: string | null` — anker for Shift+klikk
+- `orderedHashes: string[]` — gjeldende rekkefølge (for rekkeberegning)
+
+---
+
+## Visuell feedback for avkryssingstilstand
+
+Tre synlige tilstander per photo-element:
+
+| Tilstand | Visuell effekt |
+|---|---|
+| Normal | Ingen overlay |
+| Hover | Svak hake i sirkel øverst til venstre — signaliserer at valg er mulig |
+| Valgt | Blå ramme + fylt hake i sirkel |
+
+Haken plasseres i en liten sirkel med hvit/blå bakgrunn — alltid synlig uavhengig av bildets farger (standard mønster fra iOS Photos og Google Photos).
+
+Taskbar viser alltid antall valgte photos. Klikk på telleren åpner SelectionTray.
+
+---
+
+## Tooltip
+
+Vises ved hover over et photo (Radix UI Tooltip). Innhold:
+
+| Felt | Kilde |
+|---|---|
+| Filnavn | ImageFile der `is_master = true` |
+| Tidspunkt | `taken_at` formatert etter `taken_at_accuracy` |
+| Kamera | `camera_make` + `camera_model` |
+| Eksponering | `shutter_speed` · `aperture` · `iso` |
+| Rating | Vises hvis satt |
+| Event | Eventnavn hvis tilknyttet |
+
+All nødvendig data er tilgjengelig i liste-responsen fra `GET /photos` — ingen ekstra API-kall.
+
+---
+
 ## Visninger
 
 ### Hjem
@@ -135,13 +206,12 @@ Frittstående vindu med avkryssede bilder og handlingsverktøylinje. Åpnes fra 
 - `/stacks/:stack_id` — photos i stack
 
 Felles for alle BrowseView-kontekster:
-- Grid-visning av hotpreviews
+- Grid-visning av hotpreviews med progressiv lasting
 - Stacks vises som ett photo (coverbilde) med indikator for antall
 - Mykt slettede photos vises med slettet-indikator hvis `show_deleted_in_gallery` er på
-- Lazy loading og paginering
 - Filtrering på fotograf, event, tags, rating, dato, kategori (kontekstavhengig)
 - Sortering (følger `default_sort` fra settings, kan overstyres midlertidig)
-- Avkryssingstilstand for batch-operasjoner via SelectionTray
+- Avkryssingstilstand (Windows Explorer-mønster) for batch-operasjoner via SelectionTray
 
 ### Detaljvisning
 - Coldpreview (korrigert versjon hvis korreksjon finnes, ellers original)
@@ -178,5 +248,6 @@ Felles for alle BrowseView-kontekster:
 - Originalfilsti alltid synlig i detaljvisning
 - Tydelig varsling når originalfil ikke er tilgjengelig
 - Ingen destruktive operasjoner uten bekreftelse (dialog)
-- Batch-operasjoner (tags, rating, event, kategori, fotograf) støttes i gallerivisning via flervalgsmodus
+- Batch-operasjoner via SelectionTray — aldri direkte fra BrowseView uten at bilder er avkrysset
 - Standardverdier fra settings respekteres som innledende tilstand; brukeren kan overstyre i sesjonen
+- Alle handlinger i SelectionTray kan angres — én nivå per handling

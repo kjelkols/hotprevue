@@ -212,6 +212,7 @@ Alltid eksakt én rad. Opprettes automatisk ved første oppstart med standardver
 | `owner_website` | string (nullable) | `null` | Nettside for eier. Publiseres til Global. |
 | `owner_bio` | text (nullable) | `null` | Kort presentasjon av eier. Publiseres til Global. |
 | `default_sort` | string | `taken_at_desc` | Standardsortering for `GET /photos`. Gyldige verdier: se Sortering i api.md. |
-| `show_deleted_in_gallery` | bool | `false` | Vis mykt slettede Photos i galleriet med slettet-indikator. |
+| `show_deleted_in_gallery` | bool | `false` | Vis mykt slettede Photos i BrowseView med slettet-indikator. |
+| `browse_buffer_size` | int | `100` | Antall photos per batch ved progressiv lasting i BrowseView. |
 | `coldpreview_max_px` | int | `1200` | Maks langside i piksler ved generering av coldpreview ved registrering. Påvirker ikke eksisterende coldpreviews. |
 | `coldpreview_quality` | int | `85` | JPEG-kvalitet for coldpreview ved registrering (1–100). Påvirker ikke eksisterende coldpreviews. Anbefalt: 85. |

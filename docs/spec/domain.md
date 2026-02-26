@@ -338,6 +338,6 @@ Frontend bruker accuracy til å bestemme visning: presis pin på kart ved `exact
 
 **Eierinfo** (`owner_name`, `owner_website`, `owner_bio`, `instance_name`): Informasjon om hvem som driver installasjonen og hva den heter. Skilles bevisst fra Photographer-modellen — Photographer er kreativ attribuering per foto, eierinfo er avsenderidentitet på installasjons­nivå. Disse kan tilhøre samme person, men systemet kobler dem ikke automatisk.
 
-**Visningsinnstillinger:** `default_sort` og `show_deleted_in_gallery` styrer standardoppførselen i galleriet. Frontend bør respektere disse som innledende tilstand, men kan la brukeren overstyre midlertidig i sesjonen.
+**Visningsinnstillinger:** `default_sort`, `show_deleted_in_gallery` og `browse_buffer_size` styrer standardoppførselen i BrowseView. Frontend bør respektere disse som innledende tilstand, men kan la brukeren overstyre midlertidig i sesjonen.
 
 **Coldpreview-innstillinger:** `coldpreview_max_px` og `coldpreview_quality` styrer generering av coldpreview ved registrering. Coldpreviews er statiske etter generering og påvirkes ikke av senere endringer i disse innstillingene. Standardverdiene (1200 px langside, 85 % kvalitet) er anbefalte verdier og vises som hint i UI.
