@@ -2,7 +2,7 @@
 
 Prioritert liste over neste steg. Oppdateres ved hver arbeidsøkt.
 
-Sist oppdatert: 2026-02-27 (sesjon 3)
+Sist oppdatert: 2026-02-27 (sesjon 4)
 
 ---
 
@@ -29,7 +29,7 @@ Sist oppdatert: 2026-02-27 (sesjon 3)
 
 - [ ] Forrige/neste i `PhotoDetailPage` — `useDetailNavStore` + `PhotoDetailHeader` (se `spec/photo-detail-view.md`)
 - [ ] Tastaturnavigasjon (← →) i `PhotoDetailPage`
-- [ ] `SelectionTray` — frittstående vindu med handlinger
+- [ ] `SelectionTray` — bunnlinje + `SelectionModal` (intern gridvisning, fjern enkeltbilder) — se `spec/selection-tray.md`
 - [ ] `Taskbar` med selection-teller
 
 ### Visningsmodus
