@@ -1,13 +1,13 @@
-import tempfile
+import io
+import math
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session, selectinload
 
 from models.photo import ImageFile, Photo
-from schemas.photo import CompanionCreate
 
 
 def list_photos(
@@ -89,10 +89,260 @@ def get_image_files(db: Session, hothash: str) -> list[ImageFile]:
 
 
 # ---------------------------------------------------------------------------
-# Companions and reprocess
+# Coldpreview serving
 # ---------------------------------------------------------------------------
 
-def add_companion(db: Session, hothash: str, data: CompanionCreate) -> ImageFile:
+def serve_coldpreview(db: Session, hothash: str) -> tuple[bytes, str]:
+    """Return (image_bytes, etag) for the coldpreview, applying any correction on-the-fly.
+
+    Corrections are applied in order: rotation → horizon → crop → exposure.
+    The original coldpreview on disk is never modified.
+    """
+    from core.config import settings as app_settings
+    from PIL import Image, ImageEnhance
+
+    photo = (
+        db.query(Photo)
+        .options(selectinload(Photo.correction))
+        .filter(Photo.hothash == hothash)
+        .first()
+    )
+    if photo is None:
+        raise HTTPException(status_code=404, detail="Photo not found")
+
+    coldpreview_file = (
+        Path(app_settings.coldpreview_dir) / hothash[:2] / hothash[2:4] / f"{hothash}.jpg"
+    )
+    if not coldpreview_file.exists():
+        raise HTTPException(status_code=404, detail="Coldpreview not found")
+
+    if photo.correction is None:
+        return coldpreview_file.read_bytes(), hothash
+
+    c = photo.correction
+    img = Image.open(coldpreview_file)
+
+    # 1. 90 / 180 / 270 degree rotation
+    if c.rotation:
+        img = img.rotate(-c.rotation, expand=True)
+
+    # 2. Horizon correction (fine rotation to level the horizon)
+    if c.horizon_angle:
+        orig_w, orig_h = img.size
+        img = img.rotate(-c.horizon_angle, expand=True, resample=Image.BICUBIC)
+        img = _crop_horizon(img, orig_w, orig_h, c.horizon_angle)
+
+    # 3. User crop (proportional 0.0–1.0 coordinates)
+    if any(v is not None for v in [c.crop_left, c.crop_top, c.crop_right, c.crop_bottom]):
+        w, h = img.size
+        left = int((c.crop_left or 0.0) * w)
+        top = int((c.crop_top or 0.0) * h)
+        right = int(w - (c.crop_right or 0.0) * w)
+        bottom = int(h - (c.crop_bottom or 0.0) * h)
+        img = img.crop((left, top, right, bottom))
+
+    # 4. Exposure EV (log2 scale brightness)
+    if c.exposure_ev:
+        img = ImageEnhance.Brightness(img).enhance(2.0 ** c.exposure_ev)
+
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=85)
+    etag = f"{hothash}-{c.updated_at.timestamp()}"
+    return buf.getvalue(), etag
+
+
+def _crop_horizon(img, orig_w: int, orig_h: int, angle_deg: float):
+    """Crop to remove black corners after horizon rotation.
+
+    Computes the largest centered rectangle (using original dimensions)
+    that fits inside the expanded rotated image without black pixels.
+    """
+    a = math.radians(abs(angle_deg))
+    tan_a = math.tan(a)
+    new_w = max(1, int(orig_w - orig_h * tan_a))
+    new_h = max(1, int(orig_h - orig_w * tan_a))
+    ew, eh = img.size
+    left = (ew - new_w) // 2
+    top = (eh - new_h) // 2
+    return img.crop((left, top, left + new_w, top + new_h))
+
+
+# ---------------------------------------------------------------------------
+# PATCH single photo
+# ---------------------------------------------------------------------------
+
+def patch_photo(db: Session, hothash: str, data) -> Photo:
+    photo = get_by_hothash(db, hothash)
+    updates = data.model_dump(exclude_unset=True)
+    if "tags" in updates and updates["tags"] is not None:
+        updates["tags"] = [t.lower() for t in updates["tags"]]
+    for field, value in updates.items():
+        setattr(photo, field, value)
+    db.commit()
+    db.refresh(photo)
+    return photo
+
+
+# ---------------------------------------------------------------------------
+# Soft delete / restore / empty-trash
+# ---------------------------------------------------------------------------
+
+def soft_delete(db: Session, hothash: str) -> None:
+    photo = db.query(Photo).filter(Photo.hothash == hothash).first()
+    if photo is None:
+        raise HTTPException(status_code=404, detail="Photo not found")
+    photo.deleted_at = datetime.now(timezone.utc)
+    db.commit()
+
+
+def restore(db: Session, hothash: str) -> None:
+    photo = db.query(Photo).filter(Photo.hothash == hothash).first()
+    if photo is None:
+        raise HTTPException(status_code=404, detail="Photo not found")
+    photo.deleted_at = None
+    db.commit()
+
+
+def empty_trash(db: Session) -> int:
+    photos = db.query(Photo).filter(Photo.deleted_at.isnot(None)).all()
+    count = len(photos)
+    for photo in photos:
+        db.delete(photo)
+    db.commit()
+    return count
+
+
+# ---------------------------------------------------------------------------
+# Batch helpers
+# ---------------------------------------------------------------------------
+
+def _get_batch(db: Session, hothashes: list[str]) -> list[Photo]:
+    return db.query(Photo).filter(Photo.hothash.in_(hothashes)).all()
+
+
+def batch_tags_add(db: Session, hothashes: list[str], tags: list[str]) -> int:
+    from sqlalchemy import func as sa_func
+    normalized = [t.lower() for t in tags]
+    photos = _get_batch(db, hothashes)
+    for photo in photos:
+        existing = set(photo.tags or [])
+        photo.tags = list(existing | set(normalized))
+    db.commit()
+    return len(photos)
+
+
+def batch_tags_remove(db: Session, hothashes: list[str], tags: list[str]) -> int:
+    normalized = set(t.lower() for t in tags)
+    photos = _get_batch(db, hothashes)
+    for photo in photos:
+        photo.tags = [t for t in (photo.tags or []) if t not in normalized]
+    db.commit()
+    return len(photos)
+
+
+def batch_tags_set(db: Session, hothashes: list[str], tags: list[str]) -> int:
+    normalized = [t.lower() for t in tags]
+    photos = _get_batch(db, hothashes)
+    for photo in photos:
+        photo.tags = normalized
+    db.commit()
+    return len(photos)
+
+
+def batch_rating(db: Session, hothashes: list[str], rating: int | None) -> int:
+    photos = _get_batch(db, hothashes)
+    for photo in photos:
+        photo.rating = rating
+    db.commit()
+    return len(photos)
+
+
+def batch_event(db: Session, hothashes: list[str], event_id: uuid.UUID | None) -> int:
+    photos = _get_batch(db, hothashes)
+    for photo in photos:
+        photo.event_id = event_id
+    db.commit()
+    return len(photos)
+
+
+def batch_category(db: Session, hothashes: list[str], category_id: uuid.UUID | None) -> int:
+    photos = _get_batch(db, hothashes)
+    for photo in photos:
+        photo.category_id = category_id
+    db.commit()
+    return len(photos)
+
+
+def batch_photographer(db: Session, hothashes: list[str], photographer_id: uuid.UUID) -> int:
+    photos = _get_batch(db, hothashes)
+    for photo in photos:
+        photo.photographer_id = photographer_id
+    db.commit()
+    return len(photos)
+
+
+def batch_taken_at(db: Session, hothashes: list[str], taken_at: datetime, taken_at_source: int) -> int:
+    photos = _get_batch(db, hothashes)
+    for photo in photos:
+        photo.taken_at = taken_at
+        photo.taken_at_source = taken_at_source
+    db.commit()
+    return len(photos)
+
+
+def batch_taken_at_offset(db: Session, hothashes: list[str], offset_seconds: int) -> int:
+    from datetime import timedelta
+    photos = _get_batch(db, hothashes)
+    updated = 0
+    for photo in photos:
+        if photo.taken_at is not None:
+            photo.taken_at = photo.taken_at + timedelta(seconds=offset_seconds)
+            photo.taken_at_source = 1  # adjusted
+            updated += 1
+    db.commit()
+    return updated
+
+
+def batch_location(
+    db: Session,
+    hothashes: list[str],
+    location_lat: float,
+    location_lng: float,
+    location_source: int,
+    location_accuracy: str | None,
+) -> int:
+    photos = _get_batch(db, hothashes)
+    for photo in photos:
+        photo.location_lat = location_lat
+        photo.location_lng = location_lng
+        photo.location_source = location_source
+        photo.location_accuracy = location_accuracy
+    db.commit()
+    return len(photos)
+
+
+def batch_delete(db: Session, hothashes: list[str]) -> int:
+    photos = _get_batch(db, hothashes)
+    now = datetime.now(timezone.utc)
+    for photo in photos:
+        photo.deleted_at = now
+    db.commit()
+    return len(photos)
+
+
+def batch_restore(db: Session, hothashes: list[str]) -> int:
+    photos = _get_batch(db, hothashes)
+    for photo in photos:
+        photo.deleted_at = None
+    db.commit()
+    return len(photos)
+
+
+# ---------------------------------------------------------------------------
+# Companions
+# ---------------------------------------------------------------------------
+
+def add_companion(db: Session, hothash: str, data) -> ImageFile:
     photo = db.query(Photo).filter(Photo.hothash == hothash).first()
     if photo is None:
         raise HTTPException(status_code=404, detail="Photo not found")
@@ -109,61 +359,6 @@ def add_companion(db: Session, hothash: str, data: CompanionCreate) -> ImageFile
     db.commit()
     db.refresh(companion)
     return companion
-
-
-def reprocess(
-    db: Session,
-    hothash: str,
-    file_bytes: bytes,
-    master_path: str | None,
-) -> str:
-    """Regenerate coldpreview from new file content. Returns new coldpreview_path."""
-    from core.config import settings as app_settings
-    from models.settings import SystemSettings
-    from utils.previews import generate_coldpreview, generate_hotpreview
-
-    photo = db.query(Photo).filter(Photo.hothash == hothash).first()
-    if photo is None:
-        raise HTTPException(status_code=404, detail="Photo not found")
-
-    suffix = Path(master_path).suffix if master_path else ".jpg"
-    tmp_path = None
-    try:
-        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
-            tmp.write(file_bytes)
-            tmp_path = tmp.name
-
-        _, new_hothash = generate_hotpreview(tmp_path)
-        if new_hothash != hothash:
-            raise HTTPException(
-                status_code=409,
-                detail="File content does not match the existing photo (hothash mismatch)",
-            )
-
-        sys_settings = db.query(SystemSettings).first()
-        max_px = sys_settings.coldpreview_max_px if sys_settings else 1200
-        quality = sys_settings.coldpreview_quality if sys_settings else 85
-
-        coldpreview_path = generate_coldpreview(
-            tmp_path, hothash, app_settings.coldpreview_dir,
-            max_px=max_px, quality=quality,
-        )
-        photo.coldpreview_path = coldpreview_path
-
-        if master_path:
-            master_file = (
-                db.query(ImageFile)
-                .filter(ImageFile.photo_id == photo.id, ImageFile.is_master.is_(True))
-                .first()
-            )
-            if master_file:
-                master_file.file_path = master_path
-
-        db.commit()
-        return coldpreview_path
-    finally:
-        if tmp_path:
-            Path(tmp_path).unlink(missing_ok=True)
 
 
 # ---------------------------------------------------------------------------

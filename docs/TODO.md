@@ -2,7 +2,7 @@
 
 Prioritert liste over neste steg. Oppdateres ved hver arbeidsøkt.
 
-Sist oppdatert: 2026-02-26
+Sist oppdatert: 2026-02-27 (sesjon 3)
 
 ---
 
@@ -14,59 +14,35 @@ Sist oppdatert: 2026-02-26
 
 ## Neste — backend
 
-### 1. Fundament
-- [ ] Ny Alembic-migrering: alle tabeller fra `spec/data-model.md`
-- [ ] ORM-modeller: Photographer, InputSession, Photo, ImageFile, DuplicateFile, SessionError, Event, Collection, CollectionItem, PhotoCorrection, Category, SystemSettings
-- [ ] `backend/main.py` — ny FastAPI-app med lifespan og settings-bootstrap
-
-### 2. Basisendepunkter
-- [ ] `GET/PATCH /settings` — SystemSettings med bootstrap ved første oppstart
-- [ ] Photographer — CRUD
+- [ ] `GET/PATCH /settings` — SystemSettings
+- [ ] `GET /tags` — distinkte tags med prefiks-filtrering og valgfri count
 - [ ] Category — CRUD
-- [ ] Event — CRUD, trestruktur, hierarki
-- [ ] Tags — `GET /tags`
-
-### 3. Registrering
-- [ ] InputSession — opprett, skann, prosesser, statistikk
-- [ ] Filgruppering ved skanning (RAW+JPEG-par, XMP-sidecar)
-- [ ] EXIF-feltmapping: `extract_exif()` → Photo-kolonner (camera_make, iso osv.)
-- [ ] Duplikat- og feilhåndtering under prosessering
-
-### 4. Photo
-- [ ] `GET /photos`, `GET /photos/{hothash}` — liste vs. detalj-respons
-- [ ] `PATCH /photos/{hothash}` — metadata
-- [ ] Soft delete, restore, empty-trash
-- [ ] Reset-time, reset-location
-- [ ] Batch-endepunkter (tags, rating, event, category, photographer, taken-at, location, delete, restore)
-- [ ] PhotoCorrection — GET/PUT/DELETE, generer korrigert coldpreview fra original coldpreview
-
-### 5. Øvrige ressurser
-- [ ] Collection — CRUD, items (batch, rekkefølge, innhold)
+- [ ] `GET /duplicates`, `DELETE /duplicates/{id}` — liste og fjern duplikater
+- [ ] PhotoCorrection — GET/PUT/DELETE
 - [ ] Stack — CRUD, coverbilde
-- [ ] Duplicate — list, slett, valider
-- [ ] `GET /photos/{hothash}/files` — ImageFiles
 
 ---
 
 ## Neste — frontend
 
-### 1. Prosjektoppsett
-- [ ] Vite + React 18 + TypeScript + Tailwind CSS
-- [ ] React Router, React Query, Zustand, Radix UI
-- [ ] `src/api/`, `src/types/`, `src/components/ui/`, `src/features/`, `src/pages/`-struktur
+### Kjernekomponenter
 
-### 2. Kjernekomponenter
-- [ ] `BrowseView` — grid, progressiv lasting, tooltip
-- [ ] Avkryssingstilstand (click/ctrl/shift, visuell feedback)
+- [ ] Forrige/neste i `PhotoDetailPage` — `useDetailNavStore` + `PhotoDetailHeader` (se `spec/photo-detail-view.md`)
+- [ ] Tastaturnavigasjon (← →) i `PhotoDetailPage`
 - [ ] `SelectionTray` — frittstående vindu med handlinger
 - [ ] `Taskbar` med selection-teller
 
-### 3. Sider
-- [ ] `HomePage`
-- [ ] Events, Collections, Photographers
-- [ ] Detaljvisning med korreksjonsverktøy
-- [ ] Registreringsassistent (5-stegs flyt)
-- [ ] Settings, Admin
+### Visningsmodus
+
+- [ ] `CollectionPresentPage` (`/collections/:id/present`) — `SlidePresenter`, foto-slides + tekstkort-slides, notes-toggle (`N`), fullskjerm (`F`) (se `spec/collection-presentation.md`)
+- [ ] `EventPresentPage` (`/events/:id/present`) — deler `SlidePresenter`, sortert etter `taken_at`
+
+### Sider
+
+- [ ] Events — liste, detalj (BrowseView for event)
+- [ ] Photographers — liste, detalj
+- [ ] Settings
+- [ ] Registreringsassistent — knappen finnes, flyten delvis implementert
 
 ---
 
@@ -75,7 +51,7 @@ Sist oppdatert: 2026-02-26
 - [ ] Story/PhotoText — spec og implementasjon
 - [ ] Perceptual hashing for duplikatdeteksjon
 - [ ] Batch-oppdatering av filstiprefiks (Admin)
-- [ ] Eksport av collection
+- [ ] Eksport av collection (HTML-pakke, se `spec/collection-presentation.md`)
 - [ ] Electron-wrapper via electron-vite
 - [ ] TanStack Virtual for ytelsesoptimering av BrowseView
 
@@ -95,3 +71,32 @@ Sist oppdatert: 2026-02-26
 - [x] Gammel backend-kode slettet
 - [x] tests/ flyttet til backend/tests/ (sys.path-hack fjernet)
 - [x] decisions/001-hothash-as-id.md, decisions/002-backend-collocated-with-files.md
+- [x] Alembic-migrering: alle tabeller fra spec/data-model.md
+- [x] ORM-modeller: Photographer, InputSession, Photo, ImageFile, DuplicateFile, SessionError, Event, Collection, CollectionItem, PhotoCorrection, Category, SystemSettings
+- [x] FastAPI-app med lifespan og settings-bootstrap
+- [x] Photographer — CRUD med API-endepunkter
+- [x] Event — CRUD, trestruktur, hierarki med API-endepunkter
+- [x] InputSession — opprett, check, groups (multipart), complete, statistikk
+- [x] EXIF-ekstrahering: kuratert struktur lagret som JSONB
+- [x] Duplikat- og feilhåndtering under registrering (DuplicateFile, SessionError)
+- [x] GET /photos, GET /photos/{hothash} — liste vs. detalj-respons
+- [x] GET /photos/{hothash}/files — ImageFiles
+- [x] POST /photos/{hothash}/companions — legg til companion-fil
+- [x] POST /photos/{hothash}/reprocess — last opp ny masterfil, regenerer coldpreview
+- [x] Hotpreview (150×150 JPEG, base64, SHA256 = hothash) og coldpreview-generering
+- [x] Test-infrastruktur: conftest.py med testcontainers PostgreSQL + Alembic-migrasjon
+- [x] Integrasjonstester med reelle kamerabilder (Nikon D800 JPEG+NEF)
+- [x] Test-bilder lastet opp til GitHub Releases (test-assets-v1)
+- [x] PATCH /photos/{hothash} — oppdater metadata på enkeltbilde
+- [x] Soft delete, restore, empty-trash på photos
+- [x] Batch-endepunkter: tags/add, tags/remove, tags/set, rating, event, category, photographer, taken-at, taken-at-offset, location, delete, restore
+- [x] Collection — CRUD + items (legg til, batch, rekkefølge, oppdater innhold, fjern)
+- [x] CollectionItem: card_type (erstatter is_text_card), notes, card_data — migrering 0003
+- [x] spec/collection-presentation.md — Collection som presentasjonsmedium, visningsmodus, eksportarkitektur
+- [x] Prosjektoppsett frontend: Vite + React 18 + TypeScript + Tailwind CSS + React Router + React Query + Zustand + Radix UI + dnd-kit
+- [x] BrowseView — grid, progressiv lasting, dato-overlay
+- [x] Avkryssingstilstand (click/ctrl+click/shift+click, visuell feedback)
+- [x] Kontekstmeny — useContextMenuStore + ContextMenuOverlay
+- [x] PhotoDetailPage — /photos/:hothash, coldpreview + PhotoMetaPanel
+- [x] Grid-arkitektur: ThumbnailShell, selectionSlice, useCollectionViewStore, CollectionGrid med dnd-kit
+- [x] Collections frontend — CollectionsListPage, CollectionPage, navigasjon fra HomePage

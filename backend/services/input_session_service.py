@@ -152,7 +152,6 @@ def register_group(
         photo = Photo(
             hothash=hothash,
             hotpreview_b64=hotpreview_b64(jpeg_bytes),
-            coldpreview_path=coldpreview_path,
             exif_data=exif_data,
             taken_at=taken_at,
             taken_at_source=0,

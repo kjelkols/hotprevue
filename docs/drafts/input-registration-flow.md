@@ -14,11 +14,11 @@ Alle spørsmål er avklart. Innholdet er fordelt til:
 
 | Emne | Beslutning |
 |---|---|
-| Master ved RAW+JPEG | RAW prioriteres alltid |
-| rawpy | Avhengighet fra start |
-| Review-steg | Standard — kan slås av med `skip_review: true` |
+| Master ved RAW+JPEG | JPEG prioriteres (Pillow støtter EXIF-lesing fra JPEG, ikke NEF/RAW) |
+| rawpy | Ikke tatt inn — JPEG brukes som master |
+| Review-steg | Fjernet — backend registrerer én gruppe om gangen uten bekreftelsessteg |
 | Prosessering | Synkron |
-| Grupper med 3+ filer | Flagges i scan-responsen |
+| Grupper med 3+ filer | Støttes — alle companion-filer sendes som metadata i group-endepunktet |
 | XMP-filer | Lagres som ImageFile med `file_type = "XMP"`, ingen innholdslesing |
 | Duplikathåndtering | Egen `DuplicateFile`-tabell — backend passiv, frontend presenterer |
 | Stille sletting av duplikater | Ved neste skanning eller manuell validering |

@@ -12,6 +12,7 @@ Denne filen er den autoritative kilden til terminologi i Hotprevue. Ved tvil om 
 | Kolleksjonsvisning | `Collection` | `CollectionView` | Kuratert, ordnet sekvens av CollectionItems. Caption, tekstkort, posisjonsmarkør. |
 | Lysbord | `Tray` | `SelectionTray` | Frittstående, flyttbart vindu med avkryssede bilder og handlingsverktøylinje. Midlertidig arbeidsflate. **NB:** «Lightbox» brukes ikke — det betyr fullskjermvisning av ett bilde i webprogrammering. |
 | Avkryssingstilstand | `Selection` | `useSelectionStore` | Hvilke photos er avkrysset. Deles mellom BrowseView og SelectionTray. Intern tilstand, ikke et domeneobjekt. |
+| Kontekstmeny | `ContextMenu` | `useContextMenuStore` + `ContextMenuOverlay` | Flytende meny utløst av høyreklikk. Innholdet avhenger av seleksjonstilstand og hva som ble høyreklikket. Globalt system — se `context-menu.md`. |
 | Posisjonsmarkør | `InsertionPoint` | `InsertionPoint` | Innsettingspunkt i en kolleksjon — angir hvor avkryssede bilder settes inn. |
 | Hjem | `Home` | `HomePage` | Startside med programoversikt. Ingen bildestrøm. |
 | Taskbar | `Taskbar` | `Taskbar` | Persistent navigasjonslinje for funksjonsområder. |
@@ -34,7 +35,7 @@ Filtyper som lagres: `RAW`, `JPEG`, `TIFF`, `PNG`, `HEIC`, `XMP`. XMP-sidecar-fi
 
 ## Registrering
 
-Prosessen der bilder legges inn i systemet. Aldri kalt "import". Backend leser originalfiler, trekker ut EXIF, genererer hotpreview og coldpreview — originalfilene røres ikke.
+Prosessen der bilder legges inn i systemet. Aldri kalt "import". Frontend scanner katalogen lokalt og sender filinnhold til backend (multipart), som trekker ut EXIF, genererer hotpreview og coldpreview — originalfilene røres ikke.
 
 ## Fotograf
 
@@ -54,11 +55,9 @@ Alle Photos registrert i en sesjon knyttes til den og kan alltid søkes ut via `
 
 **Event-tilknytning:** To alternativer — ingen event (`default_event_id` er null) eller ett spesifikt event (satt av brukeren). Automatisk event-generering fra katalogstruktur er et frontend-ansvar og skjer ikke i backend.
 
-**Rekursiv skanning:** Styres av `recursive`-flagget (standard: true). Kan deaktiveres hvis brukeren kun vil skanne toppnivåkatalogen.
+**Rekursiv skanning:** `recursive`-flagget (standard: true) er et informasjonsfelt — backend leser ikke filsystemet direkte. Frontend bruker flagget til å styre sin egen skannelogikk.
 
-**Status:** Sesjonen har en livssyklus: `pending` → `scanning` → `awaiting_confirmation` → `processing` → `completed`. Ved feil settes status til `failed`. `awaiting_confirmation` betyr at scan er utført og systemet venter på at brukeren bekrefter prosessering.
-
-**Rescan:** En sesjon kan rescanned mot samme `source_path` uavhengig av tidligere status. Filer med hothash som allerede finnes i databasen hoppes over stille. Nye filer registreres og telles i `photo_count`.
+**Status:** Sesjonen har en livssyklus: `pending` (opprettet, ingen grupper mottatt) → `uploading` (første gruppe registrert) → `completed` (`/complete` er kalt).
 
 **Duplikater:** Filer med hothash som matcher et eksisterende Photo, men med en ny ukjent filsti, registreres i `DuplicateFile`-tabellen og telles i `duplicate_count`.
 

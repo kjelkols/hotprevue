@@ -113,8 +113,8 @@ def test_exif_extracted(client, real_image_dir):
 
 
 @pytest.mark.real_images
-def test_coldpreview_generated(client, real_image_dir):
-    """Coldpreview-sti skal være satt etter registrering."""
+def test_coldpreview_served(client, real_image_dir):
+    """Coldpreview-endepunktet skal returnere et JPEG etter registrering."""
     jpeg = real_image_dir / "nikon_d800.JPG"
     photographer_id = _create_photographer(client)
     session_id = _create_session(client, photographer_id, str(real_image_dir))
@@ -122,8 +122,10 @@ def test_coldpreview_generated(client, real_image_dir):
     r = _upload_group(client, session_id, jpeg)
     hothash = r.json()["hothash"]
 
-    detail = client.get(f"/photos/{hothash}").json()
-    assert detail["coldpreview_path"] is not None
+    r = client.get(f"/photos/{hothash}/coldpreview")
+    assert r.status_code == 200
+    assert r.headers["content-type"] == "image/jpeg"
+    assert len(r.content) > 0
 
 
 @pytest.mark.real_images

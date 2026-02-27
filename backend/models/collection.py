@@ -1,8 +1,8 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base
@@ -37,8 +37,10 @@ class CollectionItem(Base):
     hothash: Mapped[str | None] = mapped_column(String, nullable=True)
     position: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     caption: Mapped[str | None] = mapped_column(Text, nullable=True)
-    is_text_card: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    card_type: Mapped[str | None] = mapped_column(Text, nullable=True)  # None=photo, 'text'=text card
     title: Mapped[str | None] = mapped_column(Text, nullable=True)
     text_content: Mapped[str | None] = mapped_column(Text, nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    card_data: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
     collection: Mapped["Collection"] = relationship("Collection", back_populates="items")

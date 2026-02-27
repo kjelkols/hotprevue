@@ -266,16 +266,13 @@ def test_add_companion_duplicate_path(client, sample_image_path):
     assert r.status_code == 409
 
 
-def test_reprocess_regenerates_coldpreview(client, sample_image_path, coldpreview_dir):
+def test_coldpreview_endpoint(client, sample_image_path):
     photographer_id = _create_photographer(client)
     session_id = _create_session(client, photographer_id)
     r = _upload_group(client, session_id, sample_image_path, master_path="/photos/img.jpg")
     hothash = r.json()["hothash"]
 
-    with open(sample_image_path, "rb") as f:
-        r = client.post(
-            f"/photos/{hothash}/reprocess",
-            files={"master_file": ("img.jpg", f, "image/jpeg")},
-        )
+    r = client.get(f"/photos/{hothash}/coldpreview")
     assert r.status_code == 200
-    assert r.json()["coldpreview_path"]
+    assert r.headers["content-type"] == "image/jpeg"
+    assert len(r.content) > 0

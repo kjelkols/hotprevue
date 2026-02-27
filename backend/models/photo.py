@@ -18,7 +18,6 @@ class Photo(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     hothash: Mapped[str] = mapped_column(String, unique=True, nullable=False, index=True)
     hotpreview_b64: Mapped[str] = mapped_column(Text, nullable=False)
-    coldpreview_path: Mapped[str | None] = mapped_column(String, nullable=True)
     exif_data: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
 
     taken_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -144,7 +143,6 @@ class PhotoCorrection(Base):
     crop_top: Mapped[float | None] = mapped_column(Float, nullable=True)
     crop_right: Mapped[float | None] = mapped_column(Float, nullable=True)
     crop_bottom: Mapped[float | None] = mapped_column(Float, nullable=True)
-    corrected_coldpreview_path: Mapped[str | None] = mapped_column(String, nullable=True)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

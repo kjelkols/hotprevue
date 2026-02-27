@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
@@ -25,7 +26,6 @@ class PhotoCorrectionSchema(BaseModel):
     crop_top: float | None
     crop_right: float | None
     crop_bottom: float | None
-    corrected_coldpreview_path: str | None
     updated_at: datetime
 
 
@@ -61,12 +61,7 @@ class CompanionCreate(BaseModel):
     type: str
 
 
-class ReprocessResult(BaseModel):
-    coldpreview_path: str
-
-
 class PhotoDetail(PhotoListItem):
-    coldpreview_path: str | None
     exif_data: dict
     taken_at_source: int
     location_source: int | None
@@ -74,3 +69,70 @@ class PhotoDetail(PhotoListItem):
     registered_at: datetime
     image_files: list[ImageFileSchema]
     correction: PhotoCorrectionSchema | None
+
+
+# ---------------------------------------------------------------------------
+# PATCH /photos/{hothash}
+# ---------------------------------------------------------------------------
+
+class PhotoPatch(BaseModel):
+    taken_at: datetime | None = None
+    taken_at_source: int | None = None
+    taken_at_accuracy: str | None = None
+    location_lat: float | None = None
+    location_lng: float | None = None
+    location_source: int | None = None
+    location_accuracy: str | None = None
+    rating: int | None = None
+    tags: list[str] | None = None
+    category_id: uuid.UUID | None = None
+    event_id: uuid.UUID | None = None
+    photographer_id: uuid.UUID | None = None
+
+
+# ---------------------------------------------------------------------------
+# Batch endpoints
+# ---------------------------------------------------------------------------
+
+class BatchBase(BaseModel):
+    hothashes: list[str]
+
+
+class BatchTags(BatchBase):
+    tags: list[str]
+
+
+class BatchRating(BatchBase):
+    rating: int | None
+
+
+class BatchEvent(BatchBase):
+    event_id: uuid.UUID | None
+
+
+class BatchCategory(BatchBase):
+    category_id: uuid.UUID | None
+
+
+class BatchPhotographer(BatchBase):
+    photographer_id: uuid.UUID
+
+
+class BatchTakenAt(BatchBase):
+    taken_at: datetime
+    taken_at_source: Literal[1, 2] = 2
+
+
+class BatchTakenAtOffset(BatchBase):
+    offset_seconds: int
+
+
+class BatchLocation(BatchBase):
+    location_lat: float
+    location_lng: float
+    location_source: int = 1
+    location_accuracy: str | None = None
+
+
+class BatchResult(BaseModel):
+    updated: int
