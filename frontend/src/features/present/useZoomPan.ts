@@ -64,11 +64,40 @@ export function useZoomPan(containerRef: React.RefObject<HTMLDivElement>) {
     dragRef.current = { mx: e.clientX, my: e.clientY, ox: offsetRef.current.x, oy: offsetRef.current.y }
   }
 
+  // Button-based zoom toward center
+  function zoomIn() {
+    const s = scaleRef.current
+    const o = offsetRef.current
+    const ns = Math.min(MAX, s * 1.25)
+    if (ns === s) return
+    setScale(ns)
+    setOffset({ x: o.x * (ns / s), y: o.y * (ns / s) })
+  }
+
+  function zoomOut() {
+    const s = scaleRef.current
+    const o = offsetRef.current
+    const ns = Math.max(MIN, s / 1.25)
+    if (ns === s) return
+    if (ns <= MIN) { setScale(MIN); setOffset({ x: 0, y: 0 }); return }
+    setScale(ns)
+    setOffset({ x: o.x * (ns / s), y: o.y * (ns / s) })
+  }
+
+  function reset() {
+    setScale(MIN)
+    setOffset({ x: 0, y: 0 })
+  }
+
   return {
     scale,
     offsetX: offset.x,
     offsetY: offset.y,
     isZoomed: scale > MIN,
+    canZoomIn: scale < MAX,
     onMouseDown,
+    zoomIn,
+    zoomOut,
+    reset,
   }
 }
