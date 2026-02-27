@@ -6,6 +6,15 @@ Format: `## YYYY-MM-DD — Kort beskrivelse`
 
 ---
 
+## 2026-02-27 — InsertionPoint kursormodell fjernet
+
+- Kursoren (blå vertikal strek) var ikke intuitiv: sto fast på slutten ved klikk og utløste browser-nativ rubber-band-selection ved dra
+- Fjernet: `InsertionPoint.tsx`, `CursorEndIndicator.tsx`, `insertionIndex`/`setInsertionPoint` fra `useCollectionViewStore`
+- Fotos og tekstkort settes nå alltid inn på slutten av kolleksjonen
+- Spec arkivert til `docs/drafts/insertion-point.md`
+
+---
+
 ## 2026-02-27 — Drag-and-drop visuell forbedring
 
 - Drop-destinasjonen i CollectionGrid viser nå stiplet blå kant med blek forhåndsvisning av bildet som flyttes, i stedet for sort hull

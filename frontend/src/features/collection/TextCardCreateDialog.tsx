@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { createTextItem } from '../../api/text-items'
-import { addCollectionItem, getCollectionItems } from '../../api/collections'
-import useCollectionViewStore from '../../stores/useCollectionViewStore'
+import { addCollectionItem } from '../../api/collections'
 
 interface Props {
   collectionId: string
@@ -16,16 +15,6 @@ export default function TextCardCreateDialog({ collectionId, open, onOpenChange 
   const [body, setBody] = useState('')
   const queryClient = useQueryClient()
 
-  const { data: items = [] } = useQuery({
-    queryKey: ['collection-items', collectionId],
-    queryFn: () => getCollectionItems(collectionId),
-    staleTime: Infinity,
-  })
-
-  const insertionIndex = useCollectionViewStore(s => s.insertionIndex)
-  const setInsertionPoint = useCollectionViewStore(s => s.setInsertionPoint)
-  const resolvedPosition = insertionIndex ?? items.length
-
   // Reset fields each time the dialog opens
   useEffect(() => {
     if (open) { setTitle(''); setBody('') }
@@ -37,12 +26,11 @@ export default function TextCardCreateDialog({ collectionId, open, onOpenChange 
       const b = body.trim()
       const markup = t && b ? `# ${t}\n\n${b}` : t ? `# ${t}` : b
       const textItem = await createTextItem(markup)
-      return addCollectionItem(collectionId, { text_item_id: textItem.id, position: resolvedPosition })
+      return addCollectionItem(collectionId, { text_item_id: textItem.id })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['collection-items', collectionId] })
       queryClient.invalidateQueries({ queryKey: ['collection', collectionId] })
-      setInsertionPoint(resolvedPosition + 1)
       onOpenChange(false)
     },
   })

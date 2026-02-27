@@ -31,7 +31,7 @@ Sist oppdatert: 2026-02-27 (sesjon 6)
 - [ ] Forrige/neste i `PhotoDetailPage` — `useDetailNavStore` + `PhotoDetailHeader` (se `spec/photo-detail-view.md`)
 - [ ] Tastaturnavigasjon (← →) i `PhotoDetailPage`
 - [x] `SelectionTray` — bunnlinje + `SelectionModal` (intern gridvisning, fjern enkeltbilder) — se `spec/selection-tray.md`
-- [x] InsertionPoint — kursormodell, innsettingshandling — se `spec/insertion-point.md`
+- [x] InsertionPoint — kursormodell implementert og fjernet; bilder settes inn på slutten
 - [ ] `Taskbar` med selection-teller
 
 ### Visningsmodus
@@ -104,7 +104,7 @@ Sist oppdatert: 2026-02-27 (sesjon 6)
 - [x] Collections frontend — CollectionsListPage, CollectionPage, navigasjon fra HomePage
 - [x] SelectionTray — bunnlinje + SelectionModal (Radix Dialog, intern grid, fjern enkeltbilder)
 - [x] SessionsListPage, EventsListPage — inngangsporter fra HomePage til bilder
-- [x] InsertionPoint — kursormodell (vertikal strek), kursorsone, tastaturnavigasjon, innsettingssekvens
+- [x] InsertionPoint — kursormodell implementert og deretter fjernet (se `docs/drafts/insertion-point.md`)
 - [x] TextItem-arkitektur — migrering 0004, `text_items`-tabell, CRUD-endepunkter, orphan-opprydding
 - [x] `DELETE /collections/{id}/items/batch` — batch-slett på backend (frontend-UI utsatt, se `docs/drafts/collection-multi-select.md`)
 - [x] TextCard-oppretting — modal dialog, tittel + brødtekst, settes inn ved InsertionPoint
