@@ -7,7 +7,6 @@ import TextCard from './TextCard'
 
 interface Props {
   item: CollectionItem
-  orderedIds: string[]
   isCursorBefore: boolean
   isPreviewBefore: boolean
   onCursorZoneEnter: () => void
@@ -16,26 +15,16 @@ interface Props {
 }
 
 export default function CollectionItemCell({
-  item, orderedIds,
+  item,
   isCursorBefore, isPreviewBefore,
   onCursorZoneEnter, onCursorZoneLeave, onCursorZoneClick,
 }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.id })
 
-  const selectOnly = useCollectionViewStore(s => s.selectOnly)
-  const toggleOne = useCollectionViewStore(s => s.toggleOne)
-  const selectRange = useCollectionViewStore(s => s.selectRange)
-  const isSelected = useCollectionViewStore(s => s.selected.has(item.id))
+  const setInsertionPoint = useCollectionViewStore(s => s.setInsertionPoint)
 
-  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }
-
-  function handleClick(e: React.MouseEvent) {
-    e.preventDefault()
-    if (e.shiftKey) selectRange(item.id, orderedIds)
-    else if (e.ctrlKey || e.metaKey) toggleOne(item.id)
-    else selectOnly(item.id)
-  }
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0 : 1 }
 
   const showCursorLine = isCursorBefore || isPreviewBefore
 
@@ -58,11 +47,11 @@ export default function CollectionItemCell({
         ].join(' ')} />
       )}
       {item.text_item_id !== null
-        ? <TextCard item={item} orderedIds={orderedIds} />
+        ? <TextCard item={item} />
         : <ThumbnailShell
             imageData={item.hotpreview_b64 ?? ''}
-            isSelected={isSelected}
-            onClick={handleClick}
+            isSelected={false}
+            onClick={() => setInsertionPoint(null)}
             onDoubleClick={() => {}}
             onContextMenu={e => e.preventDefault()}
             bottomOverlay={item.caption ?? undefined}

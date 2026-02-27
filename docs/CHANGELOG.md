@@ -6,6 +6,15 @@ Format: `## YYYY-MM-DD — Kort beskrivelse`
 
 ---
 
+## 2026-02-27 — Opprydding: collection-seleksjon fjernet fra frontend
+
+- Collection-intern seleksjon (SelectionSlice i useCollectionViewStore), CollectionActionBar og CollectionDragOverlay fjernet etter at multi-drag ikke lot seg få til å fungere pålitelig med dnd-kit
+- Backend `DELETE /collections/{id}/items/batch` beholdes
+- Problemstilling og fremtidige alternativer dokumentert i `docs/drafts/collection-multi-select.md`
+- `activationConstraint: { distance: 8 }` på PointerSensor beholdes (fikset click-registrering)
+
+---
+
 ## 2026-02-27 — TextItem-arkitektur og CollectionActionBar
 
 - Migrering 0004: `text_items`-tabell; fjernet `card_type`/`title`/`text_content`/`card_data` fra `collection_items`; lagt til `text_item_id UUID FK`; CHECK constraint sikrer nøyaktig ett av `hothash`/`text_item_id`

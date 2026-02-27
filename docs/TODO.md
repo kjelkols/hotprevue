@@ -106,4 +106,4 @@ Sist oppdatert: 2026-02-27 (sesjon 6)
 - [x] SessionsListPage, EventsListPage — inngangsporter fra HomePage til bilder
 - [x] InsertionPoint — kursormodell (vertikal strek), kursorsone, tastaturnavigasjon, innsettingssekvens
 - [x] TextItem-arkitektur — migrering 0004, `text_items`-tabell, CRUD-endepunkter, orphan-opprydding
-- [x] CollectionActionBar — batch-slett og flytt-til-cursor for collection-intern selection (isolert fra global SelectionStore)
+- [x] `DELETE /collections/{id}/items/batch` — batch-slett på backend (frontend-UI utsatt, se `docs/drafts/collection-multi-select.md`)

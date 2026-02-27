@@ -1,34 +1,12 @@
 import type { CollectionItem } from '../../types/api'
-import useCollectionViewStore from '../../stores/useCollectionViewStore'
 
 interface Props {
   item: CollectionItem
-  orderedIds: string[]
 }
 
-export default function TextCard({ item, orderedIds }: Props) {
-  const selectOnly = useCollectionViewStore(s => s.selectOnly)
-  const toggleOne = useCollectionViewStore(s => s.toggleOne)
-  const selectRange = useCollectionViewStore(s => s.selectRange)
-  const isSelected = useCollectionViewStore(s => s.selected.has(item.id))
-
-  function handleClick(e: React.MouseEvent) {
-    e.preventDefault()
-    if (e.shiftKey) selectRange(item.id, orderedIds)
-    else if (e.ctrlKey || e.metaKey) toggleOne(item.id)
-    else selectOnly(item.id)
-  }
-
+export default function TextCard({ item }: Props) {
   return (
-    <div
-      onClick={handleClick}
-      className={[
-        'w-[150px] h-[150px] rounded-sm p-3 cursor-pointer overflow-hidden',
-        'flex flex-col gap-1 transition-colors',
-        'bg-gray-800 hover:bg-gray-750',
-        isSelected ? 'ring-2 ring-inset ring-blue-400' : '',
-      ].join(' ')}
-    >
+    <div className="w-[150px] h-[150px] rounded-sm p-3 overflow-hidden flex flex-col gap-1 bg-gray-800 hover:bg-gray-750 transition-colors">
       {item.markup && (
         <p className="text-[10px] text-gray-400 line-clamp-6 leading-relaxed whitespace-pre-wrap">
           {item.markup}

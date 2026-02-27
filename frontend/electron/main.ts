@@ -145,6 +145,8 @@ function createWindow(): void {
     }
   })
 
+  win.center()
+
   // In development, load from Vite dev server
   if (process.env['ELECTRON_RENDERER_URL']) {
     win.loadURL(process.env['ELECTRON_RENDERER_URL'])
