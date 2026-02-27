@@ -50,6 +50,7 @@ Sist oppdatert: 2026-02-27 (sesjon 6)
 
 ## Backlog
 
+- [ ] Rubber-band multi-select i CollectionView — se `docs/drafts/rubber-band-selection.md` for full plan
 - [ ] Story/PhotoText — spec og implementasjon
 - [ ] Perceptual hashing for duplikatdeteksjon
 - [ ] Batch-oppdatering av filstiprefiks (Admin)

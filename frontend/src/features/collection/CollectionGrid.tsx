@@ -54,7 +54,7 @@ export default function CollectionGrid({ collectionId }: Props) {
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={orderedIds} strategy={rectSortingStrategy}>
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-1">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-1 select-none">
           {items.map((item) => (
             <CollectionItemCell key={item.id} item={item} />
           ))}

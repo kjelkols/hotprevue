@@ -6,6 +6,14 @@ Format: `## YYYY-MM-DD — Kort beskrivelse`
 
 ---
 
+## 2026-02-27 — Rubber-band-seleksjon deaktivert i CollectionGrid
+
+- `select-none` lagt til på grid-containeren — forhindrer nettleserens innebygde element-seleksjon ved klikk-og-dra
+- Ekte rubber-band multi-select er utsatt — ordnet sekvens gjør det tvetydig (visuell posisjon ≠ sekvensposisjon)
+- Funksjonaliteten er utredet og dokumentert for fremtidig implementasjon i `docs/drafts/rubber-band-selection.md`
+
+---
+
 ## 2026-02-27 — InsertionPoint kursormodell fjernet
 
 - Kursoren (blå vertikal strek) var ikke intuitiv: sto fast på slutten ved klikk og utløste browser-nativ rubber-band-selection ved dra
