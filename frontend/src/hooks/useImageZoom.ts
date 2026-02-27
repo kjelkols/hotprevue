@@ -3,10 +3,7 @@ import { useState, useRef, useEffect } from 'react'
 const MIN = 1
 const MAX = 4
 
-export function useImageZoom(
-  containerRef: React.RefObject<HTMLDivElement>,
-  imageRef: React.RefObject<HTMLImageElement>,
-) {
+export function useImageZoom(containerRef: React.RefObject<HTMLDivElement>) {
   const [scale, setScale] = useState(MIN)
   const [offset, setOffset] = useState({ x: 0, y: 0 })
 
@@ -16,20 +13,6 @@ export function useImageZoom(
   offsetRef.current = offset
 
   const dragRef = useRef<{ mx: number; my: number; ox: number; oy: number } | null>(null)
-
-  // Clamp offset so the image edge never moves past the container edge.
-  function clamp(ox: number, oy: number, s: number) {
-    const c = containerRef.current
-    const img = imageRef.current
-    if (!c || !img || !img.naturalWidth) return { x: ox, y: oy }
-    const W = c.clientWidth, H = c.clientHeight
-    const ar = img.naturalWidth / img.naturalHeight
-    const rw = ar > W / H ? W : H * ar
-    const rh = ar > W / H ? W / ar : H
-    const maxX = Math.max(0, (rw * s - W) / 2)
-    const maxY = Math.max(0, (rh * s - H) / 2)
-    return { x: Math.max(-maxX, Math.min(maxX, ox)), y: Math.max(-maxY, Math.min(maxY, oy)) }
-  }
 
   // Non-passive wheel listener — zoom toward cursor on regular scroll.
   // ctrlKey is left to the browser (page zoom).
@@ -50,18 +33,18 @@ export function useImageZoom(
       const nx = ns <= MIN ? 0 : cx - (cx - o.x) * (ns / s)
       const ny = ns <= MIN ? 0 : cy - (cy - o.y) * (ns / s)
       setScale(ns)
-      setOffset(clamp(nx, ny, ns))
+      setOffset({ x: nx, y: ny })
     }
     el.addEventListener('wheel', onWheel, { passive: false })
     return () => el.removeEventListener('wheel', onWheel)
-  }, [containerRef, imageRef])
+  }, [containerRef])
 
   // Pan drag via global mousemove/mouseup.
   useEffect(() => {
     function onMove(e: MouseEvent) {
       if (!dragRef.current) return
       const { mx, my, ox, oy } = dragRef.current
-      setOffset(clamp(ox + e.clientX - mx, oy + e.clientY - my, scaleRef.current))
+      setOffset({ x: ox + e.clientX - mx, y: oy + e.clientY - my })
     }
     function onUp() { dragRef.current = null }
     window.addEventListener('mousemove', onMove)

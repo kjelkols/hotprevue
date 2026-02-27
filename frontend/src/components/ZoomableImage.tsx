@@ -8,8 +8,7 @@ interface Props {
 
 export default function ZoomableImage({ src, alt = '' }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const imgRef = useRef<HTMLImageElement>(null)
-  const { scale, offsetX, offsetY, isZoomed, onMouseDown } = useImageZoom(containerRef, imgRef)
+  const { scale, offsetX, offsetY, isZoomed, onMouseDown } = useImageZoom(containerRef)
 
   return (
     <div
@@ -22,7 +21,6 @@ export default function ZoomableImage({ src, alt = '' }: Props) {
         style={{ transform: `scale(${scale}) translate(${offsetX / scale}px, ${offsetY / scale}px)` }}
       >
         <img
-          ref={imgRef}
           src={src}
           alt={alt}
           className="max-h-full max-w-full object-contain"
