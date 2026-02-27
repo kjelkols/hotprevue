@@ -9,7 +9,8 @@ interface Props {
 
 export default function PhotoSlideView({ slide }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const { scale, offsetX, offsetY, isZoomed, canZoomIn, onMouseDown, zoomIn, zoomOut, reset } = useZoomPan(containerRef)
+  const imgRef = useRef<HTMLImageElement>(null)
+  const { scale, offsetX, offsetY, isZoomed, canZoomIn, onMouseDown, zoomIn, zoomOut, reset } = useZoomPan(containerRef, imgRef)
   const src = `${getBaseUrl()}/photos/${slide.hothash}/coldpreview`
 
   return (
@@ -24,6 +25,7 @@ export default function PhotoSlideView({ slide }: Props) {
         style={{ transform: `scale(${scale}) translate(${offsetX / scale}px, ${offsetY / scale}px)` }}
       >
         <img
+          ref={imgRef}
           src={src}
           alt=""
           className="max-h-full max-w-full object-contain"
