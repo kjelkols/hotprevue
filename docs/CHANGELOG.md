@@ -6,6 +6,20 @@ Format: `## YYYY-MM-DD — Kort beskrivelse`
 
 ---
 
+## 2026-02-27 — CollectionPresentPage — visningsmodus
+
+- Rute `/collections/:id/present` — dedikert fullskjerm visningsmodus
+- `SlidePresenter` — navigation, crossfade (150 ms fade-ut/inn), fullskjerm (F), notater (N), URL-sync `?slide=N`
+- `PhotoSlideView` — coldpreview sentrert med `object-contain` på svart bakgrunn, caption under
+- `TextSlideView` — innebygget Markdown-renderer (# h1, ## h2, avsnitt) sentrert i slideflate
+- `SlideNotesPanel` — vises under bildet ved N-toggle
+- `useSlideKeyboard` — tastaturhook (← → Space Esc N F), stale-closure-sikker via ref
+- «Vis ▶»-knapp i CollectionPage-header lenker til presentasjonsruten
+- Bugfix: `useCollectionViewStore` hadde ikke `clear` — fjernet stale referanse fra `App.tsx`
+- Nye filer: `types/presentation.ts`, `features/present/` (5 filer), `pages/CollectionPresentPage.tsx`
+
+---
+
 ## 2026-02-27 — Rubber-band-seleksjon deaktivert i CollectionGrid
 
 - `select-none` lagt til på grid-containeren — forhindrer nettleserens innebygde element-seleksjon ved klikk-og-dra

@@ -49,6 +49,12 @@ export default function CollectionPage() {
           {collection.item_count} element{collection.item_count !== 1 ? 'er' : ''}
         </span>
         <button
+          onClick={() => navigate(`/collections/${id}/present`)}
+          className="rounded-lg bg-gray-800 px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-700 transition-colors shrink-0"
+        >
+          Vis ▶
+        </button>
+        <button
           onClick={() => setTextCardOpen(true)}
           className="rounded-lg bg-gray-800 px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-700 transition-colors shrink-0"
         >

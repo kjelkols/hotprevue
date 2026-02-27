@@ -8,18 +8,17 @@ import BrowsePage from './pages/BrowsePage'
 import PhotoDetailPage from './pages/PhotoDetailPage'
 import CollectionsListPage from './pages/CollectionsListPage'
 import CollectionPage from './pages/CollectionPage'
+import CollectionPresentPage from './pages/CollectionPresentPage'
 import SessionsListPage from './pages/SessionsListPage'
 import EventsListPage from './pages/EventsListPage'
 import ContextMenuOverlay from './components/ui/ContextMenuOverlay'
 import SelectionTray from './features/selection/SelectionTray'
 import useSelectionStore from './stores/useSelectionStore'
-import useCollectionViewStore from './stores/useCollectionViewStore'
 import useContextMenuStore from './stores/useContextMenuStore'
 
 export default function App() {
   const [config, setConfig] = useState<AppConfig | null | 'loading'>('loading')
   const clearPhotoSelection = useSelectionStore(s => s.clear)
-  const clearCollectionSelection = useCollectionViewStore(s => s.clear)
   const contextMenuOpen = useContextMenuStore(s => s.open)
   const closeContextMenu = useContextMenuStore(s => s.closeContextMenu)
 
@@ -36,15 +35,12 @@ export default function App() {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') {
         if (contextMenuOpen) closeContextMenu()
-        else {
-          clearPhotoSelection()
-          clearCollectionSelection()
-        }
+        else clearPhotoSelection()
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [contextMenuOpen, closeContextMenu, clearPhotoSelection, clearCollectionSelection])
+  }, [contextMenuOpen, closeContextMenu, clearPhotoSelection])
 
   if (config === 'loading') {
     return (
@@ -85,6 +81,10 @@ export default function App() {
         <Route
           path="/collections/:id"
           element={config ? <CollectionPage /> : <Navigate to="/setup" replace />}
+        />
+        <Route
+          path="/collections/:id/present"
+          element={config ? <CollectionPresentPage /> : <Navigate to="/setup" replace />}
         />
         <Route
           path="/sessions"
