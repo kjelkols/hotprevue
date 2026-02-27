@@ -48,6 +48,17 @@ export function reorderCollectionItems(id: string, itemIds: string[]): Promise<v
   })
 }
 
+export function addCollectionItemsBatch(
+  collectionId: string,
+  hothashes: string[],
+): Promise<CollectionItem[]> {
+  return apiFetch<CollectionItem[]>(`/collections/${collectionId}/items/batch`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(hothashes.map(h => ({ hothash: h }))),
+  })
+}
+
 export function deleteCollectionItem(collectionId: string, itemId: string): Promise<void> {
   return apiFetch<void>(`/collections/${collectionId}/items/${itemId}`, { method: 'DELETE' })
 }

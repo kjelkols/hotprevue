@@ -30,7 +30,7 @@ Sist oppdatert: 2026-02-27 (sesjon 4)
 - [ ] Forrige/neste i `PhotoDetailPage` — `useDetailNavStore` + `PhotoDetailHeader` (se `spec/photo-detail-view.md`)
 - [ ] Tastaturnavigasjon (← →) i `PhotoDetailPage`
 - [x] `SelectionTray` — bunnlinje + `SelectionModal` (intern gridvisning, fjern enkeltbilder) — se `spec/selection-tray.md`
-- [ ] InsertionPoint — kursormodell, innsettingshandling — se `spec/insertion-point.md`
+- [x] InsertionPoint — kursormodell, innsettingshandling — se `spec/insertion-point.md`
 - [ ] `Taskbar` med selection-teller
 
 ### Visningsmodus
@@ -103,3 +103,4 @@ Sist oppdatert: 2026-02-27 (sesjon 4)
 - [x] Collections frontend — CollectionsListPage, CollectionPage, navigasjon fra HomePage
 - [x] SelectionTray — bunnlinje + SelectionModal (Radix Dialog, intern grid, fjern enkeltbilder)
 - [x] SessionsListPage, EventsListPage — inngangsporter fra HomePage til bilder
+- [x] InsertionPoint — kursormodell (vertikal strek), kursorsone, tastaturnavigasjon, innsettingssekvens
