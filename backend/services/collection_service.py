@@ -221,6 +221,65 @@ def delete_items_batch(db: Session, collection_id: uuid.UUID, item_ids: list[uui
     db.commit()
 
 
+def export_zip(db: Session, collection_id: uuid.UUID) -> tuple[str, bytes]:
+    import io
+    import json
+    import zipfile
+    from pathlib import Path
+    from core.config import settings
+    from utils.html_export import TEMPLATE
+
+    collection = _get_or_404(db, collection_id)
+    items = (
+        db.query(CollectionItem)
+        .filter(CollectionItem.collection_id == collection_id)
+        .order_by(CollectionItem.position)
+        .all()
+    )
+
+    ti_ids = [item.text_item_id for item in items if item.text_item_id]
+    markup_map: dict[uuid.UUID, str] = {}
+    if ti_ids:
+        tis = db.query(TextItem).filter(TextItem.id.in_(ti_ids)).all()
+        markup_map = {ti.id: ti.markup for ti in tis}
+
+    slides = []
+    photo_files: list[tuple[str, Path]] = []
+
+    for item in items:
+        if item.hothash:
+            h = item.hothash
+            disk_path = Path(settings.coldpreview_dir) / h[:2] / h[2:4] / f"{h}.jpg"
+            arc_path = f"slides/{h}.jpg"
+            photo_files.append((arc_path, disk_path))
+            slides.append({
+                "kind": "photo",
+                "src": arc_path,
+                "caption": item.caption or "",
+                "notes": item.notes or "",
+            })
+        elif item.text_item_id:
+            markup = markup_map.get(item.text_item_id, "")
+            slides.append({
+                "kind": "text",
+                "markup": markup,
+                "notes": item.notes or "",
+            })
+
+    slides_json = json.dumps(slides, ensure_ascii=False)
+    title_json = json.dumps(collection.name, ensure_ascii=False)
+    html = TEMPLATE.replace("__SLIDES__", slides_json).replace("__TITLE__", title_json)
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("index.html", html.encode("utf-8"))
+        for arc_path, disk_path in photo_files:
+            if disk_path.exists():
+                zf.write(disk_path, arc_path)
+
+    return collection.name, buf.getvalue()
+
+
 def delete_item(db: Session, collection_id: uuid.UUID, item_id: uuid.UUID) -> None:
     _get_or_404(db, collection_id)
     item = db.query(CollectionItem).filter(

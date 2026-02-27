@@ -6,6 +6,16 @@ Format: `## YYYY-MM-DD — Kort beskrivelse`
 
 ---
 
+## 2026-02-27 — HTML-eksport av collection
+
+- `GET /collections/{id}/export` — returnerer ZIP-arkiv med `index.html` + `slides/*.jpg`
+- `backend/utils/html_export.py` — selvinneholdt HTML-presentasjonsmal (~160 linjer) med inline CSS og vanilla JS; ingen nettverkskall, fungerer fra `file://`
+- Funksjoner: piltastnavigering (← → Space), klikksoner venstre/høyre, 150 ms crossfade, fullskjerm (F), notatpanel (N), innebygd Markdown-renderer, HTML-escaping
+- `collection_service.export_zip()` — bygger ZIP i minnet med `zipfile` + `io.BytesIO`; hopper over manglende coldpreview-filer
+- «Eksporter ↓»-knapp i `CollectionPage`-header (direkte `<a download>`, ingen fetch)
+
+---
+
 ## 2026-02-27 — Musnavigasjon og zoom i visningsmodus
 
 - `SlideNavZones` — klikk på venstre/høyre halvdel av sliden navigerer til forrige/neste; diskret `‹`/`›` vises ved hover

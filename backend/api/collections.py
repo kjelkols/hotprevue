@@ -1,6 +1,8 @@
+import re
 import uuid
 
 from fastapi import APIRouter, Depends
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from database.session import get_db
@@ -52,6 +54,18 @@ def patch_collection(collection_id: uuid.UUID, data: CollectionPatch, db: Sessio
 @router.delete("/{collection_id}", status_code=204)
 def delete_collection(collection_id: uuid.UUID, db: Session = Depends(get_db)):
     collection_service.delete(db, collection_id)
+
+
+@router.get("/{collection_id}/export")
+def export_collection(collection_id: uuid.UUID, db: Session = Depends(get_db)):
+    name, zip_bytes = collection_service.export_zip(db, collection_id)
+    safe_name = re.sub(r'[^\w\-. ]', '_', name).strip() or "collection"
+    filename = f"{safe_name}.zip"
+    return Response(
+        content=zip_bytes,
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @router.get("/{collection_id}/items", response_model=list[CollectionItemOut])

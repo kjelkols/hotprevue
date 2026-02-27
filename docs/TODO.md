@@ -55,7 +55,7 @@ Sist oppdatert: 2026-02-27 (sesjon 6)
 - [ ] Story/PhotoText — spec og implementasjon
 - [ ] Perceptual hashing for duplikatdeteksjon
 - [ ] Batch-oppdatering av filstiprefiks (Admin)
-- [ ] Eksport av collection (HTML-pakke, se `spec/collection-presentation.md`)
+- [x] Eksport av collection (HTML-pakke, se `spec/collection-presentation.md`)
 - [ ] Electron-wrapper via electron-vite
 - [ ] TanStack Virtual for ytelsesoptimering av BrowseView
 
