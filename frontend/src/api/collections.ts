@@ -55,7 +55,7 @@ export function addCollectionItemsBatch(
   return apiFetch<CollectionItem[]>(`/collections/${collectionId}/items/batch`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(hothashes.map(h => ({ hothash: h }))),
+    body: JSON.stringify({ items: hothashes.map(h => ({ hothash: h })) }),
   })
 }
 

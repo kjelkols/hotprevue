@@ -1,7 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getCollection, deleteCollection } from '../api/collections'
-import { useCollectionInsert } from '../features/collection/useCollectionInsert'
 import CollectionGrid from '../features/collection/CollectionGrid'
 
 export default function CollectionPage() {
@@ -22,8 +21,6 @@ export default function CollectionPage() {
       navigate('/collections')
     },
   })
-
-  const { canInsert, selectedCount, insert, isPending } = useCollectionInsert(id!)
 
   function handleDelete() {
     if (!collection) return
@@ -48,15 +45,6 @@ export default function CollectionPage() {
         <span className="text-sm text-gray-500 shrink-0">
           {collection.item_count} element{collection.item_count !== 1 ? 'er' : ''}
         </span>
-        {canInsert && (
-          <button
-            onClick={insert}
-            disabled={isPending}
-            className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50 transition-colors shrink-0"
-          >
-            {isPending ? 'Setter inn…' : `Sett inn ${selectedCount} bilder`}
-          </button>
-        )}
         <button
           onClick={handleDelete}
           className="rounded-lg bg-gray-800 px-3 py-1.5 text-sm text-red-400 hover:bg-gray-700 transition-colors shrink-0"

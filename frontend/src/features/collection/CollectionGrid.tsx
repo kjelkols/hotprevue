@@ -20,14 +20,19 @@ export default function CollectionGrid({ collectionId }: Props) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
   const insertionIndex = useCollectionViewStore(s => s.insertionIndex)
   const setInsertionPoint = useCollectionViewStore(s => s.setInsertionPoint)
+  const setActiveCollectionId = useCollectionViewStore(s => s.setActiveCollectionId)
 
   const { data: items = [], isLoading, isError } = useQuery({
     queryKey: ['collection-items', collectionId],
     queryFn: () => getCollectionItems(collectionId),
   })
 
-  // Reset cursor to end when switching collections
-  useEffect(() => { setInsertionPoint(null) }, [collectionId, setInsertionPoint])
+  // Register as active collection and reset cursor on mount/switch
+  useEffect(() => {
+    setActiveCollectionId(collectionId)
+    setInsertionPoint(null)
+    return () => setActiveCollectionId(null)
+  }, [collectionId, setActiveCollectionId, setInsertionPoint])
 
   const resolvedIndex = insertionIndex ?? items.length
 

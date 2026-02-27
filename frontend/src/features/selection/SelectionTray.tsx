@@ -1,10 +1,13 @@
 import { useState } from 'react'
 import useSelectionStore from '../../stores/useSelectionStore'
+import useCollectionViewStore from '../../stores/useCollectionViewStore'
 import SelectionModal from './SelectionModal'
+import CollectionInsertButton from './CollectionInsertButton'
 
 export default function SelectionTray() {
   const selected = useSelectionStore(s => s.selected)
   const clear = useSelectionStore(s => s.clear)
+  const activeCollectionId = useCollectionViewStore(s => s.activeCollectionId)
   const [modalOpen, setModalOpen] = useState(false)
 
   if (selected.size === 0) return null
@@ -20,16 +23,20 @@ export default function SelectionTray() {
 
         <button
           onClick={() => setModalOpen(true)}
-          className="rounded-lg bg-gray-700 px-3 py-1.5 text-sm text-white hover:bg-gray-600 transition-colors"
+          className="rounded-lg bg-gray-700 px-3 py-1.5 text-sm text-white hover:bg-gray-600 transition-colors shrink-0"
         >
           Vis utvalg ↑
         </button>
 
         <div className="flex-1" />
 
+        {activeCollectionId && (
+          <CollectionInsertButton collectionId={activeCollectionId} />
+        )}
+
         <button
           onClick={clear}
-          className="rounded-lg bg-gray-800 px-3 py-1.5 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
+          className="rounded-lg bg-gray-800 px-3 py-1.5 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors shrink-0"
         >
           Tøm utvalg
         </button>
