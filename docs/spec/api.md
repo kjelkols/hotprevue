@@ -215,20 +215,36 @@ Avvises med `409 Conflict` hvis eventen har child-events.
 |---|---|---|
 | `POST` | `/collections` | Opprett collection |
 | `GET` | `/collections` | List collections |
-| `GET` | `/collections/{id}` | Hent collection med photos i rekkefølge |
-| `PATCH` | `/collections/{id}` | Oppdater collection |
+| `GET` | `/collections/{id}` | Hent collection med item-antall |
+| `PATCH` | `/collections/{id}` | Oppdater navn, beskrivelse |
 | `DELETE` | `/collections/{id}` | Slett collection |
-| `GET` | `/collections/{id}/items` | List alle items i rekkefølge (inkl. hotpreview_b64) |
-| `POST` | `/collections/{id}/items` | Legg til photo eller tekstkort |
-| `POST` | `/collections/{id}/items/batch` | Legg til flere items på én gang |
+| `POST` | `/collections/{id}/clone` | Klon collection til ny (dype kopier av text_items) |
+| `GET` | `/collections/{id}/items` | List alle items i rekkefølge (inkl. hotpreview_b64 / markup) |
+| `POST` | `/collections/{id}/items` | Legg til foto-element (`hothash`) eller tekst-element (`text_item_id`) |
+| `POST` | `/collections/{id}/items/batch` | Legg til flere foto-elementer på én gang |
 | `PUT` | `/collections/{id}/items` | Oppdater rekkefølge (tar sortert item_ids-liste) |
-| `PATCH` | `/collections/{id}/items/{item_id}` | Oppdater caption, card_type, title, text_content, notes |
-| `DELETE` | `/collections/{id}/items/{item_id}` | Fjern element |
+| `PATCH` | `/collections/{id}/items/{item_id}` | Oppdater `caption` eller `notes` |
+| `DELETE` | `/collections/{id}/items/{item_id}` | Fjern element (sletter text_item hvis ingen andre referanser) |
 
 **CollectionItem-felter:**
-- `card_type` — `null` = photo-element, `'text'` = tekstkort. Fremtidige typer (`'heading'`, `'divider'` o.l.) legges til uten migrering.
-- `notes` — forelesningsnotater, vises kun i Visningsmodus (aldri i grid).
-- `card_data` — JSONB escape-luke for fremtidige korttyper som trenger strukturerte data (f.eks. duo-slide med to hothashes).
+- `hothash` — satt for foto-elementer (null for tekstkort)
+- `text_item_id` — satt for tekstkort (null for foto-elementer)
+- Nøyaktig ett av de to feltene er alltid satt (CHECK constraint i DB)
+- `caption` — bildetekst, vises under bildet i visningsmodus
+- `notes` — forelesningsnotater, vises kun i Visningsmodus (aldri i grid)
+
+### TextItems
+
+| Metode | Sti | Beskrivelse |
+|---|---|---|
+| `POST` | `/text-items` | Opprett tekstkort (`markup: str`) |
+| `GET` | `/text-items/{id}` | Hent tekstkort |
+| `PATCH` | `/text-items/{id}` | Oppdater markup |
+| `DELETE` | `/text-items/{id}` | Slett (kun hvis ingen collection_items refererer til det) |
+
+**TextItem-felter:**
+- `markup` — Markdown (CommonMark); sentrering via CSS i renderer
+- Tekstkort deles 1:N mellom collection_items; kloning av collection lager dype kopier
 
 ### Stacks
 

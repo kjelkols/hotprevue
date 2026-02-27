@@ -2,7 +2,7 @@
 
 Prioritert liste over neste steg. Oppdateres ved hver arbeidsøkt.
 
-Sist oppdatert: 2026-02-27 (sesjon 4)
+Sist oppdatert: 2026-02-27 (sesjon 5)
 
 ---
 
@@ -14,6 +14,9 @@ Sist oppdatert: 2026-02-27 (sesjon 4)
 
 ## Neste — backend
 
+- [ ] Migrering 0004: `text_items`-tabell + fjern `card_type`/`title`/`text_content`/`card_data` fra `collection_items`, legg til `text_item_id UUID FK`
+- [ ] TextItem CRUD: `POST /text-items`, `GET /text-items/{id}`, `PATCH /text-items/{id}`, `DELETE /text-items/{id}` (med orphan-sjekk)
+- [ ] `POST /collections/{id}/clone` — klon collection (foto deles, text_items kopieres dypt)
 - [ ] `GET/PATCH /settings` — SystemSettings
 - [ ] `GET /tags` — distinkte tags med prefiks-filtrering og valgfri count
 - [ ] Category — CRUD
@@ -92,8 +95,8 @@ Sist oppdatert: 2026-02-27 (sesjon 4)
 - [x] Soft delete, restore, empty-trash på photos
 - [x] Batch-endepunkter: tags/add, tags/remove, tags/set, rating, event, category, photographer, taken-at, taken-at-offset, location, delete, restore
 - [x] Collection — CRUD + items (legg til, batch, rekkefølge, oppdater innhold, fjern)
-- [x] CollectionItem: card_type (erstatter is_text_card), notes, card_data — migrering 0003
-- [x] spec/collection-presentation.md — Collection som presentasjonsmedium, visningsmodus, eksportarkitektur
+- [x] CollectionItem: migrering 0003 (notes, card_data — erstattet av text_items i 0004)
+- [x] spec/collection-presentation.md — Collection som presentasjonsmedium, visningsmodus, eksportarkitektur (oppdatert 2026-02-27)
 - [x] Prosjektoppsett frontend: Vite + React 18 + TypeScript + Tailwind CSS + React Router + React Query + Zustand + Radix UI + dnd-kit
 - [x] BrowseView — grid, progressiv lasting, dato-overlay
 - [x] Avkryssingstilstand (click/ctrl+click/shift+click, visuell feedback)

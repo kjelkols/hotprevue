@@ -1,6 +1,6 @@
 # Collection som presentasjonsmedium
 
-Sist oppdatert: 2026-02-26
+Sist oppdatert: 2026-02-27
 
 ---
 
@@ -21,83 +21,89 @@ Samme collection — flere renderinger. Det som er lagret i databasen er **innho
 
 ---
 
-## Datamodell — beslutninger
+## Datamodell — CollectionItem
 
-### `is_text_card` → `card_type: str | None`
+### Forenkling: to typer og ingen mer
 
-En boolean er lukket — den sier bare "er" eller "er ikke". En `card_type`-streng er åpen.
+CollectionItem støtter nøyaktig to innholdstyper — **foto** og **tekst** — og denne listen fryses. Ingen `card_type`-streng, ingen `card_data` JSONB. Typen bestemmes av hvilken FK som er satt:
 
-```
-card_type = None    → photo-element (hothash er satt)
-card_type = 'text'  → tekstkort: title + text_content
-(fremtid, uten migrering) 'heading', 'divider', 'quote', 'map', ...
-```
+| Felt | Verdi | Betyr |
+|------|-------|-------|
+| `hothash` | satt, `text_item_id` null | Foto-element |
+| `text_item_id` | satt, `hothash` null | Tekst-element |
 
-Å legge til en ny korttype krever en ny frontend-komponent og en ny `card_type`-verdi — ingen DB-migrering, ingen API-endringer. Det er dette som menes med at utvidelse *ikke påvirker arkitekturen*.
+En DB CHECK-constraint sikrer at nøyaktig ett av `hothash`/`text_item_id` er satt.
 
-**Beslutning:** Migrer fra `is_text_card BOOLEAN NOT NULL` til `card_type TEXT NULL`.
+**Kolonnene på `collection_items`:**
+
+| Kolonne | Type | Beskrivelse |
+|---------|------|-------------|
+| `id` | UUID | Primærnøkkel — stabil selv om bildet slettes |
+| `collection_id` | UUID FK | Hvilken collection |
+| `hothash` | TEXT FK (nullable) | Referanse til photo |
+| `text_item_id` | UUID FK (nullable) | Referanse til text_item |
+| `position` | INT | Rekkefølge i collection |
+| `caption` | TEXT nullable | Bildetekst — vises under bildet i visningsmodus |
+| `notes` | TEXT nullable | Forelesningsnotater — kun i visningsmodus (skjult for publikum) |
+
+Feltene `card_type`, `title`, `text_content`, `card_data` fjernes.
 
 ---
 
-### `notes: str | None` — forelesningsnotater
+### `text_items`-tabellen
 
-For live foredrag er det klassiske problemet skillet mellom hva *publikum ser* og hva *presentatøren trenger*. Forelesningsnotater er tekst som tilhører en bestemt slide, men som ikke vises på presentasjonsskjermen.
+Tekstinnhold bor i sin egen tabell, analogt med `photos`:
 
-`notes TEXT NULL` legges til på `CollectionItem`:
+| Kolonne | Type | Beskrivelse |
+|---------|------|-------------|
+| `id` | UUID | Primærnøkkel |
+| `markup` | TEXT | Markdown (CommonMark) |
+| `created_at` | TIMESTAMPTZ | Opprettelsestidspunkt |
+
+**Deling:** Et `text_item` kan refereres av flere `collection_items` (1:N). Kloning av en collection kopierer `text_item`-rader dypt — ikke deling på tvers av collections.
+
+**Livsyklus:** Implisitt opprydding — slett `text_item` når ingen `collection_items` lenger refererer til det.
+
+---
+
+### `notes` — forelesningsnotater
+
+`notes TEXT NULL` på `CollectionItem`:
 
 - Lagres i DB — synkroniseres mellom maskiner med databasen
-- Vises i in-app Visningsmodus som et togglbart notatpanel (tastatursnarvei `N`)
-- I HTML-eksport: skjult som standard, men inkludert i HTML-en og kan vises med `N`-tastetrykk under fremføring
-- Vises aldri i CollectionView-grid eller andre visninger enn Visningsmodus
-
-**Beslutning:** Legg til `notes TEXT NULL` på `CollectionItem` i samme migrering som `card_type`.
-
----
-
-### `card_data: dict | None` — escape-luke for fremtidige korttyper
-
-Noen fremtidige korttyper trenger strukturerte data utover `title`/`text_content`:
-
-- **Duo-slide** (`card_type = 'duo'`): to bilder side om side → trenger to hothashes
-- **Kart-slide** (`card_type = 'map'`): GPS-koordinater → trenger lat/lng
-- **Trio-slide**: tre bilder
-
-I stedet for å legge til nye kolonner per korttype: én JSONB-kolonne som escape-luke.
-
-```json
-// Duo-slide: card_data = {"hothash2": "abc123", "layout": "side-by-side"}
-// Kart-slide: card_data = {"lat": 59.9, "lng": 10.7, "zoom": 12}
-```
-
-Kolonnen er `NULL` for alle eksisterende korttyper. Fremtidig kode leser fra den ved behov.
-
-**Beslutning:** Legg til `card_data JSONB NULL` på `CollectionItem` i samme migrering. Brukes ikke i v1 — men ingen ny migrering trengs når behovet oppstår.
+- Vises i Visningsmodus som et togglbart notatpanel (tastatursnarvei `N`)
+- I HTML-eksport: skjult som standard, men inkludert i HTML og kan vises med `N` under fremføring
+- Vises aldri i CollectionView-grid eller andre visninger
 
 ---
 
 ## Datamodell — oppsummert
 
-Etter migreringen ser `CollectionItem`-radene slik ut:
+Etter migreringen ser item-radene slik ut:
 
-| card_type | hothash | title | text_content | caption | notes | card_data |
-|-----------|---------|-------|--------------|---------|-------|-----------|
-| `NULL`    | `abc123`| —     | —            | "Drøbak havn, 1987" | "Kontekst: dette ble..." | — |
-| `'text'`  | —       | "Kapittel 2" | "Vi reiste nordover..." | — | "Husk å fortelle om..." | — |
-| `'heading'` (fremtid) | — | "Del I" | — | — | — | — |
-| `'duo'` (fremtid) | `abc123` | — | — | — | — | `{"hothash2": "def456"}` |
+| hothash | text_item_id | caption | notes |
+|---------|--------------|---------|-------|
+| `abc123`| —            | "Drøbak havn, 1987" | "Kontekst: dette ble..." |
+| —       | `uuid-1`     | —       | "Husk å fortelle om..." |
+
+`text_item`-rad for `uuid-1`:
+
+| id | markup | created_at |
+|----|--------|------------|
+| `uuid-1` | `# Kapittel 2\n\nVi reiste nordover...` | 2026-02-27T… |
 
 ---
 
 ## Tekstkort-formatering
 
-`text_content` er ren tekst med `\n` for linjeskift — ikke markdown. Begrunnelse:
-- Markdown krever en parser (ekstra avhengighet i frontend)
-- For lysbildeforedrag er prosa med naturlige avsnittsbrytinger nok
-- Fremtidig markdown-støtte kan legges til uten DB-endring (felt er uendret, rendering endres)
+`markup` er **Markdown** (CommonMark). Begrunnelse:
 
-`title` er alltid ren tekst (én linje).
+- Støtter titler (`# Tittel`), avsnitt, kursiv, lister
+- Sentrering håndteres av CSS i renderer — ikke markup-syntaks
+- Én parser (f.eks. `marked` eller `react-markdown`) dekker alle formateringsbehov
+- DB-feltet er uendret hvis renderer byttes ut
 
-Dersom rikt innhold (markdown, kursiv, lister) viser seg nødvendig vurderes det da.
+`caption` er alltid ren tekst (én linje).
 
 ---
 
@@ -116,21 +122,29 @@ type PhotoSlide = {
 
 type TextSlide = {
   kind: 'text'
-  title: string | null
-  text_content: string | null
+  markup: string
   notes: string | null
   collection_item_id: string
 }
-
-// Fremtid uten arkitekturendring:
-// type HeadingSlide = { kind: 'heading'; title: string; notes: string | null }
-// type DividerSlide  = { kind: 'divider' }
-// type DuoSlide      = { kind: 'duo'; hothash: string; hothash2: string; notes: string | null }
 
 type Slide = PhotoSlide | TextSlide
 ```
 
 `SlidePresenter` tar `Slide[]` og `currentIndex`. Switcher på `kind` for å rende riktig komponent. Ingenting annet.
+
+---
+
+## Kloning
+
+`POST /collections/{id}/clone` oppretter en ny selvstendig collection:
+
+- **Metadata:** Nytt navn (standard: `«Navn» (kopi)`), ny UUID, ny `created_at`
+- **Foto-elementer:** Deler `hothash` — ingen kopiering
+- **Tekst-elementer:** Dype kopier — nye `text_item`-rader med identisk `markup`
+- **`caption` og `notes`:** Kopieres til nye `collection_item`-rader
+- **Rekkefølge:** Bevares
+
+Brukstilfelle: lage en kortere versjon av en presentasjon uten å miste originalen.
 
 ---
 
@@ -186,10 +200,10 @@ Caption vises under bildet — ikke som hover-overlay (det er grid-mønsteret).
 │  ← Tilbake    [tittel]          [3 / 12]  [←][→] │
 ├──────────────────────────────────────────────────┤
 │                                                  │
-│         [title — stor, hvit, sentrert]           │
+│         [Markdown rendret, sentrert via CSS]     │
 │                                                  │
-│   [text_content — prose, grå, maks 65 tegn       │
-│    bredde, sentrert vertikalt på siden]           │
+│   [prose, grå, maks 65 tegn bredde,              │
+│    sentrert vertikalt på siden]                  │
 │                                                  │
 ├──────────────────────────────────────────────────┤
 │  [Notater — synlig kun ved N-toggle]              │
@@ -204,7 +218,7 @@ components/ui/
 
 features/present/
   PhotoSlideView.tsx          ← Coldpreview + caption
-  TextSlideView.tsx           ← Formatert tekstkort
+  TextSlideView.tsx           ← Markdown-rendret tekstkort
   SlideNotesPanel.tsx         ← Forelesningsnotater (toggle med N)
 
 pages/
@@ -240,7 +254,7 @@ collection-tittel.zip/
     003_<hothash>.jpg     ← (002 er tekstkort — ingen bildefil)
 ```
 
-`index.html` er en selvstendig nettside som kjører lysbildevisning offline. Tekortort rendres som HTML-slides. Notater inkludert men skjult (toggle med `N`).
+`index.html` er en selvstendig nettside som kjører lysbildevisning offline. Tekstkort rendres som HTML-slides. Notater inkludert men skjult (toggle med `N`).
 
 ### Bildekvalitet
 
@@ -267,20 +281,6 @@ GET /collections/{id}/export?quality=compact
 
 ---
 
-## Fremtidige korttyper
-
-Alle håndteres via `card_type`-discriminatoren + evt. `card_data`. Ingen migrering:
-
-| card_type | Innhold | card_data |
-|-----------|---------|-----------|
-| `'heading'` | Stor seksjonstittel | — |
-| `'divider'` | Visuell separator | — |
-| `'quote'` | Sitat med attribuering | — |
-| `'duo'` | To bilder side om side | `{"hothash2": "..."}` |
-| `'map'` | GPS-kart-slide | `{"lat": 59.9, "lng": 10.7}` |
-
----
-
 ## Hva som ikke besluttes nå
 
 | Funksjon | Kommentar |
@@ -289,7 +289,6 @@ Alle håndteres via `card_type`-discriminatoren + evt. `card_data`. Ingen migrer
 | Overgangseeffekter | CSS — ingen DB-endring |
 | Auto-play med timing | `display_duration_ms INT` på CollectionItem — legg til ved behov |
 | To-skjerm presenter-modus | WebSocket-synkronisering — avansert, fremtidig |
-| Duo/trio-slides | Bruk `card_data` når implementert |
 | Full-oppløsning eksport | Frontend henter fra lokal disk (Electron), kombinerer med ZIP fra backend |
 
 ---
@@ -298,13 +297,17 @@ Alle håndteres via `card_type`-discriminatoren + evt. `card_data`. Ingen migrer
 
 | # | Beslutning | Status |
 |---|------------|--------|
-| 1 | `is_text_card BOOL` → `card_type TEXT NULL` | Implementeres nå |
-| 2 | `notes TEXT NULL` på CollectionItem | Implementeres nå |
-| 3 | `card_data JSONB NULL` på CollectionItem | Implementeres nå (brukes ikke ennå) |
-| 4 | Visningsmodus som dedikert siderute | Implementeres nå |
-| 5 | `SlidePresenter` delt for collection + event | Implementeres ved Visningsmodus |
-| 6 | Slide-navigasjon: URL-param + replaceState | Implementeres ved Visningsmodus |
-| 7 | Forelesningsnotater toggle (`N`) | Implementeres ved Visningsmodus |
-| 8 | Fullskjerm via Fullscreen API | Implementeres ved Visningsmodus |
-| 9 | HTML-eksport | Fremtidig |
-| 10 | Full-oppløsning eksport via Electron | Fremtidig |
+| 1 | CollectionItem: to typer (foto/tekst) fryses — ingen `card_type`-streng | Besluttet |
+| 2 | Tekst bor i egen `text_items`-tabell med `markup TEXT` (Markdown) | Besluttet — implementeres nå |
+| 3 | Discriminator: `hothash IS NOT NULL` vs `text_item_id IS NOT NULL` med CHECK constraint | Besluttet |
+| 4 | `caption TEXT NULL` og `notes TEXT NULL` beholdes på CollectionItem | Besluttet |
+| 5 | TextItem deles 1:N; kloning lager dype kopier per collection | Besluttet |
+| 6 | `POST /collections/{id}/clone` — kloner collection | Besluttet — implementeres nå |
+| 7 | Tekstkort-formatering: Markdown (CommonMark), sentrering via CSS i renderer | Besluttet |
+| 8 | Visningsmodus som dedikert siderute | Implementeres ved Visningsmodus |
+| 9 | `SlidePresenter` delt for collection + event | Implementeres ved Visningsmodus |
+| 10 | Slide-navigasjon: URL-param + replaceState | Implementeres ved Visningsmodus |
+| 11 | Forelesningsnotater toggle (`N`) | Implementeres ved Visningsmodus |
+| 12 | Fullskjerm via Fullscreen API | Implementeres ved Visningsmodus |
+| 13 | HTML-eksport | Fremtidig |
+| 14 | Full-oppløsning eksport via Electron | Fremtidig |
