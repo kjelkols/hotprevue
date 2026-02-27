@@ -34,7 +34,7 @@ export default function PhotoDetailPage() {
   const coldpreviewUrl = `${getBaseUrl()}/photos/${hothash}/coldpreview`
 
   return (
-    <div className="flex flex-col h-screen bg-gray-950 text-white">
+    <div className="flex flex-col h-full bg-gray-950 text-white">
       <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-800 shrink-0">
         <button
           onClick={() => navigate(-1)}

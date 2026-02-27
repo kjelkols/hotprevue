@@ -33,11 +33,8 @@ export default function CollectionsListPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
+    <div className="min-h-full bg-gray-950 text-white">
       <div className="flex items-center gap-4 px-4 py-3 border-b border-gray-800">
-        <button onClick={() => navigate('/')} className="text-sm text-gray-400 hover:text-white transition-colors">
-          ← Tilbake
-        </button>
         <h1 className="text-xl font-semibold flex-1">Kolleksjoner</h1>
         <button
           onClick={() => setCreating(v => !v)}

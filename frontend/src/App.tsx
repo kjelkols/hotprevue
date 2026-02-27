@@ -3,6 +3,7 @@ import { HashRouter, Route, Routes, Navigate } from 'react-router-dom'
 import { setBaseUrl } from './api/client'
 import type { AppConfig } from './types/api'
 import SetupPage from './pages/SetupPage'
+import AppLayout from './pages/AppLayout'
 import HomePage from './pages/HomePage'
 import BrowsePage from './pages/BrowsePage'
 import PhotoDetailPage from './pages/PhotoDetailPage'
@@ -58,42 +59,20 @@ export default function App() {
   return (
     <HashRouter>
       <Routes>
-        <Route
-          path="/setup"
-          element={<SetupPage onSaved={handleConfigSaved} />}
-        />
-        <Route
-          path="/"
-          element={config ? <HomePage /> : <Navigate to="/setup" replace />}
-        />
-        <Route
-          path="/browse"
-          element={config ? <BrowsePage /> : <Navigate to="/setup" replace />}
-        />
-        <Route
-          path="/photos/:hothash"
-          element={config ? <PhotoDetailPage /> : <Navigate to="/setup" replace />}
-        />
-        <Route
-          path="/collections"
-          element={config ? <CollectionsListPage /> : <Navigate to="/setup" replace />}
-        />
-        <Route
-          path="/collections/:id"
-          element={config ? <CollectionPage /> : <Navigate to="/setup" replace />}
-        />
+        <Route path="/setup" element={<SetupPage onSaved={handleConfigSaved} />} />
         <Route
           path="/collections/:id/present"
           element={config ? <CollectionPresentPage /> : <Navigate to="/setup" replace />}
         />
-        <Route
-          path="/sessions"
-          element={config ? <SessionsListPage /> : <Navigate to="/setup" replace />}
-        />
-        <Route
-          path="/events"
-          element={config ? <EventsListPage /> : <Navigate to="/setup" replace />}
-        />
+        <Route element={config ? <AppLayout /> : <Navigate to="/setup" replace />}>
+          <Route path="/"                element={<HomePage />} />
+          <Route path="/browse"          element={<BrowsePage />} />
+          <Route path="/photos/:hothash" element={<PhotoDetailPage />} />
+          <Route path="/collections"     element={<CollectionsListPage />} />
+          <Route path="/collections/:id" element={<CollectionPage />} />
+          <Route path="/sessions"        element={<SessionsListPage />} />
+          <Route path="/events"          element={<EventsListPage />} />
+        </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <ContextMenuOverlay />

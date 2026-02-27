@@ -9,7 +9,7 @@ export default function BrowsePage() {
   const title = searchParams.get('title') ?? 'Utvalg'
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
+    <div className="min-h-full bg-gray-950 text-white">
       <div className="flex items-center gap-4 px-4 py-3 border-b border-gray-800">
         <button
           onClick={() => navigate(-1)}

@@ -37,7 +37,7 @@ export default function CollectionPage() {
   if (isError || !collection) return <div className="flex h-screen items-center justify-center bg-gray-950 text-red-400">Kunne ikke hente kollektion.</div>
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
+    <div className="min-h-full bg-gray-950 text-white">
       <div className="flex items-center gap-4 px-4 py-3 border-b border-gray-800">
         <button onClick={() => navigate('/collections')} className="text-sm text-gray-400 hover:text-white transition-colors">
           ← Tilbake
