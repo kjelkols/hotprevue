@@ -139,6 +139,14 @@ export interface PhotoDetail extends PhotoListItem {
   correction: PhotoCorrection | null
 }
 
+// ─── TextItems ────────────────────────────────────────────────────────────────
+
+export interface TextItem {
+  id: string
+  markup: string
+  created_at: string
+}
+
 // ─── Collections ──────────────────────────────────────────────────────────────
 
 export interface Collection {

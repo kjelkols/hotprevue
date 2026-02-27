@@ -6,6 +6,16 @@ Format: `## YYYY-MM-DD — Kort beskrivelse`
 
 ---
 
+## 2026-02-27 — TextCard-oppretting
+
+- Modal dialog («+ Tekstkort» i collection-header) med tittel- og brødtekstfelt
+- Markup-format: `# Tittel\n\nBrødtekst` — lagres i eksisterende `TextItem.markup`-felt, ingen schemaendringer
+- `TextCard` rendrer nå tittel (semibold) og brødtekst (grå) sentrert i cellen
+- Nytt tekstkort settes inn ved aktiv InsertionPoint-posisjon; cursoren flyttes ett steg fremover
+- Nye filer: `TextCardCreateDialog.tsx`, `src/api/text-items.ts`
+
+---
+
 ## 2026-02-27 — Opprydding: collection-seleksjon fjernet fra frontend
 
 - Collection-intern seleksjon (SelectionSlice i useCollectionViewStore), CollectionActionBar og CollectionDragOverlay fjernet etter at multi-drag ikke lot seg få til å fungere pålitelig med dnd-kit

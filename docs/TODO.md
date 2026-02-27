@@ -107,3 +107,4 @@ Sist oppdatert: 2026-02-27 (sesjon 6)
 - [x] InsertionPoint — kursormodell (vertikal strek), kursorsone, tastaturnavigasjon, innsettingssekvens
 - [x] TextItem-arkitektur — migrering 0004, `text_items`-tabell, CRUD-endepunkter, orphan-opprydding
 - [x] `DELETE /collections/{id}/items/batch` — batch-slett på backend (frontend-UI utsatt, se `docs/drafts/collection-multi-select.md`)
+- [x] TextCard-oppretting — modal dialog, tittel + brødtekst, settes inn ved InsertionPoint

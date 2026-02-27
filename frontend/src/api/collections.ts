@@ -59,6 +59,17 @@ export function addCollectionItemsBatch(
   })
 }
 
+export function addCollectionItem(
+  collectionId: string,
+  data: { hothash?: string; text_item_id?: string; position?: number | null },
+): Promise<CollectionItem> {
+  return apiFetch<CollectionItem>(`/collections/${collectionId}/items`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+}
+
 export function deleteCollectionItem(collectionId: string, itemId: string): Promise<void> {
   return apiFetch<void>(`/collections/${collectionId}/items/${itemId}`, { method: 'DELETE' })
 }
