@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { getPhoto } from '../api/photos'
 import { getBaseUrl } from '../api/client'
 import PhotoMetaPanel from '../features/photos/PhotoMetaPanel'
+import ZoomableImage from '../components/ZoomableImage'
 
 export default function PhotoDetailPage() {
   const { hothash } = useParams<{ hothash: string }>()
@@ -45,12 +46,8 @@ export default function PhotoDetailPage() {
 
       <div className="flex flex-1 min-h-0">
         {/* Left panel: coldpreview (~60%) */}
-        <div className="flex-[3] flex items-center justify-center bg-gray-900 p-4">
-          <img
-            src={coldpreviewUrl}
-            alt=""
-            className="max-h-full max-w-full object-contain"
-          />
+        <div className="flex-[3] bg-gray-900">
+          <ZoomableImage key={hothash} src={coldpreviewUrl} />
         </div>
 
         {/* Right panel: metadata (~40%) */}
