@@ -30,6 +30,7 @@ Sist oppdatert: 2026-02-27 (sesjon 4)
 - [ ] Forrige/neste i `PhotoDetailPage` — `useDetailNavStore` + `PhotoDetailHeader` (se `spec/photo-detail-view.md`)
 - [ ] Tastaturnavigasjon (← →) i `PhotoDetailPage`
 - [x] `SelectionTray` — bunnlinje + `SelectionModal` (intern gridvisning, fjern enkeltbilder) — se `spec/selection-tray.md`
+- [ ] InsertionPoint — kursormodell, innsettingshandling — se `spec/insertion-point.md`
 - [ ] `Taskbar` med selection-teller
 
 ### Visningsmodus
