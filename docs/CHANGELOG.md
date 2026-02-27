@@ -6,6 +6,12 @@ Format: `## YYYY-MM-DD — Kort beskrivelse`
 
 ---
 
+## 2026-02-27 — Drag-and-drop visuell forbedring
+
+- Drop-destinasjonen i CollectionGrid viser nå stiplet blå kant med blek forhåndsvisning av bildet som flyttes, i stedet for sort hull
+
+---
+
 ## 2026-02-27 — TextCard-oppretting
 
 - Modal dialog («+ Tekstkort» i collection-header) med tittel- og brødtekstfelt

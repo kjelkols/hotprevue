@@ -24,7 +24,22 @@ export default function CollectionItemCell({
 
   const setInsertionPoint = useCollectionViewStore(s => s.setInsertionPoint)
 
-  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0 : 1 }
+  const style = { transform: CSS.Transform.toString(transform), transition }
+
+  if (isDragging) {
+    return (
+      <div ref={setNodeRef} style={style} className="relative w-[150px] h-[150px] rounded-sm overflow-hidden">
+        {item.hotpreview_b64 && (
+          <img
+            src={`data:image/jpeg;base64,${item.hotpreview_b64}`}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover opacity-20"
+          />
+        )}
+        <div className="absolute inset-0 border-2 border-dashed border-blue-400/60 rounded-sm" />
+      </div>
+    )
+  }
 
   const showCursorLine = isCursorBefore || isPreviewBefore
 
