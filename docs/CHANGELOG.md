@@ -6,6 +6,15 @@ Format: `## YYYY-MM-DD — Kort beskrivelse`
 
 ---
 
+## 2026-02-27 — ZoomableImage — generell scroll+pan-modul
+
+- `src/hooks/useImageZoom.ts` — scroll-til-zoom mot musepeker (1×–4×), dra-for-pan; `ctrlKey` ignoreres (overlates til nettleseren); `deltaMode`-normalisering for jevn trackpad-opplevelse
+- `src/components/ZoomableImage.tsx` — generell komponent, fyller containeren, all tilstand intern; reset via `key`-prop
+- Brukes i `PhotoDetailPage` (venstre panel) og `PhotoSlideView` (presentasjonsmodus)
+- Ingen knapper, ingen prosentvisning — kun scroll og pan
+
+---
+
 ## 2026-02-27 — HTML-eksport av collection
 
 - `GET /collections/{id}/export` — returnerer ZIP-arkiv med `index.html` + `slides/*.jpg`

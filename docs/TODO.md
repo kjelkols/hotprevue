@@ -2,7 +2,7 @@
 
 Prioritert liste over neste steg. Oppdateres ved hver arbeidsøkt.
 
-Sist oppdatert: 2026-02-27 (sesjon 6)
+Sist oppdatert: 2026-02-27 (sesjon 7)
 
 ---
 
@@ -37,6 +37,7 @@ Sist oppdatert: 2026-02-27 (sesjon 6)
 ### Visningsmodus
 
 - [x] `CollectionPresentPage` (`/collections/:id/present`) — `SlidePresenter`, foto-slides + tekstkort-slides, notes-toggle (`N`), fullskjerm (`F`) (se `spec/collection-presentation.md`)
+- [x] `ZoomableImage` — scroll+pan i `PhotoDetailPage` og `CollectionPresentPage`
 - [ ] `EventPresentPage` (`/events/:id/present`) — deler `SlidePresenter`, sortert etter `taken_at`
 
 ### Sider
