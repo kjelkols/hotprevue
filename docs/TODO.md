@@ -28,11 +28,11 @@ Sist oppdatert: 2026-02-27 (sesjon 7)
 
 ### Kjernekomponenter
 
+- [x] Toppnavigasjon — `TopNav` + `AppLayout`, persistert på tvers av alle hovedruter
 - [ ] Forrige/neste i `PhotoDetailPage` — `useDetailNavStore` + `PhotoDetailHeader` (se `spec/photo-detail-view.md`)
 - [ ] Tastaturnavigasjon (← →) i `PhotoDetailPage`
 - [x] `SelectionTray` — bunnlinje + `SelectionModal` (intern gridvisning, fjern enkeltbilder) — se `spec/selection-tray.md`
 - [x] InsertionPoint — kursormodell implementert og fjernet; bilder settes inn på slutten
-- [ ] `Taskbar` med selection-teller
 
 ### Visningsmodus
 

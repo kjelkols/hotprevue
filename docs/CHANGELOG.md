@@ -6,6 +6,16 @@ Format: `## YYYY-MM-DD — Kort beskrivelse`
 
 ---
 
+## 2026-02-27 — Toppnavigasjon
+
+- `TopNav.tsx` — persistert navigasjonsbar: Hotprevue-logo + fire NavLink-tabs (Utvalg, Events, Kolleksjoner, Sesjoner) + selection-teller til høyre
+- `AppLayout.tsx` — layout-wrapper (h-screen flex-col) med TopNav + scrollbar Outlet
+- Nestede ruter i `App.tsx` — AppLayout wrapper rundt alle hovedruter; SetupPage og CollectionPresentPage forblir utenfor
+- `HomePage` forenklet — navigasjonsknapper fjernet, kun registreringsknapp igjen
+- "← Tilbake til /" fjernet fra liste-sider (CollectionsListPage, SessionsListPage, EventsListPage)
+
+---
+
 ## 2026-02-27 — ZoomableImage — generell scroll+pan-modul
 
 - `src/hooks/useImageZoom.ts` — scroll-til-zoom mot musepeker (1×–4×), dra-for-pan; `ctrlKey` ignoreres (overlates til nettleseren); `deltaMode`-normalisering for jevn trackpad-opplevelse
