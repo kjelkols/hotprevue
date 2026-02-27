@@ -24,6 +24,14 @@ export interface ScanResult {
 
 // ─── Backend API types ────────────────────────────────────────────────────────
 
+export interface EventNode {
+  id: string
+  name: string
+  parent_id: string | null
+  photo_count: number
+  children: EventNode[]
+}
+
 export interface Photographer {
   id: string
   name: string

@@ -101,3 +101,4 @@ Sist oppdatert: 2026-02-27 (sesjon 4)
 - [x] Grid-arkitektur: ThumbnailShell, selectionSlice, useCollectionViewStore, CollectionGrid med dnd-kit
 - [x] Collections frontend — CollectionsListPage, CollectionPage, navigasjon fra HomePage
 - [x] SelectionTray — bunnlinje + SelectionModal (Radix Dialog, intern grid, fjern enkeltbilder)
+- [x] SessionsListPage, EventsListPage — inngangsporter fra HomePage til bilder

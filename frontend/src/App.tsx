@@ -8,6 +8,8 @@ import BrowsePage from './pages/BrowsePage'
 import PhotoDetailPage from './pages/PhotoDetailPage'
 import CollectionsListPage from './pages/CollectionsListPage'
 import CollectionPage from './pages/CollectionPage'
+import SessionsListPage from './pages/SessionsListPage'
+import EventsListPage from './pages/EventsListPage'
 import ContextMenuOverlay from './components/ui/ContextMenuOverlay'
 import SelectionTray from './features/selection/SelectionTray'
 import useSelectionStore from './stores/useSelectionStore'
@@ -83,6 +85,14 @@ export default function App() {
         <Route
           path="/collections/:id"
           element={config ? <CollectionPage /> : <Navigate to="/setup" replace />}
+        />
+        <Route
+          path="/sessions"
+          element={config ? <SessionsListPage /> : <Navigate to="/setup" replace />}
+        />
+        <Route
+          path="/events"
+          element={config ? <EventsListPage /> : <Navigate to="/setup" replace />}
         />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

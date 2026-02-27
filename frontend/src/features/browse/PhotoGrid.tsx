@@ -4,11 +4,16 @@ import PhotoThumbnail from './PhotoThumbnail'
 
 const LIMIT = 100
 
-export default function PhotoGrid() {
+interface Props {
+  sessionId?: string
+  eventId?: string
+}
+
+export default function PhotoGrid({ sessionId, eventId }: Props) {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError } =
     useInfiniteQuery({
-      queryKey: ['photos'],
-      queryFn: ({ pageParam }) => listPhotos({ limit: LIMIT, offset: pageParam, sort: 'taken_at_desc' }),
+      queryKey: ['photos', { sessionId, eventId }],
+      queryFn: ({ pageParam }) => listPhotos({ limit: LIMIT, offset: pageParam, sort: 'taken_at_desc', sessionId, eventId }),
       initialPageParam: 0,
       getNextPageParam: (lastPage, _allPages, lastPageParam) => {
         if (lastPage.length < LIMIT) return undefined

@@ -8,6 +8,10 @@ import type {
   ProcessResult
 } from '../types/api'
 
+export function listSessions(): Promise<InputSession[]> {
+  return apiFetch<InputSession[]>('/input-sessions')
+}
+
 export function createSession(data: InputSessionCreate): Promise<InputSession> {
   return apiFetch<InputSession>('/input-sessions', {
     method: 'POST',
