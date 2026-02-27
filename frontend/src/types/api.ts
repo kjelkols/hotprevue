@@ -153,13 +153,12 @@ export interface Collection {
 export interface CollectionItem {
   id: string
   collection_id: string
-  hothash: string | null         // null for text cards
-  hotpreview_b64: string | null  // null for text cards; joined from Photo in backend response
+  hothash: string | null         // null for text items
+  text_item_id: string | null    // null for photo items
+  hotpreview_b64: string | null  // null for text items; joined from Photo in backend response
+  markup: string | null          // null for photo items; inlined from TextItem in backend response
   position: number
   caption: string | null
-  card_type: string | null       // null = photo, 'text' = text card; future: 'heading', 'divider', ...
-  title: string | null           // text cards only
-  text_content: string | null    // text cards only
   notes: string | null           // presenter/speaker notes; shown in visningsmodus only
 }
 

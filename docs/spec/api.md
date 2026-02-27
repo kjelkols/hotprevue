@@ -224,6 +224,7 @@ Avvises med `409 Conflict` hvis eventen har child-events.
 | `POST` | `/collections/{id}/items/batch` | Legg til flere foto-elementer på én gang |
 | `PUT` | `/collections/{id}/items` | Oppdater rekkefølge (tar sortert item_ids-liste) |
 | `PATCH` | `/collections/{id}/items/{item_id}` | Oppdater `caption` eller `notes` |
+| `DELETE` | `/collections/{id}/items/batch` | Fjern flere elementer på én gang (`item_ids: uuid[]`) |
 | `DELETE` | `/collections/{id}/items/{item_id}` | Fjern element (sletter text_item hvis ingen andre referanser) |
 
 **CollectionItem-felter:**

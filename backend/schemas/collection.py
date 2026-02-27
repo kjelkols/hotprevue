@@ -33,10 +33,8 @@ class CollectionOut(BaseModel):
 
 class CollectionItemCreate(BaseModel):
     hothash: str | None = None
+    text_item_id: uuid.UUID | None = None
     caption: str | None = None
-    card_type: str | None = None  # None = photo, 'text' = text card
-    title: str | None = None
-    text_content: str | None = None
     notes: str | None = None
     # Insert before this position (None = append)
     position: int | None = None
@@ -48,14 +46,16 @@ class CollectionItemBatch(BaseModel):
 
 class CollectionItemPatch(BaseModel):
     caption: str | None = None
-    card_type: str | None = None
-    title: str | None = None
-    text_content: str | None = None
     notes: str | None = None
+    markup: str | None = None  # updates the linked text_item's markup
 
 
 class CollectionItemReorder(BaseModel):
     item_ids: list[str]  # ordered list of CollectionItem UUIDs
+
+
+class CollectionItemBatchDelete(BaseModel):
+    item_ids: list[uuid.UUID]
 
 
 class CollectionItemOut(BaseModel):
@@ -64,10 +64,9 @@ class CollectionItemOut(BaseModel):
     id: uuid.UUID
     collection_id: uuid.UUID
     hothash: str | None
+    text_item_id: uuid.UUID | None
     position: int
     caption: str | None
-    card_type: str | None
-    title: str | None
-    text_content: str | None
     notes: str | None
     hotpreview_b64: str | None = None
+    markup: str | None = None  # inlined from text_item by service layer

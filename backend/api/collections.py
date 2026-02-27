@@ -7,6 +7,7 @@ from database.session import get_db
 from schemas.collection import (
     CollectionCreate,
     CollectionItemBatch,
+    CollectionItemBatchDelete,
     CollectionItemCreate,
     CollectionItemOut,
     CollectionItemPatch,
@@ -86,6 +87,15 @@ def patch_item(
 ):
     item = collection_service.patch_item(db, collection_id, item_id, data)
     return CollectionItemOut.model_validate(item)
+
+
+@router.delete("/{collection_id}/items/batch", status_code=204)
+def delete_items_batch(
+    collection_id: uuid.UUID,
+    data: CollectionItemBatchDelete,
+    db: Session = Depends(get_db),
+):
+    collection_service.delete_items_batch(db, collection_id, data.item_ids)
 
 
 @router.delete("/{collection_id}/items/{item_id}", status_code=204)

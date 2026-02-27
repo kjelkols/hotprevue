@@ -32,17 +32,19 @@ def health():
 import models.photographer  # noqa: F401
 import models.category  # noqa: F401
 import models.event  # noqa: F401
+import models.text_item  # noqa: F401
 import models.collection  # noqa: F401
 import models.input_session  # noqa: F401
 import models.photo  # noqa: F401
 import models.settings  # noqa: F401
 
-from api import collections, events, input_sessions, photographers, photos  # noqa: E402
+from api import collections, events, input_sessions, photographers, photos, text_items  # noqa: E402
 app.include_router(photographers.router)
 app.include_router(events.router)
 app.include_router(input_sessions.router)
 app.include_router(photos.router)
 app.include_router(collections.router)
+app.include_router(text_items.router)
 
 
 def _bootstrap_settings() -> None:

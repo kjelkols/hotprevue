@@ -57,7 +57,7 @@ export default function CollectionItemCell({
             : 'bg-blue-300/40',
         ].join(' ')} />
       )}
-      {item.card_type !== null
+      {item.text_item_id !== null
         ? <TextCard item={item} orderedIds={orderedIds} />
         : <ThumbnailShell
             imageData={item.hotpreview_b64 ?? ''}

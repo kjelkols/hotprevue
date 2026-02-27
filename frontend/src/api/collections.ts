@@ -62,3 +62,14 @@ export function addCollectionItemsBatch(
 export function deleteCollectionItem(collectionId: string, itemId: string): Promise<void> {
   return apiFetch<void>(`/collections/${collectionId}/items/${itemId}`, { method: 'DELETE' })
 }
+
+export function deleteCollectionItemsBatch(
+  collectionId: string,
+  itemIds: string[],
+): Promise<void> {
+  return apiFetch<void>(`/collections/${collectionId}/items/batch`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ item_ids: itemIds }),
+  })
+}

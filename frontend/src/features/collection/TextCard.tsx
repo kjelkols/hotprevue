@@ -29,14 +29,9 @@ export default function TextCard({ item, orderedIds }: Props) {
         isSelected ? 'ring-2 ring-inset ring-blue-400' : '',
       ].join(' ')}
     >
-      {item.title && (
-        <p className="text-xs font-semibold text-gray-200 line-clamp-2 shrink-0">
-          {item.title}
-        </p>
-      )}
-      {item.text_content && (
-        <p className="text-[10px] text-gray-400 line-clamp-5 leading-relaxed">
-          {item.text_content}
+      {item.markup && (
+        <p className="text-[10px] text-gray-400 line-clamp-6 leading-relaxed whitespace-pre-wrap">
+          {item.markup}
         </p>
       )}
     </div>

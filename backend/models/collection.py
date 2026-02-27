@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base
@@ -35,12 +35,16 @@ class CollectionItem(Base):
         nullable=False,
     )
     hothash: Mapped[str | None] = mapped_column(String, nullable=True)
+    text_item_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("text_items.id", ondelete="SET NULL"),
+        nullable=True,
+    )
     position: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     caption: Mapped[str | None] = mapped_column(Text, nullable=True)
-    card_type: Mapped[str | None] = mapped_column(Text, nullable=True)  # None=photo, 'text'=text card
-    title: Mapped[str | None] = mapped_column(Text, nullable=True)
-    text_content: Mapped[str | None] = mapped_column(Text, nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
-    card_data: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
     collection: Mapped["Collection"] = relationship("Collection", back_populates="items")
+    text_item: Mapped["TextItem | None"] = relationship(  # noqa: F821
+        "TextItem", back_populates="collection_items"
+    )

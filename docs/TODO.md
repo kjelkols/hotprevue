@@ -2,7 +2,7 @@
 
 Prioritert liste over neste steg. Oppdateres ved hver arbeidsøkt.
 
-Sist oppdatert: 2026-02-27 (sesjon 5)
+Sist oppdatert: 2026-02-27 (sesjon 6)
 
 ---
 
@@ -14,8 +14,6 @@ Sist oppdatert: 2026-02-27 (sesjon 5)
 
 ## Neste — backend
 
-- [ ] Migrering 0004: `text_items`-tabell + fjern `card_type`/`title`/`text_content`/`card_data` fra `collection_items`, legg til `text_item_id UUID FK`
-- [ ] TextItem CRUD: `POST /text-items`, `GET /text-items/{id}`, `PATCH /text-items/{id}`, `DELETE /text-items/{id}` (med orphan-sjekk)
 - [ ] `POST /collections/{id}/clone` — klon collection (foto deles, text_items kopieres dypt)
 - [ ] `GET/PATCH /settings` — SystemSettings
 - [ ] `GET /tags` — distinkte tags med prefiks-filtrering og valgfri count
@@ -107,3 +105,5 @@ Sist oppdatert: 2026-02-27 (sesjon 5)
 - [x] SelectionTray — bunnlinje + SelectionModal (Radix Dialog, intern grid, fjern enkeltbilder)
 - [x] SessionsListPage, EventsListPage — inngangsporter fra HomePage til bilder
 - [x] InsertionPoint — kursormodell (vertikal strek), kursorsone, tastaturnavigasjon, innsettingssekvens
+- [x] TextItem-arkitektur — migrering 0004, `text_items`-tabell, CRUD-endepunkter, orphan-opprydding
+- [x] CollectionActionBar — batch-slett og flytt-til-cursor for collection-intern selection (isolert fra global SelectionStore)

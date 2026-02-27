@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from models.collection import Collection, CollectionItem
 from models.photo import Photo
+from models.text_item import TextItem
 
 
 def _get_or_404(db: Session, collection_id: uuid.UUID) -> Collection:
@@ -19,14 +20,22 @@ def _item_count(db: Session, collection_id: uuid.UUID) -> int:
 
 
 def _enrich_items(db: Session, items: list[CollectionItem]) -> list[CollectionItem]:
-    """Attach hotpreview_b64 from Photo for all items in a single query."""
-    hothashes = [item.hothash for item in items if item.hothash and item.card_type is None]
+    """Attach hotpreview_b64 from Photo and markup from TextItem for all items."""
+    hothashes = [item.hothash for item in items if item.hothash]
     preview_map: dict[str, str] = {}
     if hothashes:
         photos = db.query(Photo).filter(Photo.hothash.in_(hothashes)).all()
         preview_map = {p.hothash: p.hotpreview_b64 for p in photos}
+
+    ti_ids = [item.text_item_id for item in items if item.text_item_id]
+    markup_map: dict[uuid.UUID, str] = {}
+    if ti_ids:
+        text_items = db.query(TextItem).filter(TextItem.id.in_(ti_ids)).all()
+        markup_map = {ti.id: ti.markup for ti in text_items}
+
     for item in items:
         item.hotpreview_b64 = preview_map.get(item.hothash) if item.hothash else None
+        item.markup = markup_map.get(item.text_item_id) if item.text_item_id else None
     return items
 
 
@@ -87,7 +96,6 @@ def add_item(db: Session, collection_id: uuid.UUID, data) -> CollectionItem:
     _get_or_404(db, collection_id)
 
     if data.position is not None:
-        # Shift existing items at or after insertion point
         items_to_shift = (
             db.query(CollectionItem)
             .filter(CollectionItem.collection_id == collection_id)
@@ -103,11 +111,9 @@ def add_item(db: Session, collection_id: uuid.UUID, data) -> CollectionItem:
     item = CollectionItem(
         collection_id=collection_id,
         hothash=data.hothash,
+        text_item_id=data.text_item_id,
         position=position,
         caption=data.caption,
-        card_type=data.card_type,
-        title=data.title,
-        text_content=data.text_content,
         notes=data.notes,
     )
     db.add(item)
@@ -124,11 +130,9 @@ def add_items_batch(db: Session, collection_id: uuid.UUID, items_data: list) -> 
         item = CollectionItem(
             collection_id=collection_id,
             hothash=data.hothash,
+            text_item_id=data.text_item_id,
             position=base_position + i,
             caption=data.caption,
-            card_type=data.card_type,
-            title=data.title,
-            text_content=data.text_content,
             notes=data.notes,
         )
         db.add(item)
@@ -158,14 +162,13 @@ def reorder_items(db: Session, collection_id: uuid.UUID, item_ids: list[str]) ->
             CollectionItem.collection_id == collection_id
         ).all()
     }
-    # Validate all IDs belong to this collection
     for item_id in item_ids:
         if item_id not in id_to_item:
             raise HTTPException(status_code=400, detail=f"Item {item_id} not in collection")
     for pos, item_id in enumerate(item_ids):
         id_to_item[item_id].position = pos
     db.commit()
-    return get_items(db, collection_id)  # re-queries in order
+    return get_items(db, collection_id)
 
 
 def patch_item(db: Session, collection_id: uuid.UUID, item_id: uuid.UUID, data) -> CollectionItem:
@@ -176,11 +179,46 @@ def patch_item(db: Session, collection_id: uuid.UUID, item_id: uuid.UUID, data) 
     ).first()
     if item is None:
         raise HTTPException(status_code=404, detail="Item not found")
-    for field, value in data.model_dump(exclude_unset=True).items():
+
+    update = data.model_dump(exclude_unset=True)
+    markup = update.pop("markup", None)
+
+    for field, value in update.items():
         setattr(item, field, value)
+
+    if markup is not None and item.text_item_id is not None:
+        text_item = db.query(TextItem).filter(TextItem.id == item.text_item_id).first()
+        if text_item is not None:
+            text_item.markup = markup
+
     db.commit()
     db.refresh(item)
     return _enrich_one(db, item)
+
+
+def delete_items_batch(db: Session, collection_id: uuid.UUID, item_ids: list[uuid.UUID]) -> None:
+    _get_or_404(db, collection_id)
+    items = db.query(CollectionItem).filter(
+        CollectionItem.id.in_(item_ids),
+        CollectionItem.collection_id == collection_id,
+    ).all()
+
+    text_item_ids = [item.text_item_id for item in items if item.text_item_id]
+
+    for item in items:
+        db.delete(item)
+    db.flush()
+
+    for ti_id in text_item_ids:
+        remaining = db.query(CollectionItem).filter(
+            CollectionItem.text_item_id == ti_id
+        ).count()
+        if remaining == 0:
+            ti = db.query(TextItem).filter(TextItem.id == ti_id).first()
+            if ti:
+                db.delete(ti)
+
+    db.commit()
 
 
 def delete_item(db: Session, collection_id: uuid.UUID, item_id: uuid.UUID) -> None:
@@ -191,5 +229,20 @@ def delete_item(db: Session, collection_id: uuid.UUID, item_id: uuid.UUID) -> No
     ).first()
     if item is None:
         raise HTTPException(status_code=404, detail="Item not found")
+
+    text_item_id = item.text_item_id
     db.delete(item)
+    db.flush()
+
+    if text_item_id is not None:
+        remaining = (
+            db.query(CollectionItem)
+            .filter(CollectionItem.text_item_id == text_item_id)
+            .count()
+        )
+        if remaining == 0:
+            text_item = db.query(TextItem).filter(TextItem.id == text_item_id).first()
+            if text_item is not None:
+                db.delete(text_item)
+
     db.commit()

@@ -6,6 +6,16 @@ Format: `## YYYY-MM-DD — Kort beskrivelse`
 
 ---
 
+## 2026-02-27 — TextItem-arkitektur og CollectionActionBar
+
+- Migrering 0004: `text_items`-tabell; fjernet `card_type`/`title`/`text_content`/`card_data` fra `collection_items`; lagt til `text_item_id UUID FK`; CHECK constraint sikrer nøyaktig ett av `hothash`/`text_item_id`
+- TextItem CRUD: `POST /text-items`, `GET /text-items/{id}`, `PATCH /text-items/{id}`, `DELETE /text-items/{id}` (med orphan-sjekk)
+- `DELETE /collections/{id}/items/batch` — fjern flere collection-items på én gang; orphan text_items ryddes automatisk
+- `CollectionActionBar` — handlingsbar i CollectionView når ett eller flere items er valgt: "Flytt hit" og "Fjern fra kolleksjon"
+- Collection-intern selection (`useCollectionViewStore`) er isolert fra global `useSelectionStore`
+
+---
+
 ## 2026-02-25 — Dokumentasjonsstruktur opprettet
 
 - Opprettet `docs/`-struktur med `spec/`, `decisions/`, `vision/`
