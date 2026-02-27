@@ -95,6 +95,7 @@ function createWindow() {
       contextIsolation: true
     }
   });
+  win.center();
   if (process.env["ELECTRON_RENDERER_URL"]) {
     win.loadURL(process.env["ELECTRON_RENDERER_URL"]);
   } else {
