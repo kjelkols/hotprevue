@@ -29,7 +29,7 @@ Sist oppdatert: 2026-02-27 (sesjon 4)
 
 - [ ] Forrige/neste i `PhotoDetailPage` — `useDetailNavStore` + `PhotoDetailHeader` (se `spec/photo-detail-view.md`)
 - [ ] Tastaturnavigasjon (← →) i `PhotoDetailPage`
-- [ ] `SelectionTray` — bunnlinje + `SelectionModal` (intern gridvisning, fjern enkeltbilder) — se `spec/selection-tray.md`
+- [x] `SelectionTray` — bunnlinje + `SelectionModal` (intern gridvisning, fjern enkeltbilder) — se `spec/selection-tray.md`
 - [ ] `Taskbar` med selection-teller
 
 ### Visningsmodus
@@ -100,3 +100,4 @@ Sist oppdatert: 2026-02-27 (sesjon 4)
 - [x] PhotoDetailPage — /photos/:hothash, coldpreview + PhotoMetaPanel
 - [x] Grid-arkitektur: ThumbnailShell, selectionSlice, useCollectionViewStore, CollectionGrid med dnd-kit
 - [x] Collections frontend — CollectionsListPage, CollectionPage, navigasjon fra HomePage
+- [x] SelectionTray — bunnlinje + SelectionModal (Radix Dialog, intern grid, fjern enkeltbilder)

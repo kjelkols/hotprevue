@@ -5,11 +5,15 @@ export function listPhotos(params: {
   limit?: number
   offset?: number
   sort?: string
+  hothashes?: string[]
 }): Promise<PhotoListItem[]> {
   const q = new URLSearchParams()
   if (params.limit != null) q.set('limit', String(params.limit))
   if (params.offset != null) q.set('offset', String(params.offset))
   if (params.sort) q.set('sort', params.sort)
+  if (params.hothashes) {
+    for (const h of params.hothashes) q.append('hothash', h)
+  }
   return apiFetch<PhotoListItem[]>(`/photos?${q}`)
 }
 

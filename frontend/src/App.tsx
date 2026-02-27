@@ -9,6 +9,7 @@ import PhotoDetailPage from './pages/PhotoDetailPage'
 import CollectionsListPage from './pages/CollectionsListPage'
 import CollectionPage from './pages/CollectionPage'
 import ContextMenuOverlay from './components/ui/ContextMenuOverlay'
+import SelectionTray from './features/selection/SelectionTray'
 import useSelectionStore from './stores/useSelectionStore'
 import useCollectionViewStore from './stores/useCollectionViewStore'
 import useContextMenuStore from './stores/useContextMenuStore'
@@ -86,6 +87,7 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <ContextMenuOverlay />
+      <SelectionTray />
     </HashRouter>
   )
 }

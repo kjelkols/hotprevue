@@ -33,6 +33,7 @@ router = APIRouter(prefix="/photos", tags=["photos"])
 @router.get("", response_model=list[PhotoListItem])
 def list_photos(
     db: Session = Depends(get_db),
+    hothash: list[str] = Query(default=[]),
     photographer_id: uuid.UUID | None = None,
     event_id: uuid.UUID | None = None,
     session_id: uuid.UUID | None = None,
@@ -50,6 +51,7 @@ def list_photos(
 ):
     photos = photo_service.list_photos(
         db,
+        hothashes=hothash or None,
         photographer_id=photographer_id,
         event_id=event_id,
         session_id=session_id,

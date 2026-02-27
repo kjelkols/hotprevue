@@ -13,6 +13,7 @@ from models.photo import ImageFile, Photo
 def list_photos(
     db: Session,
     *,
+    hothashes: list[str] | None = None,
     photographer_id: uuid.UUID | None = None,
     event_id: uuid.UUID | None = None,
     session_id: uuid.UUID | None = None,
@@ -35,6 +36,8 @@ def list_photos(
     else:
         q = q.filter(Photo.deleted_at.is_(None))
 
+    if hothashes:
+        q = q.filter(Photo.hothash.in_(hothashes))
     if photographer_id:
         q = q.filter(Photo.photographer_id == photographer_id)
     if event_id:
