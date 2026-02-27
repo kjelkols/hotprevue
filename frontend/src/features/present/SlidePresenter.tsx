@@ -4,7 +4,6 @@ import type { Slide } from '../../types/presentation'
 import PhotoSlideView from './PhotoSlideView'
 import TextSlideView from './TextSlideView'
 import SlideNotesPanel from './SlideNotesPanel'
-import SlideNavZones from './SlideNavZones'
 import { useSlideKeyboard } from './useSlideKeyboard'
 
 const FADE_MS = 150
@@ -93,16 +92,8 @@ export default function SlidePresenter({ slides, collectionName, onClose }: Prop
       </div>
 
       {/* Slide */}
-      <div className="relative flex-1 min-h-0" style={{ opacity, transition: `opacity ${FADE_MS}ms ease` }}>
-        <SlideNavZones
-          onPrev={() => navigateTo(slideIndex - 1)}
-          onNext={() => navigateTo(slideIndex + 1)}
-          canPrev={slideIndex > 0}
-          canNext={slideIndex < slides.length - 1}
-        />
-        {slide.kind === 'photo'
-          ? <PhotoSlideView key={slide.collection_item_id} slide={slide} />
-          : <TextSlideView slide={slide} />}
+      <div className="flex-1 min-h-0" style={{ opacity, transition: `opacity ${FADE_MS}ms ease` }}>
+        {slide.kind === 'photo' ? <PhotoSlideView slide={slide} /> : <TextSlideView slide={slide} />}
       </div>
 
       {/* Notes */}

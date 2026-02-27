@@ -38,7 +38,6 @@ Sist oppdatert: 2026-02-27 (sesjon 6)
 
 - [x] `CollectionPresentPage` (`/collections/:id/present`) — `SlidePresenter`, foto-slides + tekstkort-slides, notes-toggle (`N`), fullskjerm (`F`) (se `spec/collection-presentation.md`)
 - [ ] `EventPresentPage` (`/events/:id/present`) — deler `SlidePresenter`, sortert etter `taken_at`
-- [ ] Zoom-forbedringer i visningsmodus — se `docs/drafts/zoom-improvements.md`
 
 ### Sider
 

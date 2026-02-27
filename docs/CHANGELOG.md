@@ -16,16 +16,6 @@ Format: `## YYYY-MM-DD — Kort beskrivelse`
 
 ---
 
-## 2026-02-27 — Musnavigasjon og zoom i visningsmodus
-
-- `SlideNavZones` — klikk på venstre/høyre halvdel av sliden navigerer til forrige/neste; diskret `‹`/`›` vises ved hover
-- `useZoomPan` — scrollhjul zoomer inn/ut mot musepekeren (1×–4×); dra panorerer når zoomet inn
-- Cursor veksler til grab/grabbing under panorering
-- Zoom nullstilles automatisk ved slidebytte via `key`-prop (ingen eksplisitt reset-kode)
-- Bruker ikke-passiv `addEventListener` (React `onWheel` er passiv og kan ikke kalle `preventDefault`)
-
----
-
 ## 2026-02-27 — CollectionPresentPage — visningsmodus
 
 - Rute `/collections/:id/present` — dedikert fullskjerm visningsmodus
