@@ -19088,6 +19088,10 @@ function App() {
   const contextMenuOpen = useContextMenuStore((s) => s.open);
   const closeContextMenu = useContextMenuStore((s) => s.closeContextMenu);
   reactExports.useEffect(() => {
+    if (!window.electron) {
+      setConfig(null);
+      return;
+    }
     window.electron.getConfig().then((cfg) => {
       if (cfg) {
         setBaseUrl(cfg.backendUrl);

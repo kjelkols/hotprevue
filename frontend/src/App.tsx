@@ -24,6 +24,10 @@ export default function App() {
   const closeContextMenu = useContextMenuStore(s => s.closeContextMenu)
 
   useEffect(() => {
+    if (!window.electron) {
+      setConfig(null)
+      return
+    }
     window.electron.getConfig().then(cfg => {
       if (cfg) {
         setBaseUrl(cfg.backendUrl)
