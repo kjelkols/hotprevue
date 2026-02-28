@@ -1,6 +1,5 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import './electronStub'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import App from './App'
 import './assets/index.css'
