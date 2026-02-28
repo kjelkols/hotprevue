@@ -19,19 +19,15 @@ Write-Host "Prosjektrot : $ProjectRoot"
 Write-Host "Output      : $OutputZip"
 Write-Host ""
 
-# ─── Steg 1: Bygg frontend ───────────────────────────────────────────────────
+# ─── Steg 1: Sjekk ferdigbygd frontend ──────────────────────────────────────
 
-Write-Host "[1/3] Bygger frontend..." -ForegroundColor Yellow
-Push-Location (Join-Path $ProjectRoot "frontend")
-try {
-    npm install
-    if ($LASTEXITCODE -ne 0) { throw "npm install feilet" }
-    npm run build:web
-    if ($LASTEXITCODE -ne 0) { throw "npm run build:web feilet" }
-} finally {
-    Pop-Location
+$FrontendDist = Join-Path $ProjectRoot "frontend\dist"
+if (-not (Test-Path $FrontendDist)) {
+    Write-Host "FEIL: frontend/dist mangler." -ForegroundColor Red
+    Write-Host "Kjor foerst fra WSL:  make build-web" -ForegroundColor Yellow
+    exit 1
 }
-Write-Host "[1/3] Frontend ferdig." -ForegroundColor Green
+Write-Host "[1/3] Frontend funnet: $FrontendDist" -ForegroundColor Green
 Write-Host ""
 
 # ─── Steg 2: Klargjor innhold ────────────────────────────────────────────────
@@ -53,9 +49,9 @@ robocopy "$ProjectRoot\frontend\dist" "$BuildDir\frontend" /e | Out-Null
 Copy-Item "$ProjectRoot\Hotprevue.bat" "$BuildDir\Hotprevue.bat"
 
 # uv.exe (finn i PATH)
-$uvExe = (Get-Command uv -ErrorAction SilentlyContinue)?.Source
-if (-not $uvExe) { throw "uv ikke funnet i PATH. Installer uv og prøv igjen." }
-Copy-Item $uvExe "$BuildDir\uv.exe"
+$uvCmd = Get-Command uv -ErrorAction SilentlyContinue
+if (-not $uvCmd) { throw "uv ikke funnet i PATH. Installer uv og prøv igjen." }
+Copy-Item $uvCmd.Source "$BuildDir\uv.exe"
 
 Write-Host "[2/3] Innhold klart." -ForegroundColor Green
 Write-Host ""
