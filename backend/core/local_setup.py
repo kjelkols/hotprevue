@@ -9,7 +9,7 @@ def setup_local_environment() -> None:
     import pgserver
     import platformdirs
 
-    data_dir = Path(os.environ.get("HOTPREVUE_DATA_DIR") or platformdirs.user_data_dir("Hotprevue", appauthor=False))
+    data_dir = Path(os.environ.get("DATA_DIR") or platformdirs.user_data_dir("Hotprevue", appauthor=False))
 
     pgdata = data_dir / "pgdata"
     pgdata.mkdir(parents=True, exist_ok=True)

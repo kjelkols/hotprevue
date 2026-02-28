@@ -67,7 +67,7 @@ See `docs/decisions/003-local-backend-as-system-proxy.md` for full rationale.
 - **API must listen on `0.0.0.0`** in dev (reachable via Tailscale), `127.0.0.1` in zip distribution.
 - **Environment variables** for database URL and all configuration:
   - `HOTPREVUE_LOCAL=true` — activates pgserver mode (embedded DB)
-  - `HOTPREVUE_DATA_DIR` — override data directory (default: `%APPDATA%\Hotprevue` / `~/.local/share/Hotprevue`)
+  - `DATA_DIR` — override data directory (default: `%APPDATA%\Hotprevue` / `~/.local/share/Hotprevue`)
   - `HOTPREVUE_FRONTEND_DIR` — directory to serve as static frontend
   - `HOTPREVUE_OPEN_BROWSER=true` — open browser automatically on startup
 

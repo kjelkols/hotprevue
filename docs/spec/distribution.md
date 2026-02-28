@@ -80,9 +80,9 @@ Datakataloger bestemmes automatisk av backend via `platformdirs`:
 | Windows   | `%LOCALAPPDATA%\Hotprevue\pgdata\` | `%LOCALAPPDATA%\Hotprevue\coldpreviews\` |
 | Linux     | `~/.local/share/Hotprevue/pgdata/` | `~/.local/share/Hotprevue/coldpreviews/` |
 
-Override med `HOTPREVUE_DATA_DIR`.
+Override med `DATA_DIR`.
 
-I tillegg lagres `machine_id` (UUID) i `HOTPREVUE_DATA_DIR/machine_id`. Denne filen
+I tillegg lagres `machine_id` (UUID) i `DATA_DIR/machine_id`. Denne filen
 overlever database-rekreasjon og synkronisering, og brukes til å identifisere maskinen.
 
 ---
