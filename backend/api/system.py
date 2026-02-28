@@ -18,8 +18,12 @@ MASTER_EXTS: dict[str, list[str]] = {
 XMP_EXTS = [".xmp"]
 
 
+def _master_exts() -> set[str]:
+    return {ext for exts in MASTER_EXTS.values() for ext in exts}
+
+
 def _all_known_exts() -> set[str]:
-    return {ext for exts in MASTER_EXTS.values() for ext in exts} | set(XMP_EXTS)
+    return _master_exts() | set(XMP_EXTS)
 
 
 def _get_type(path: str) -> str:
@@ -99,6 +103,64 @@ def scan_directory(req: ScanRequest):
         ))
 
     return ScanResult(groups=groups, total_files=len(all_files))
+
+
+# ─── Filbrowser ───────────────────────────────────────────────────────────────
+
+class BrowseDir(BaseModel):
+    name: str
+    path: str
+
+
+class BrowseFile(BaseModel):
+    name: str
+    path: str
+    type: str
+
+
+class BrowseResult(BaseModel):
+    path: str
+    parent: str | None
+    dirs: list[BrowseDir]
+    files: list[BrowseFile]
+
+
+def _dir_has_images(dir_path: str, exts: set[str], depth: int = 0) -> bool:
+    if depth > 10:
+        return False
+    try:
+        with os.scandir(dir_path) as it:
+            for entry in it:
+                if entry.is_file() and Path(entry.path).suffix.lower() in exts:
+                    return True
+                if entry.is_dir(follow_symlinks=False) and _dir_has_images(entry.path, exts, depth + 1):
+                    return True
+    except OSError:
+        pass
+    return False
+
+
+@router.get("/browse", response_model=BrowseResult)
+def browse_directory(path: str = ""):
+    p = Path(path) if path else Path.home()
+    parent = str(p.parent) if p.parent != p else None
+    exts = _master_exts()
+
+    dirs: list[BrowseDir] = []
+    files: list[BrowseFile] = []
+
+    try:
+        entries = sorted(p.iterdir(), key=lambda e: (not e.is_dir(), e.name.lower()))
+        for entry in entries:
+            if entry.is_dir(follow_symlinks=False):
+                if _dir_has_images(str(entry), exts):
+                    dirs.append(BrowseDir(name=entry.name, path=str(entry)))
+            elif entry.is_file() and entry.suffix.lower() in exts:
+                files.append(BrowseFile(name=entry.name, path=str(entry), type=_get_type(str(entry))))
+    except OSError:
+        pass
+
+    return BrowseResult(path=str(p), parent=parent, dirs=dirs, files=files)
 
 
 # ─── Velg katalog (native dialog) ─────────────────────────────────────────────

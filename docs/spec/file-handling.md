@@ -39,6 +39,8 @@ Hvis brukeren flytter en hel samling til ny disk eller ny sti, skal det finnes e
 
 Eksempel: endre alle stier fra `/mnt/old-disk/` til `/mnt/new-disk/`.
 
+Se `file-reconciliation.md` for fullstendig strategi og implementasjonsplan.
+
 ## Synkstrategi
 
 Se `previews.md` for synkronisering av database og coldpreview.

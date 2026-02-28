@@ -39,6 +39,24 @@ These rules apply to all frontend code and exist to prevent AI formatting errors
 - **React Query for all server state.** No `useState` for data that comes from the API.
 - **Zustand for client-only state** (selection mode, active filters, etc.).
 
+## Local Backend as System Proxy
+
+The backend is not a remote server — it is a **local process** running on the same machine as the user's files. This means it has full OS access: filesystem, native dialogs, subprocesses.
+
+The browser UI has no filesystem access. All file operations go through the backend:
+
+```
+Browser (React)                  Python backend (local process)
+      │  GET /system/browse            │
+      │ ──────────────────────────→   │  os.scandir("/path/to/photos")
+      │  { dirs, files }               │  ← reads directly from disk
+      │ ←──────────────────────────   │
+```
+
+**Rule:** All filesystem operations in the frontend **must** go through `/system` endpoints — never attempt direct file access in the browser. New OS-level operations belong in `api/system.py`.
+
+See `docs/decisions/003-local-backend-as-system-proxy.md` for full rationale.
+
 ## Key Technical Decisions
 
 - **"Register" not "import":** Never use the word "import" when referring to adding images to the system. The system *registers* image metadata, it does not import or move files.

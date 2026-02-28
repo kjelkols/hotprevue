@@ -1,8 +1,13 @@
 import { apiFetch } from './client'
-import type { ScanResult } from '../types/api'
+import type { BrowseResult, ScanResult } from '../types/api'
 
 export function pickDirectory(): Promise<{ path: string | null }> {
   return apiFetch<{ path: string | null }>('/system/pick-directory', { method: 'POST' })
+}
+
+export function browseDirectory(path: string): Promise<BrowseResult> {
+  const params = new URLSearchParams({ path })
+  return apiFetch<BrowseResult>(`/system/browse?${params}`)
 }
 
 export function scanDirectory(path: string, recursive: boolean): Promise<ScanResult> {

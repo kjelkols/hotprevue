@@ -1,5 +1,18 @@
 # Backend-arkitektur
 
+## Lokal systemproxy
+
+Backenden er ikke en server på internett. Den er et **lokalt program** som kjører på
+brukerens maskin og kommuniserer med nettleser-UI-et via HTTP på localhost.
+
+Dette gir backenden full OS-tilgang: filsystem, native dialoger, subprosesser. All
+funksjonalitet som nettleseren ikke kan gjøre selv — lese filer, bla i kataloger,
+åpne OS-dialoger — implementeres som endepunkter i `api/system.py`.
+
+Se `docs/decisions/003-local-backend-as-system-proxy.md` for begrunnelse og regler.
+
+---
+
 ## Synkron — alltid
 
 **Backend er synkron. Bruk aldri `async def`, `await`, `AsyncSession` eller `asyncpg`.**

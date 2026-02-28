@@ -22,6 +22,24 @@ export interface ScanResult {
   total_files: number
 }
 
+export interface BrowseDir {
+  name: string
+  path: string
+}
+
+export interface BrowseFile {
+  name: string
+  path: string
+  type: string
+}
+
+export interface BrowseResult {
+  path: string
+  parent: string | null
+  dirs: BrowseDir[]
+  files: BrowseFile[]
+}
+
 // ─── Backend API types ────────────────────────────────────────────────────────
 
 export interface EventNode {

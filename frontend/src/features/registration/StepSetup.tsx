@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { listPhotographers, createPhotographer } from '../../api/photographers'
 import { createSession, checkPaths } from '../../api/inputSessions'
-import { pickDirectory, scanDirectory } from '../../api/system'
+import { scanDirectory } from '../../api/system'
+import FileBrowser from '../../components/FileBrowser'
 import { getSettings } from '../../api/settings'
 import type { FileGroup, ScanResult } from '../../types/api'
 
@@ -40,11 +41,6 @@ export default function StepSetup({ onDone }: Props) {
       setPhotographerId(settingsData.machine.default_photographer_id)
     }
   }, [settingsData])
-
-  async function handlePickDirectory() {
-    const result = await pickDirectory()
-    if (result.path) setDirPath(result.path)
-  }
 
   function handleDirInput(raw: string) {
     // Konverter Windows-stier til WSL-stier automatisk:
@@ -133,12 +129,15 @@ export default function StepSetup({ onDone }: Props) {
             className="flex-1 rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-white outline-none focus:border-blue-500"
             placeholder="Lim inn sti, f.eks. C:\Bilder\Ferie2025"
           />
-          <button
-            onClick={handlePickDirectory}
-            className="rounded-lg bg-gray-700 px-4 py-2 text-sm font-medium text-white hover:bg-gray-600"
-          >
-            Velg…
-          </button>
+          <FileBrowser
+            initialPath={dirPath}
+            onSelect={setDirPath}
+            trigger={
+              <button className="rounded-lg bg-gray-700 px-4 py-2 text-sm font-medium text-white hover:bg-gray-600">
+                Bla…
+              </button>
+            }
+          />
         </div>
         <label className="mt-2 flex items-center gap-2 text-sm text-gray-400">
           <input
