@@ -38,9 +38,15 @@ if (Test-Path $BuildDir) {
 }
 New-Item -ItemType Directory -Force $BuildDir | Out-Null
 
-# Backend-kildekode (uten virtuelle miljoer og byggartefakter)
+# Backend-kildekode (uten virtuelle miljoer, byggartefakter og dev-filer)
 robocopy "$ProjectRoot\backend" "$BuildDir\backend" /e `
-    /xd .venv .venv-win dist build __pycache__ .pytest_cache | Out-Null
+    /xd .venv .venv-win dist build __pycache__ .pytest_cache tests | Out-Null
+
+# Fjern filer som ikke trengs i distribusjon
+Remove-Item -Force "$BuildDir\backend\.dockerignore" -ErrorAction SilentlyContinue
+Remove-Item -Force "$BuildDir\backend\Dockerfile" -ErrorAction SilentlyContinue
+Remove-Item -Force "$BuildDir\backend\hotprevue.spec" -ErrorAction SilentlyContinue
+Remove-Item -Force "$BuildDir\backend\.env" -ErrorAction SilentlyContinue
 
 # Ferdigbygd frontend (fra dist/)
 robocopy "$ProjectRoot\frontend\dist" "$BuildDir\frontend" /e | Out-Null
