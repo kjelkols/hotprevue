@@ -220,6 +220,10 @@ frontend/dist/
 frontend/out/
 frontend/dist-installer/
 
+# Zip-distribusjon
+*.zip
+C:/hotprevue-zip/
+
 # Backend build artifacts (PyInstaller output)
 backend/dist/
 backend/build/

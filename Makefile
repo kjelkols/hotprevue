@@ -1,4 +1,4 @@
-.PHONY: dev-backend dev-frontend test download-test-images download-test-images-full download-test-images-force
+.PHONY: dev-backend dev-frontend build-web test download-test-images download-test-images-full download-test-images-force
 
 # ─── Utvikling (WSL) ──────────────────────────────────────────────────────────
 
@@ -6,9 +6,13 @@
 dev-backend:
 	cd backend && HOTPREVUE_LOCAL=true uv run uvicorn main:app --host 0.0.0.0 --port 8000
 
-# Start Electron-frontend (krever at backend kjører)
+# Start Vite dev-server (krever at backend kjører)
 dev-frontend:
 	cd frontend && npm run dev
+
+# Bygg frontend som statiske filer (for zip-distribusjon)
+build-web:
+	cd frontend && npm run build:web
 
 # ─── Testing (WSL) ────────────────────────────────────────────────────────────
 
