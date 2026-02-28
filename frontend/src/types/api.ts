@@ -4,10 +4,6 @@ export interface AppConfig {
   backendUrl: string
 }
 
-export interface AppSettings {
-  data_dir: string
-}
-
 // ─── Scanning ─────────────────────────────────────────────────────────────────
 
 export interface CompanionFile {
@@ -16,14 +12,14 @@ export interface CompanionFile {
 }
 
 export interface FileGroup {
-  masterPath: string
-  masterType: string
+  master_path: string
+  master_type: string
   companions: CompanionFile[]
 }
 
 export interface ScanResult {
   groups: FileGroup[]
-  totalFiles: number
+  total_files: number
 }
 
 // ─── Backend API types ────────────────────────────────────────────────────────
@@ -174,19 +170,3 @@ export interface CollectionItem {
   notes: string | null           // presenter/speaker notes; shown in visningsmodus only
 }
 
-// ─── Electron API (window.electron) ──────────────────────────────────────────
-
-declare global {
-  interface Window {
-    electron: {
-      selectDirectory(): Promise<string | null>
-      scanDirectory(dirPath: string, recursive: boolean): Promise<ScanResult>
-      readFileBytes(filePath: string): Promise<Uint8Array>
-      getConfig(): Promise<AppConfig | null>
-      setConfig(config: AppConfig): Promise<void>
-      getSettings(): Promise<AppSettings | null>
-      setSettings(settings: AppSettings): Promise<void>
-      chooseDataDir(): Promise<string | null>
-    }
-  }
-}

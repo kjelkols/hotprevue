@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { listPhotographers, createPhotographer } from '../../api/photographers'
-import { createSession } from '../../api/inputSessions'
-import { checkPaths } from '../../api/inputSessions'
+import { createSession, checkPaths } from '../../api/inputSessions'
+import { pickDirectory, scanDirectory } from '../../api/system'
 import type { FileGroup, ScanResult } from '../../types/api'
 
 interface Props {
@@ -24,9 +24,9 @@ export default function StepSetup({ onDone }: Props) {
     queryFn: listPhotographers
   })
 
-  async function pickDirectory() {
-    const path = await window.electron.selectDirectory()
-    if (path) setDirPath(path)
+  async function handlePickDirectory() {
+    const result = await pickDirectory()
+    if (result.path) setDirPath(result.path)
   }
 
   async function handleCreatePhotographer() {
@@ -54,7 +54,7 @@ export default function StepSetup({ onDone }: Props) {
     setError('')
     try {
       // Scan directory
-      const scan = await window.electron.scanDirectory(dirPath, recursive)
+      const scan = await scanDirectory(dirPath, recursive)
 
       // Create session
       const session = await createSession({
@@ -65,11 +65,11 @@ export default function StepSetup({ onDone }: Props) {
       })
 
       // Check which master paths are already known
-      const masterPaths = scan.groups.map(g => g.masterPath)
+      const masterPaths = scan.groups.map(g => g.master_path)
       const check = await checkPaths(session.id, masterPaths)
 
       const unknownSet = new Set(check.unknown)
-      const unknownGroups = scan.groups.filter(g => unknownSet.has(g.masterPath))
+      const unknownGroups = scan.groups.filter(g => unknownSet.has(g.master_path))
 
       onDone(session.id, scan, unknownGroups)
     } catch (e) {
@@ -103,7 +103,7 @@ export default function StepSetup({ onDone }: Props) {
             placeholder="Ingen katalog valgt"
           />
           <button
-            onClick={pickDirectory}
+            onClick={handlePickDirectory}
             className="rounded-lg bg-gray-700 px-4 py-2 text-sm font-medium text-white hover:bg-gray-600"
           >
             Velg…

@@ -1,6 +1,9 @@
 import os
 import uuid
+import threading
+import webbrowser
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 if os.environ.get("HOTPREVUE_LOCAL"):
     from core.local_setup import setup_local_environment
@@ -8,7 +11,9 @@ if os.environ.get("HOTPREVUE_LOCAL"):
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
+from core.config import settings
 from database.session import SessionLocal
 from models.settings import SystemSettings
 
@@ -18,6 +23,8 @@ async def lifespan(app: FastAPI):
     if os.environ.get("HOTPREVUE_LOCAL"):
         _run_migrations()
     _bootstrap_settings()
+    if settings.hotprevue_open_browser:
+        threading.Timer(1.0, webbrowser.open, args=["http://localhost:8000"]).start()
     yield
 
 
@@ -52,13 +59,20 @@ import models.input_session  # noqa: F401
 import models.photo  # noqa: F401
 import models.settings  # noqa: F401
 
-from api import collections, events, input_sessions, photographers, photos, text_items  # noqa: E402
+from api import collections, events, input_sessions, photographers, photos, system, text_items  # noqa: E402
 app.include_router(photographers.router)
 app.include_router(events.router)
 app.include_router(input_sessions.router)
 app.include_router(photos.router)
 app.include_router(collections.router)
 app.include_router(text_items.router)
+app.include_router(system.router)
+
+# Statiske filer monteres sist slik at API-ruter tar prioritet
+if settings.hotprevue_frontend_dir:
+    _frontend_path = Path(settings.hotprevue_frontend_dir)
+    if _frontend_path.exists():
+        app.mount("/", StaticFiles(directory=str(_frontend_path), html=True), name="frontend")
 
 
 def _bootstrap_settings() -> None:

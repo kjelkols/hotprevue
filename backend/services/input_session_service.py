@@ -86,6 +86,16 @@ def check(db: Session, session_id: uuid.UUID, data: CheckRequest) -> CheckRespon
     return CheckResponse(known=known, unknown=unknown)
 
 
+def register_group_by_path(
+    db: Session,
+    session_id: uuid.UUID,
+    meta: GroupMetadata,
+) -> GroupResult:
+    """Register directly from a local file path (no bytes transfer needed)."""
+    file_bytes = Path(meta.master_path).read_bytes()
+    return register_group(db, session_id, file_bytes, meta)
+
+
 def register_group(
     db: Session,
     session_id: uuid.UUID,

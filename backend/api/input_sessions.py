@@ -17,6 +17,7 @@ from schemas.input_session import (
 )
 from schemas.photo import PhotoListItem
 from services import input_session_service
+from services.input_session_service import register_group_by_path
 
 router = APIRouter(prefix="/input-sessions", tags=["input-sessions"])
 
@@ -71,6 +72,19 @@ def register_group(
 @router.post("/{session_id}/complete", response_model=ProcessResult)
 def complete_session(session_id: uuid.UUID, db: Session = Depends(get_db)):
     return input_session_service.complete(db, session_id)
+
+
+@router.post("/{session_id}/groups-by-path", response_model=GroupResult, status_code=201)
+def register_group_by_path_endpoint(
+    session_id: uuid.UUID,
+    response: Response,
+    meta: GroupMetadata,
+    db: Session = Depends(get_db),
+):
+    result = register_group_by_path(db, session_id, meta)
+    if result.status != "registered":
+        response.status_code = 200
+    return result
 
 
 @router.delete("/{session_id}", status_code=204)

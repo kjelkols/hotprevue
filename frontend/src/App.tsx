@@ -1,8 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { HashRouter, Route, Routes, Navigate } from 'react-router-dom'
 import { setBaseUrl } from './api/client'
-import type { AppConfig } from './types/api'
-import WelcomePage from './pages/WelcomePage'
 import AppLayout from './pages/AppLayout'
 import HomePage from './pages/HomePage'
 import BrowsePage from './pages/BrowsePage'
@@ -17,24 +15,14 @@ import SelectionTray from './features/selection/SelectionTray'
 import useSelectionStore from './stores/useSelectionStore'
 import useContextMenuStore from './stores/useContextMenuStore'
 
+// I utvikling peker Vite mot localhost:8000 direkte.
+// I produksjon serveres frontend fra samme origin som API.
+setBaseUrl(import.meta.env.DEV ? 'http://localhost:8000' : '')
+
 export default function App() {
-  const [config, setConfig] = useState<AppConfig | null | 'loading'>('loading')
   const clearPhotoSelection = useSelectionStore(s => s.clear)
   const contextMenuOpen = useContextMenuStore(s => s.open)
   const closeContextMenu = useContextMenuStore(s => s.closeContextMenu)
-
-  useEffect(() => {
-    if (!window.electron) {
-      setConfig(null)
-      return
-    }
-    window.electron.getConfig().then(cfg => {
-      if (cfg) {
-        setBaseUrl(cfg.backendUrl)
-      }
-      setConfig(cfg)
-    })
-  }, [])
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -47,28 +35,11 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [contextMenuOpen, closeContextMenu, clearPhotoSelection])
 
-  if (config === 'loading') {
-    return (
-      <div className="flex h-screen items-center justify-center bg-gray-950 text-gray-400">
-        Laster…
-      </div>
-    )
-  }
-
-  function handleConfigSaved(cfg: AppConfig) {
-    setBaseUrl(cfg.backendUrl)
-    setConfig(cfg)
-  }
-
   return (
     <HashRouter>
       <Routes>
-        <Route path="/setup" element={<WelcomePage onSaved={handleConfigSaved} />} />
-        <Route
-          path="/collections/:id/present"
-          element={config ? <CollectionPresentPage /> : <Navigate to="/setup" replace />}
-        />
-        <Route element={config ? <AppLayout /> : <Navigate to="/setup" replace />}>
+        <Route path="/collections/:id/present" element={<CollectionPresentPage />} />
+        <Route element={<AppLayout />}>
           <Route path="/"                element={<HomePage />} />
           <Route path="/browse"          element={<BrowsePage />} />
           <Route path="/photos/:hothash" element={<PhotoDetailPage />} />

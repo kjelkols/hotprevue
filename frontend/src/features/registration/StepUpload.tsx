@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { uploadGroup, completeSession } from '../../api/inputSessions'
+import { uploadGroupByPath, completeSession } from '../../api/inputSessions'
 import type { FileGroup, ProcessResult } from '../../types/api'
 
 interface Props {
@@ -36,14 +36,12 @@ export default function StepUpload({ sessionId, unknownGroups, onDone }: Props) 
 
   async function runUpload() {
     for (const group of unknownGroups) {
-      setCurrentFile(group.masterPath.split('/').pop() ?? group.masterPath)
+      setCurrentFile(group.master_path.split(/[\\/]/).pop() ?? group.master_path)
       try {
-        const bytes = await window.electron.readFileBytes(group.masterPath)
-        const result = await uploadGroup(
+        const result = await uploadGroupByPath(
           sessionId,
-          group.masterPath,
-          group.masterType,
-          bytes,
+          group.master_path,
+          group.master_type,
           group.companions
         )
         setProgress(p => ({

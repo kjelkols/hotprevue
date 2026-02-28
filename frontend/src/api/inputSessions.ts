@@ -48,6 +48,19 @@ export function uploadGroup(
   })
 }
 
+export function uploadGroupByPath(
+  sessionId: string,
+  masterPath: string,
+  masterType: string,
+  companions: CompanionFile[]
+): Promise<GroupResult> {
+  return apiFetch<GroupResult>(`/input-sessions/${sessionId}/groups-by-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ master_path: masterPath, master_type: masterType, companions }),
+  })
+}
+
 export function completeSession(sessionId: string): Promise<ProcessResult> {
   return apiFetch<ProcessResult>(`/input-sessions/${sessionId}/complete`, {
     method: 'POST'
