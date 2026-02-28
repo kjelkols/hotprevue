@@ -7,6 +7,7 @@
   "homepage": ".",
   "scripts": {
     "dev": "electron-vite dev -- --no-sandbox --disable-gpu",
+    "dev:web": "vite --config vite.config.ts",
     "build": "electron-vite build",
     "preview": "electron-vite preview -- --no-sandbox --disable-gpu",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",

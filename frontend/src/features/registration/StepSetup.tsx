@@ -29,6 +29,19 @@ export default function StepSetup({ onDone }: Props) {
     if (result.path) setDirPath(result.path)
   }
 
+  function handleDirInput(raw: string) {
+    // Konverter Windows-stier til WSL-stier automatisk:
+    // "C:\foo\bar" eller "C:/foo/bar"  →  "/mnt/c/foo/bar"
+    const winMatch = raw.match(/^([A-Za-z]):[\\\/](.*)/)
+    if (winMatch) {
+      const drive = winMatch[1].toLowerCase()
+      const rest = winMatch[2].replace(/\\/g, '/')
+      setDirPath(`/mnt/${drive}/${rest}`)
+    } else {
+      setDirPath(raw)
+    }
+  }
+
   async function handleCreatePhotographer() {
     if (!newPhotographerName.trim()) return
     setCreatingPhotographer(true)
@@ -98,9 +111,9 @@ export default function StepSetup({ onDone }: Props) {
           <input
             type="text"
             value={dirPath}
-            readOnly
-            className="flex-1 rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-gray-300 outline-none"
-            placeholder="Ingen katalog valgt"
+            onChange={e => handleDirInput(e.target.value)}
+            className="flex-1 rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-white outline-none focus:border-blue-500"
+            placeholder="Lim inn sti, f.eks. C:\Bilder\Ferie2025"
           />
           <button
             onClick={handlePickDirectory}

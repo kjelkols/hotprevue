@@ -6,9 +6,9 @@
 dev-backend:
 	cd backend && HOTPREVUE_LOCAL=true uv run uvicorn main:app --host 0.0.0.0 --port 8000
 
-# Start Vite dev-server (krever at backend kjører)
+# Start Vite dev-server i nettleseren (krever at backend kjører)
 dev-frontend:
-	cd frontend && npm run dev
+	cd frontend && npm run dev:web
 
 # Bygg frontend som statiske filer (for zip-distribusjon)
 build-web:
