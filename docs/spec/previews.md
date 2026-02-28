@@ -30,6 +30,28 @@ Begge previews genereres synkront ved registrering. Rekkefølge:
 4. Generer coldpreview og skriv til disk
 5. Lagre metadata og hotpreview i DB
 
+## Perceptual hashes
+
+To perceptual hashes beregnes fra hotpreview-JPEG under registrering og lagres i `photos`-tabellen:
+
+| Felt | Algoritme | Beskrivelse |
+|---|---|---|
+| `dct_perceptual_hash` | pHash (DCT) | Discrete Cosine Transform — robust mot moderate bildeendringer. Standard i bransjen. |
+| `difference_hash` | dHash | Gradient mellom nabo-piksler — raskere, god for lette beskjæringer og lysjusteringer. |
+
+Begge er 64-bit heltall (`BIGINT`). **Hamming-avstand** mellom to verdier angir visuell likhet — ≤ 10/64 bits tilsvarer trolig samme motiv.
+
+**Beregning:** Fra `jpeg_bytes` i minnet under registrering — ingen ekstra fillesing. Bibliotek: `imagehash`.
+
+**Retroaktiv beregning:** `POST /photos/compute-perceptual-hashes` fyller hashene for eksisterende bilder fra `hotpreview_b64` i databasen — originalfiler trengs ikke.
+
+**Brukstilfeller (fremtidig):**
+- Finne NEF/JPEG-par fra samme eksponering på tvers av sesjoner
+- Duplikatdeteksjon for bilder med ulik filstørrelse (f.eks. re-eksportert JPEG)
+- Burst-deteksjon (bilder tatt med svært lav avstand)
+
+Se `docs/decisions/004-perceptual-hash.md` for full begrunnelse og algoritmediskusjon.
+
 ## Synkronisering
 
 Database og coldpreview-filer må alltid synkroniseres sammen mellom maskiner. De er to halvdeler av samme system:

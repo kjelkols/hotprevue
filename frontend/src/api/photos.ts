@@ -24,3 +24,7 @@ export function listPhotos(params: {
 export function getPhoto(hothash: string): Promise<PhotoDetail> {
   return apiFetch<PhotoDetail>(`/photos/${hothash}`)
 }
+
+export function computePerceptualHashes(): Promise<{ updated: number; already_computed: number }> {
+  return apiFetch('/photos/compute-perceptual-hashes', { method: 'POST' })
+}

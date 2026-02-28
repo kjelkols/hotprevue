@@ -24,6 +24,7 @@ from schemas.photo import (
     PhotoDetail,
     PhotoListItem,
     PhotoPatch,
+    PerceptualHashComputeResult,
 )
 from services import photo_service
 
@@ -68,6 +69,16 @@ def list_photos(
         offset=offset,
     )
     return [PhotoListItem.model_validate(p) for p in photos]
+
+
+@router.post("/compute-perceptual-hashes", response_model=PerceptualHashComputeResult)
+def compute_perceptual_hashes_for_all(db: Session = Depends(get_db)):
+    """Compute dct_perceptual_hash and difference_hash for all photos that lack them.
+
+    Reads hotpreview_b64 from the database — no original files needed.
+    Safe to call multiple times; skips photos that already have both hashes.
+    """
+    return photo_service.compute_perceptual_hashes_for_all(db)
 
 
 @router.get("/{hothash}", response_model=PhotoDetail)

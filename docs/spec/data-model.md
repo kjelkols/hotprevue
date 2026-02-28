@@ -62,8 +62,6 @@ InputSession ───────┤─ default_event_id ───────�
 | `id` | UUID PK | Intern database-ID |
 | `hothash` | string (unique) | SHA256 av hotpreview — brukes som ID i API og filstier |
 | `hotpreview_b64` | text | Base64-kodet 150×150 JPEG, generert fra masterfil |
-| `coldpreview_path` | string (nullable) | Sti til coldpreview-fil på disk |
-| `exif_data` | jsonb | Rå EXIF fra masterfil — referanse og kilde for reset |
 | `taken_at` | datetime (nullable) | Effektivt tidspunkt — fra EXIF eller korrigert |
 | `taken_at_source` | int | `0`=EXIF, `1`=Justert fra EXIF, `2`=Manuelt satt |
 | `taken_at_accuracy` | string | `second` / `hour` / `day` / `month` / `year` |
@@ -78,6 +76,10 @@ InputSession ───────┤─ default_event_id ───────�
 | `shutter_speed` | string (nullable) | Fra EXIF — f.eks. `"1/250"` |
 | `aperture` | float (nullable) | Fra EXIF — f-tall, f.eks. `2.8` |
 | `focal_length` | float (nullable) | Fra EXIF — i mm |
+| `width` | int (nullable) | Faktisk sensorbredde i piksler (fra RAW) eller bildebredde |
+| `height` | int (nullable) | Faktisk sensorhøyde i piksler (fra RAW) eller bildehøyde |
+| `dct_perceptual_hash` | bigint (nullable) | DCT-basert perceptual hash (pHash) — 64 bit. Se `docs/decisions/004-perceptual-hash.md`. |
+| `difference_hash` | bigint (nullable) | Difference hash (dHash) — 64 bit. Se `docs/decisions/004-perceptual-hash.md`. |
 | `tags` | TEXT[] | Fritekstetiketter. GIN-indeksert. Normalisert til lowercase ved skriving. |
 | `category_id` | UUID FK (nullable) | Brukerdefinert kategori. Null = ingen kategori, alltid i strømmen. |
 | `rating` | int (nullable) | 1–5 |
@@ -88,6 +90,8 @@ InputSession ───────┤─ default_event_id ───────�
 | `is_stack_cover` | bool | Om dette Photo er coverbilde for stacken. Alltid eksakt ett per stack. |
 | `registered_at` | datetime | — |
 | `deleted_at` | datetime (nullable) | Null = aktiv. Satt = mykt slettet. Hard-slettes via `empty-trash`. |
+
+Coldpreview har ingen egen kolonne — stien beregnes fra `hothash` ved behov: `<COLDPREVIEW_DIR>/<ab>/<cd>/<hothash>.jpg`.
 
 ---
 
@@ -100,6 +104,13 @@ InputSession ───────┤─ default_event_id ───────�
 | `file_path` | string | Absolutt sti til filen |
 | `file_type` | string | `RAW`, `JPEG`, `TIFF`, `PNG`, `HEIC`, `XMP` |
 | `is_master` | bool | Kildefil for Photo sin hotpreview og EXIF (alltid false for XMP) |
+| `file_size_bytes` | bigint (nullable) | Filstørrelse ved registrering — brukes til filgjenkjenning ved filforflytting |
+| `last_verified_at` | datetime (nullable) | Sist bekreftet tilgjengelig på disk |
+| `exif_data` | jsonb | Rå EXIF fra denne spesifikke filen — hvert ImageFile har egne data |
+| `width` | int (nullable) | Bildebredde i piksler |
+| `height` | int (nullable) | Bildehøyde i piksler |
+
+RAW-master: `width`/`height` er faktisk sensorstørrelse (fra LibRaw), ikke innebygd JPEG-thumbnail.
 
 ---
 

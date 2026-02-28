@@ -6,6 +6,30 @@ Format: `## YYYY-MM-DD — Kort beskrivelse`
 
 ---
 
+## 2026-02-28 — Perceptual hashes
+
+- `photos.dct_perceptual_hash` og `photos.difference_hash` (BIGINT, migrasjon 0008) — 64-bit perceptual hashes beregnet fra hotpreview ved registrering
+- `utils/previews.py`: `compute_perceptual_hashes(jpeg_bytes)` — returnerer `(dct_perceptual_hash, difference_hash)` via `imagehash`-biblioteket
+- `POST /photos/compute-perceptual-hashes` — fyller ut hashene retroaktivt for eksisterende bilder fra `hotpreview_b64` i DB, uten tilgang til originalfiler
+- Hashes eksponert i `PhotoListItem` og `PhotoDetail` (API + TypeScript-typer)
+- 6 nye unit-tester i `TestPerceptualHashes` — inkl. test på at NEF og JPEG fra samme eksponering har lav Hamming-avstand
+- Beslutningsdokument: `docs/decisions/004-perceptual-hash.md`
+
+---
+
+## 2026-02-28 — EXIF per ImageFile og RAW-støtte
+
+- EXIF flyttet fra `Photo` til `ImageFile` — hvert bilde har sin egen `exif_data` (JSONB), migrasjon 0007
+- `ImageFile` fikk `exif_data`, `width`, `height`, `file_size_bytes`, `last_verified_at`
+- `utils/exif.py` skrevet om med to backends: Pillow (JPEG/TIFF/PNG/HEIC) og exifread (CR2, NEF, ARW, DNG, ORF, RW2, RAF, PEF, SRW)
+- `utils/previews.py`: rawpy-støtte for RAW hotpreview (embedded JPEG thumbnail, rask) og coldpreview (full LibRaw decode)
+- RAW-first master-valg: ved RAW+JPEG-par er RAW alltid master
+- `api/system.py` refaktorert til å bruke `utils/registration.scan_directory()` — eliminerte duplisert skanne-logikk
+- 28 unit- og integrasjonstester med virkelige kamerafiler (Nikon D800 NEF + JPEG)
+- Bugfix: MPO-format (Nikon Multi-Picture Object) krevde `.copy()` etter `Image.open()` for å forhindre lazy-load-krasj
+
+---
+
 ## 2026-02-27 — Toppnavigasjon
 
 - `TopNav.tsx` — persistert navigasjonsbar: Hotprevue-logo + fire NavLink-tabs (Utvalg, Events, Kolleksjoner, Sesjoner) + selection-teller til høyre

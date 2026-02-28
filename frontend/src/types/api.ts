@@ -145,6 +145,8 @@ export interface PhotoListItem {
   has_correction: boolean
   width: number | null
   height: number | null
+  dct_perceptual_hash: number | null
+  difference_hash: number | null
   camera_make: string | null
   camera_model: string | null
   iso: number | null

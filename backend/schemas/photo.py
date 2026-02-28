@@ -54,6 +54,8 @@ class PhotoListItem(BaseModel):
     has_correction: bool
     width: int | None
     height: int | None
+    dct_perceptual_hash: int | None
+    difference_hash: int | None
     camera_make: str | None
     camera_model: str | None
     iso: int | None
@@ -141,3 +143,8 @@ class BatchLocation(BatchBase):
 
 class BatchResult(BaseModel):
     updated: int
+
+
+class PerceptualHashComputeResult(BaseModel):
+    updated: int
+    already_computed: int

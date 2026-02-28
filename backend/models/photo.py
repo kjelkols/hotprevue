@@ -64,6 +64,9 @@ class Photo(Base):
     width: Mapped[int | None] = mapped_column(Integer, nullable=True)
     height: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
+    dct_perceptual_hash: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    difference_hash: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+
     registered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 

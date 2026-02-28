@@ -65,6 +65,26 @@ def hotpreview_b64(jpeg_bytes: bytes) -> str:
     return base64.b64encode(jpeg_bytes).decode("ascii")
 
 
+def compute_perceptual_hashes(jpeg_bytes: bytes) -> tuple[int, int]:
+    """Compute perceptual hashes from a JPEG image (typically the hotpreview).
+
+    Returns:
+        (dct_perceptual_hash, difference_hash)
+        Both are 64-bit integers suitable for storage as BIGINT.
+        Hamming distance between two values indicates visual similarity.
+
+    dct_perceptual_hash: DCT-based perceptual hash (pHash). More robust against
+        moderate image changes — best for finding NEF/JPEG pairs and near-duplicates.
+    difference_hash: Difference hash (dHash). Faster, based on adjacent pixel
+        gradients — best for detecting lightly cropped or brightness-adjusted copies.
+    """
+    import imagehash
+    img = Image.open(io.BytesIO(jpeg_bytes))
+    dct = int(str(imagehash.phash(img)), 16)
+    diff = int(str(imagehash.dhash(img)), 16)
+    return dct, diff
+
+
 def generate_coldpreview(
     file_path: str,
     hothash: str,

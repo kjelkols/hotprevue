@@ -21,7 +21,7 @@ from schemas.input_session import (
     ProcessResult,
 )
 from utils.exif import extract_camera_fields, extract_exif, extract_gps, extract_taken_at
-from utils.previews import generate_coldpreview, generate_hotpreview, hotpreview_b64
+from utils.previews import compute_perceptual_hashes, generate_coldpreview, generate_hotpreview, hotpreview_b64
 from utils.registration import RAW_EXTENSIONS
 
 
@@ -126,6 +126,7 @@ def register_group(
             tmp_path = tmp.name
 
         jpeg_bytes, hothash, orig_w, orig_h = generate_hotpreview(tmp_path)
+        dct_hash, diff_hash = compute_perceptual_hashes(jpeg_bytes)
 
         # Duplicate by content?
         existing_photo = db.query(Photo).filter(Photo.hothash == hothash).first()
@@ -178,6 +179,8 @@ def register_group(
             event_id=event_id,
             width=orig_w,
             height=orig_h,
+            dct_perceptual_hash=dct_hash,
+            difference_hash=diff_hash,
             **camera_fields,
         )
         db.add(photo)

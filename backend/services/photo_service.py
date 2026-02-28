@@ -1,3 +1,4 @@
+import base64
 import io
 import math
 import uuid
@@ -8,6 +9,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session, selectinload
 
 from models.photo import ImageFile, Photo
+from schemas.photo import PerceptualHashComputeResult
 
 
 def list_photos(
@@ -339,6 +341,43 @@ def batch_restore(db: Session, hothashes: list[str]) -> int:
         photo.deleted_at = None
     db.commit()
     return len(photos)
+
+
+# ---------------------------------------------------------------------------
+# Perceptual hashes
+# ---------------------------------------------------------------------------
+
+def compute_perceptual_hashes_for_all(db: Session) -> PerceptualHashComputeResult:
+    """Compute dct_perceptual_hash and difference_hash for photos that lack them.
+
+    Reads hotpreview_b64 from the database — no original files needed.
+    """
+    from utils.previews import compute_perceptual_hashes
+
+    photos = (
+        db.query(Photo)
+        .filter(
+            (Photo.dct_perceptual_hash.is_(None)) | (Photo.difference_hash.is_(None))
+        )
+        .all()
+    )
+
+    updated = 0
+    for photo in photos:
+        try:
+            jpeg_bytes = base64.b64decode(photo.hotpreview_b64)
+            dct_hash, diff_hash = compute_perceptual_hashes(jpeg_bytes)
+            photo.dct_perceptual_hash = dct_hash
+            photo.difference_hash = diff_hash
+            updated += 1
+        except Exception:
+            pass
+
+    if updated:
+        db.commit()
+
+    total = db.query(Photo).count()
+    return PerceptualHashComputeResult(updated=updated, already_computed=total - updated)
 
 
 # ---------------------------------------------------------------------------

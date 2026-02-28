@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from utils.previews import generate_coldpreview, generate_hotpreview
+from utils.previews import compute_perceptual_hashes, generate_coldpreview, generate_hotpreview
 
 
 # ---------------------------------------------------------------------------
@@ -141,3 +141,55 @@ class TestColdpreview:
         assert p.parent.name == hothash[2:4]
         assert p.parent.parent.name == hothash[:2]
         assert p.stem == hothash
+
+
+# ---------------------------------------------------------------------------
+# Perceptual hashes
+# ---------------------------------------------------------------------------
+
+@pytest.mark.real_images
+class TestPerceptualHashes:
+    def test_returns_two_integers(self, real_image_dir):
+        jpeg_bytes, _, _, _ = generate_hotpreview(str(real_image_dir / "nikon_d800.JPG"))
+        dct_hash, diff_hash = compute_perceptual_hashes(jpeg_bytes)
+        assert isinstance(dct_hash, int)
+        assert isinstance(diff_hash, int)
+
+    def test_hashes_are_nonzero(self, real_image_dir):
+        jpeg_bytes, _, _, _ = generate_hotpreview(str(real_image_dir / "nikon_d800.JPG"))
+        dct_hash, diff_hash = compute_perceptual_hashes(jpeg_bytes)
+        assert dct_hash != 0
+        assert diff_hash != 0
+
+    def test_hashes_fit_in_64_bits(self, real_image_dir):
+        jpeg_bytes, _, _, _ = generate_hotpreview(str(real_image_dir / "nikon_d800.JPG"))
+        dct_hash, diff_hash = compute_perceptual_hashes(jpeg_bytes)
+        assert 0 <= dct_hash < 2**64
+        assert 0 <= diff_hash < 2**64
+
+    def test_hashes_are_deterministic(self, real_image_dir):
+        jpeg_bytes, _, _, _ = generate_hotpreview(str(real_image_dir / "nikon_d800.JPG"))
+        dct1, diff1 = compute_perceptual_hashes(jpeg_bytes)
+        dct2, diff2 = compute_perceptual_hashes(jpeg_bytes)
+        assert dct1 == dct2
+        assert diff1 == diff2
+
+    def test_dct_and_difference_hash_differ(self, real_image_dir):
+        """The two algorithms should produce distinct values."""
+        jpeg_bytes, _, _, _ = generate_hotpreview(str(real_image_dir / "nikon_d800.JPG"))
+        dct_hash, diff_hash = compute_perceptual_hashes(jpeg_bytes)
+        assert dct_hash != diff_hash
+
+    def test_nef_and_jpeg_hashes_are_close(self, real_image_dir):
+        """NEF and JPEG from the same shot should have low Hamming distance."""
+        jpeg_bytes_jpg, _, _, _ = generate_hotpreview(str(real_image_dir / "nikon_d800.JPG"))
+        jpeg_bytes_nef, _, _, _ = generate_hotpreview(str(real_image_dir / "nikon_d800.NEF"))
+        dct_jpg, diff_jpg = compute_perceptual_hashes(jpeg_bytes_jpg)
+        dct_nef, diff_nef = compute_perceptual_hashes(jpeg_bytes_nef)
+
+        def hamming(a: int, b: int) -> int:
+            return bin(a ^ b).count("1")
+
+        # Same shot → should be visually near-identical
+        assert hamming(dct_jpg, dct_nef) <= 15, f"DCT Hamming distance too large: {hamming(dct_jpg, dct_nef)}"
+        assert hamming(diff_jpg, diff_nef) <= 15, f"Diff Hamming distance too large: {hamming(diff_jpg, diff_nef)}"
