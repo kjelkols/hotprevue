@@ -11,10 +11,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Monorepo** with three main layers:
 
 - **`/backend`** — FastAPI (Python), SQLAlchemy (sync, psycopg2), Alembic for migrations. Structure: `api/`, `core/`, `database/`, `models/`, `schemas/`, `services/`, `utils/`.
-- **`/frontend`** — React 18 + TypeScript + Tailwind CSS + Vite. State: React Query (server), Zustand (client). UI primitives: Radix UI. Optional Electron wrapper via electron-vite. Structure: `src/api/`, `src/types/`, `src/components/ui/`, `src/features/`, `src/pages/`, `src/stores/`, `src/hooks/`, `src/lib/`.
+- **`/frontend`** — React 18 + TypeScript + Tailwind CSS + Vite. State: React Query (server), Zustand (client). UI primitives: Radix UI. **Browser-based** — the backend serves the built frontend as static files. An Electron wrapper (`electron/`) exists for optional desktop packaging. Structure: `src/api/`, `src/types/`, `src/components/ui/`, `src/features/`, `src/pages/`, `src/stores/`, `src/hooks/`, `src/lib/`.
 - **`/tests`** — pytest-based tests.
 
-**Database:** PostgreSQL, run via Docker Compose.
+**Database:** pgserver (embedded PostgreSQL). No Docker needed. `HOTPREVUE_LOCAL=true` activates local mode.
 
 ## Backend is Synchronous
 
@@ -46,8 +46,12 @@ These rules apply to all frontend code and exist to prevent AI formatting errors
 - **Hotpreview:** 150×150px thumbnail, base64-encoded, stored in the database. SHA256 of hotpreview = `hothash` (used as unique image ID).
 - **Coldpreview:** 800–1200px preview, stored on disk in a hash-based directory structure (e.g., `/data/coldpreviews/ab/cd/abcd1234...jpg`). Can always be regenerated from the original.
 - **Base64 for all image binary data** in API responses.
-- **API must listen on `0.0.0.0`** to be reachable via Tailscale and Docker.
-- **Environment variables** for database URL and all configuration.
+- **API must listen on `0.0.0.0`** in dev (reachable via Tailscale), `127.0.0.1` in zip distribution.
+- **Environment variables** for database URL and all configuration:
+  - `HOTPREVUE_LOCAL=true` — activates pgserver mode (embedded DB)
+  - `HOTPREVUE_DATA_DIR` — override data directory (default: `%APPDATA%\Hotprevue` / `~/.local/share/Hotprevue`)
+  - `HOTPREVUE_FRONTEND_DIR` — directory to serve as static frontend
+  - `HOTPREVUE_OPEN_BROWSER=true` — open browser automatically on startup
 
 ## Domain Concepts
 
@@ -67,10 +71,11 @@ make dev-backend
 # eller direkte:
 cd backend && HOTPREVUE_LOCAL=true uv run uvicorn main:app --host 0.0.0.0 --port 8000
 
-# Start Electron-frontend (i nytt skall, krever at backend kjører)
-make dev-frontend
-# eller direkte:
-cd frontend && npm run dev
+# Åpne frontend i nettleseren (krever at backend kjører)
+# → http://localhost:8000
+
+# For Vite hot-reload under utvikling (valgfritt, kjør i nytt skall):
+make dev-frontend   # cd frontend && npm run dev  → http://localhost:5173
 
 # Kjør tester
 make test
@@ -79,9 +84,31 @@ cd backend && uv run pytest tests/ -v
 
 # Kjør én test
 cd backend && uv run pytest tests/path/to/test_file.py::test_function_name
+
+# Bygg frontend til statiske filer (må gjøres fra WSL, ikke Windows)
+make build-web
+# eller: cd frontend && npm run build:web  → frontend/dist/
 ```
 
-## Bygge Windows-installer
+**Merk:** `--reload` virker ikke med pgserver (socket-problem med subprocess).
+
+## Bygge Windows zip-distribusjon (primær)
+
+**Steg 1 — bygg frontend (WSL):**
+```sh
+make build-web
+```
+
+**Steg 2 — pakk zip (Windows PowerShell):**
+```powershell
+powershell -ExecutionPolicy Bypass -File "\\wsl$\Ubuntu-22.04\home\kjell\hotprevue\build-zip.ps1"
+# Resultat: hotprevue/Hotprevue-0.1.0.zip  (~16 MB)
+```
+
+Zip-en inneholder: `backend/` (kildekode), `frontend/` (bygd), `uv.exe`, `Hotprevue.bat`.
+Brukeren dobbeltklikker på `Hotprevue.bat` — backend starter og nettleseren åpnes automatisk.
+
+## Bygge Windows NSIS-installer (alternativ)
 
 Kjøres fra **Windows PowerShell** (ikke WSL):
 
@@ -91,20 +118,27 @@ cd "\\wsl$\Ubuntu-22.04\home\kjell\hotprevue\backend"
 $env:UV_PROJECT_ENVIRONMENT = ".venv-win"
 uv run --python 3.12 --with pyinstaller pyinstaller hotprevue.spec
 
-# Steg 2: kopier til byggkatalog og bygg installer
-robocopy "\\wsl$\Ubuntu-22.04\home\kjell\hotprevue\frontend" "C:\hotprevue-build\frontend" /e /xd node_modules
-robocopy "\\wsl$\Ubuntu-22.04\home\kjell\hotprevue\backend\dist" "C:\hotprevue-build\backend\dist" /e
-cd C:\hotprevue-build\frontend
-npm install
-npm run dist
-# Installer: C:\hotprevue-build\frontend\dist-installer\Hotprevue Setup x.x.x.exe
+# Steg 2: pakk og bygg installer
+powershell -ExecutionPolicy Bypass -File "\\wsl$\Ubuntu-22.04\home\kjell\hotprevue\build-installer.ps1"
+# Installer: frontend/dist-installer/Hotprevue Setup x.x.x.exe
 ```
 
 **Merk:** Bygg alltid backend-binæren på Windows (PyInstaller lager platform-spesifikke binærer).
+Frontend må **ikke** npm-installeres fra WSL-filsystemet (Linux-symlenker brekker Windows npm).
+
+## System API Endpoints
+
+The backend exposes these endpoints for filesystem operations (replacing Electron IPC):
+
+- `POST /system/pick-directory` — opens a native OS directory picker (tkinter), returns `{ path: string | null }`
+- `POST /system/scan-directory` — scans a path for images, returns `{ groups: FileGroup[], total_files: number }`
+- `POST /input-sessions/{id}/groups-by-path` — registers an image group by file path (backend reads file directly, no bytes transfer)
 
 ## Data Flow
 
-1. User selects a directory of original images on their local filesystem.
-2. Backend registers each image: extracts EXIF, generates hotpreview (base64, stored in DB) and coldpreview (file on disk), stores metadata and original file path.
-3. Frontend uses database + coldpreview files for display. Original files are only accessed when explicitly needed.
-4. To sync between machines: copy both the database and the coldpreview directory (they must stay in sync).
+1. User opens the app in browser at `http://localhost:8000` (or `http://localhost:5173` during Vite dev).
+2. User selects a directory via the backend's directory picker (`/system/pick-directory`).
+3. Backend scans the directory for images (`/system/scan-directory`).
+4. Backend registers each image by path: extracts EXIF, generates hotpreview (base64, stored in DB) and coldpreview (file on disk), stores metadata and original file path.
+5. Frontend uses database + coldpreview files for display. Original files are only accessed when explicitly needed.
+6. To sync between machines: copy both the database and the coldpreview directory (they must stay in sync).
