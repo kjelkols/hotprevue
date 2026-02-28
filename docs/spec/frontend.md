@@ -12,7 +12,6 @@
 | **Zustand** | Klient-state: valgte photos, modus, midlertidige tilstander |
 | **Radix UI** | Headless UI-primitiver for komplekse komponenter (modal, dropdown, tabs) |
 | **React Router** | Klientside-routing |
-| **electron-vite** | Electron-wrapper for desktop (valgfritt — kan kjøres som ren webapp) |
 
 ---
 

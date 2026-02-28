@@ -56,7 +56,6 @@ Sist oppdatert: 2026-02-27 (sesjon 7)
 - [ ] Perceptual hashing for duplikatdeteksjon
 - [ ] Batch-oppdatering av filstiprefiks (Admin)
 - [x] Eksport av collection (HTML-pakke, se `spec/collection-presentation.md`)
-- [ ] Electron-wrapper via electron-vite
 - [ ] TanStack Virtual for ytelsesoptimering av BrowseView
 
 ---

@@ -1,19 +1,25 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { listPhotographers, createPhotographer } from '../../api/photographers'
 import { createSession, checkPaths } from '../../api/inputSessions'
 import { pickDirectory, scanDirectory } from '../../api/system'
+import { getSettings } from '../../api/settings'
 import type { FileGroup, ScanResult } from '../../types/api'
 
 interface Props {
   onDone: (sessionId: string, scan: ScanResult, unknownGroups: FileGroup[]) => void
 }
 
+function defaultSessionName(): string {
+  return `Registrering ${new Date().toLocaleDateString('nb-NO', { day: 'numeric', month: 'long', year: 'numeric' })}`
+}
+
 export default function StepSetup({ onDone }: Props) {
-  const [sessionName, setSessionName] = useState('')
+  const [sessionName, setSessionName] = useState(defaultSessionName)
   const [dirPath, setDirPath] = useState('')
   const [recursive, setRecursive] = useState(true)
   const [photographerId, setPhotographerId] = useState('')
+  const [notes, setNotes] = useState('')
   const [newPhotographerName, setNewPhotographerName] = useState('')
   const [creatingPhotographer, setCreatingPhotographer] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -23,6 +29,17 @@ export default function StepSetup({ onDone }: Props) {
     queryKey: ['photographers'],
     queryFn: listPhotographers
   })
+
+  const { data: settingsData } = useQuery({
+    queryKey: ['settings'],
+    queryFn: getSettings,
+  })
+
+  useEffect(() => {
+    if (settingsData?.machine.default_photographer_id && !photographerId) {
+      setPhotographerId(settingsData.machine.default_photographer_id)
+    }
+  }, [settingsData])
 
   async function handlePickDirectory() {
     const result = await pickDirectory()
@@ -74,7 +91,8 @@ export default function StepSetup({ onDone }: Props) {
         name: sessionName.trim(),
         source_path: dirPath,
         default_photographer_id: photographerId,
-        recursive
+        recursive,
+        notes: notes.trim() || null,
       })
 
       // Check which master paths are already known
@@ -163,6 +181,17 @@ export default function StepSetup({ onDone }: Props) {
             Opprett
           </button>
         </div>
+      </div>
+
+      <div>
+        <label className="mb-1 block text-sm font-medium text-gray-300">Notater <span className="text-gray-500 font-normal">(valgfritt)</span></label>
+        <textarea
+          value={notes}
+          onChange={e => setNotes(e.target.value)}
+          rows={3}
+          className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-white outline-none focus:border-blue-500 resize-none"
+          placeholder="Fritekst om denne registreringen…"
+        />
       </div>
 
       {error && <p className="text-sm text-red-400">{error}</p>}

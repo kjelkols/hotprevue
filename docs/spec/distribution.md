@@ -1,125 +1,97 @@
 # Distribusjon og multi-maskin arkitektur
 
 Dette dokumentet beskriver arkitekturen for distribusjon av Hotprevue til vanlige brukere
-på Windows, macOS og Linux, samt valgfri sentral server for familiedeling.
+på Windows, samt valgfri synkronisering mellom maskiner.
 
 ---
 
 ## Overordnet prinsipp
 
 **Lokal installasjon er alltid primær.** Appen fungerer 100% uten nettilgang og uten sentral
-server. Sentral server og synkronisering er tilvalg.
+server. Synkronisering er tilvalg.
 
 ```
 [Lokal maskin A]          [Lokal maskin B]
-  Electron-app              Electron-app
+  Nettleser (React)         Nettleser (React)
   Python-backend            Python-backend
   PostgreSQL (pgserver)     PostgreSQL (pgserver)
   Coldpreviews (lokal)      Coldpreviews (lokal)
         │                         │
         └──── synk (valgfritt) ────┘
-                     │
-              [Sentral server]
-              Python-backend
-              PostgreSQL (full)
-              Coldpreviews (mottatt)
 ```
 
 **Regler:**
 - Registrering skjer alltid lokalt — originalfiler er store og må behandles der de er.
-- Sentral server aggregerer, eier ingenting selv.
+- Backend leser originalfiler direkte fra filsystemet — ingen opplasting fra frontend.
 - Synk er manuelt utløst, én vei: lokal → sentral.
 - Originalfiler er brukerens ansvar. Backend lagrer kun stier.
 
 ---
 
-## Komponenter
+## Distribusjon
 
-### Lokal installasjon
+### Primær: zip-pakke (~16 MB)
 
-En enkeltstående native app-installer. Inneholder:
+Enkleste distribusjon. Inneholder:
 
-| Komponent | Teknologi | Notat |
-|-----------|-----------|-------|
-| Frontend | Electron + React | UI |
-| Backend | FastAPI (Python, PyInstaller-bundle) | API |
-| Database | PostgreSQL via pgserver | Ingen Docker |
-| Bildebehandling | Pillow (innebygd i backend-bundle) | Hotpreview, coldpreview |
+| Innhold | Teknologi |
+|---------|-----------|
+| `backend/` | FastAPI-kildekode + avhengigheter via uv |
+| `frontend/` | Bygd React-app (statiske filer) |
+| `uv.exe` | Python-kjøretid og pakkehåndtering |
+| `Hotprevue.bat` | Startskript |
 
-**pgserver** er PostgreSQL 16 pakket som Python-wheel (~13 MB). Starter automatisk
-når backenden starter (~1s etter første initialisering). Stopper når appen avsluttes.
-Ingen Windows-tjeneste, ingen admin-rettigheter, ingen separat installasjon.
+Brukeren dobbeltklikker på `Hotprevue.bat`. Backend starter, nettleser åpnes automatisk på
+`http://localhost:8000`. Backend serverer frontend som statiske filer.
 
-### Sentral server
+**Byggprosess:**
+```sh
+# 1. Bygg frontend (WSL)
+make build-web   # → frontend/dist/
 
-Docker Compose-basert, identisk med dagens utviklingsmiljø. Kjøres på NAS, VPS eller
-hvilken som helst Linux-maskin. Ingen endringer i eksisterende oppsett.
+# 2. Pakk zip (Windows PowerShell)
+powershell -ExecutionPolicy Bypass -File build-zip.ps1
+# Resultat: Hotprevue-x.y.z.zip
+```
+
+### Alternativ: NSIS-installer (~200 MB)
+
+Inneholder en PyInstaller-pakket backend-binær i stedet for kildekode + uv.
+
+```powershell
+# 1. Bygg backend-binær (Windows PowerShell)
+cd backend
+$env:UV_PROJECT_ENVIRONMENT = ".venv-win"
+uv run --python 3.12 --with pyinstaller pyinstaller hotprevue.spec
+
+# 2. Pakk og bygg installer
+powershell -ExecutionPolicy Bypass -File build-installer.ps1
+# Resultat: Hotprevue Setup x.y.z.exe
+```
 
 ---
 
 ## Datalagring
-
-### Lokal (pgserver)
 
 Datakataloger bestemmes automatisk av backend via `platformdirs`:
 
 | Plattform | PostgreSQL-data | Coldpreviews |
 |-----------|-----------------|--------------|
 | Windows   | `%LOCALAPPDATA%\Hotprevue\pgdata\` | `%LOCALAPPDATA%\Hotprevue\coldpreviews\` |
-| Linux     | `~/.local/share/hotprevue/pgdata/` | `~/.local/share/hotprevue/coldpreviews/` |
-| macOS     | `~/Library/Application Support/hotprevue/pgdata/` | `...hotprevue/coldpreviews/` |
+| Linux     | `~/.local/share/Hotprevue/pgdata/` | `~/.local/share/Hotprevue/coldpreviews/` |
 
-Settes via `DATABASE_URL` og `COLDPREVIEW_DIR` env-variabler, som i dag.
-I lokal modus beregnes verdiene automatisk og injiseres før backend-imports.
+Override med `HOTPREVUE_DATA_DIR`.
 
-### Sentral server
-
-PostgreSQL via Docker-volum. Coldpreviews mottas fra lokale maskiner og lagres på disk.
-Identisk med dagens oppsett.
+I tillegg lagres `machine_id` (UUID) i `HOTPREVUE_DATA_DIR/machine_id`. Denne filen
+overlever database-rekreasjon og synkronisering, og brukes til å identifisere maskinen.
 
 ---
 
 ## Per-maskin identitet
 
-`system_settings.installation_id` (UUID, allerede implementert) identifiserer hver
-installasjon unikt. Brukes til å tagge all data som synkroniseres.
-
-`system_settings` synkroniseres **ikke** — hver maskin har sine egne innstillinger.
-
-Sentral server får en ny tabell for å spore tilkoblede maskiner:
-
-```
-registered_machines
-  installation_id  UUID        PK
-  machine_name     TEXT        brukergitt navn ("Kjells laptop")
-  first_sync_at    TIMESTAMP
-  last_sync_at     TIMESTAMP
-```
-
----
-
-## Første-gangs oppsett (Electron UI)
-
-Ny `WelcomePage` vises ved første oppstart:
-
-```
-┌──────────────────────────────────────┐
-│        Velkommen til Hotprevue       │
-│                                      │
-│  [ Kom i gang lokalt ]               │
-│    Kjør på denne maskinen            │
-│                                      │
-│  [ Koble til sentral server ]        │
-│    NAS, VPS eller felles server      │
-└──────────────────────────────────────┘
-```
-
-**Lokal modus:** Electron starter Python-backend automatisk. `backendUrl` settes til
-`http://localhost:8000`. Brukeren trenger ikke konfigurere noe.
-
-**Sentral server-modus:** Brukeren skriver inn URL. Ingen lokal backend startes av Electron.
-
-Etter oppsett: innstillingssiden lar brukeren legge til sentral server for synk.
+`machines`-tabellen har én rad per maskin som har brukt databasen.
+`machine_id` genereres lokalt ved første oppstart og lagres i en fil — uavhengig av
+databasen, slik at identiteten er stabil selv om databasen flyttes eller gjenopprettes.
 
 ---
 
@@ -143,7 +115,8 @@ gir alltid samme ID uavhengig av hvilken maskin som registrerte det.
 | collection_items | ✅ | |
 | photo_corrections| ✅ | |
 | coldpreviews     | ✅ | filer lastes opp etter metadata |
-| system_settings  | ❌ | per-maskin |
+| system_settings  | ❌ | global per installasjon |
+| machines         | ❌ | per-maskin |
 
 ### Synk-sporing
 
@@ -165,7 +138,7 @@ Operasjonen er idempotent og trygg å kjøre på nytt.
 
 ```
 POST {central_url}/api/sync/receive
-Header: X-Installation-Id: <uuid>
+Header: X-Machine-Id: <uuid>
 Body (JSON):
   {
     machine_name: "Kjells laptop",
@@ -190,163 +163,14 @@ Sentral server bruker `INSERT ... ON CONFLICT (hothash) DO NOTHING` — duplikat
 
 ---
 
-## Implementasjonsfaser
-
-### Fase 1 — pgserver (fjerner Docker-krav lokalt)
-
-**Endrede filer:**
-- `backend/pyproject.toml` — legg til `pgserver>=0.4`, `platformdirs>=4.0`
-- `backend/main.py` — pgserver-init FØR alle andre imports, via env-var `HOTPREVUE_LOCAL`
-- `backend/core/config.py` — legg til `local_mode: bool`, `local_data_dir: str`
-- `backend/.env.example` — fiks bug: asyncpg → psycopg2
-
-**Ny fil:**
-- `backend/core/local_setup.py` — isolerer pgserver-logikk og platformdirs-beregning
-
-**Oppstartsekvens i lokal modus:**
-```python
-# backend/main.py — må stå øverst, før andre imports
-if os.environ.get("HOTPREVUE_LOCAL"):
-    from core.local_setup import setup_local_environment
-    setup_local_environment()  # setter DATABASE_URL og COLDPREVIEW_DIR
-```
-
-Alembic-migrasjoner kjøres programmatisk i `lifespan()` i lokal modus
-(i dag kjøres de kun via Docker-kommando).
-
-**Verifisering:** `HOTPREVUE_LOCAL=true uv run uvicorn main:app` starter uten Docker.
-
----
-
-### Fase 2 — Electron styrer backend-prosessen
-
-**Endrede filer:**
-- `frontend/electron/main.ts` — spawn/kill Python-prosess, auto-sett `backendUrl`
-- `frontend/src/App.tsx` — håndter lokal modus (ingen URL-konfig nødvendig)
-
-**Ny fil:**
-- `frontend/src/pages/WelcomePage.tsx` — erstatter `SetupPage` for lokal modus
-
-**Backend-prosess i Electron:**
-```typescript
-// Utvikling
-spawn('uv', ['run', 'uvicorn', 'main:app', '--host', '0.0.0.0'], {
-  cwd: backendDir,
-  env: { ...process.env, HOTPREVUE_LOCAL: '1' }
-})
-
-// Produksjon
-spawn(path.join(process.resourcesPath, 'backend', 'hotprevue'), [], {
-  env: { ...process.env, HOTPREVUE_LOCAL: '1' }
-})
-
-app.on('quit', () => backendProcess.kill())
-```
-
-**Verifisering:** Electron-appen starter backend automatisk, `/health` svarer OK.
-
----
-
-### Fase 3 — PyInstaller (pakker Python-backend)
-
-**Ny fil:** `backend/hotprevue.spec`
-
-```python
-from PyInstaller.utils.hooks import collect_data_files
-
-datas = [
-    *collect_data_files('pgserver'),  # PostgreSQL-binærfiler (~13 MB)
-    ('alembic/', 'alembic/'),         # Migrasjonsscripts
-    ('alembic.ini', '.'),
-]
-
-a = Analysis(['main.py'], datas=datas, ...)
-```
-
-**Byggkommando:**
-```sh
-cd backend && uv run pyinstaller hotprevue.spec
-# Output: backend/dist/hotprevue/
-```
-
-**Verifisering:** `dist/hotprevue/hotprevue` med `HOTPREVUE_LOCAL=1` på maskin uten Python.
-
----
-
-### Fase 4 — electron-builder (native installers)
-
-**Endrede filer:**
-- `frontend/package.json` — legg til `electron-builder` i devDeps, bygg-script
-
-**Ny fil:** `frontend/electron-builder.yml`
-```yaml
-appId: no.hotprevue.app
-productName: Hotprevue
-extraResources:
-  - from: ../backend/dist/hotprevue/
-    to: backend/
-win:
-  target: nsis
-  arch: [x64]
-mac:
-  target: dmg
-linux:
-  target: AppImage
-```
-
-**Full byggsekvens:**
-```sh
-cd backend  && uv run pyinstaller hotprevue.spec
-cd frontend && npm run build
-cd frontend && npx electron-builder
-```
-
-Resulterer i:
-- Windows: `Hotprevue-Setup-x.y.z.exe`
-- macOS: `Hotprevue-x.y.z.dmg`
-- Linux: `Hotprevue-x.y.z.AppImage`
-
-**Verifisering:** Installer kjøres på ren Windows-VM uten Python/Docker installert.
-
----
-
-### Fase 5 — Synk-arkitektur
-
-**Nye filer (backend):**
-- `backend/models/sync.py` — `SyncLog`, `RegisteredMachine`
-- `backend/api/sync.py` — `/api/sync/receive`, `/api/sync/coldpreview/{hothash}`
-- `backend/services/sync_service.py` — push-logikk lokal → sentral
-- `backend/alembic/versions/XXXX_add_sync_tables.py`
-
-**Nye filer (frontend):**
-- `frontend/src/features/sync/SyncPanel.tsx` — "Synkroniser nå" med fremdrift
-- `frontend/src/api/sync.ts` — API-kall
-
-**Endrede filer:**
-- `backend/main.py` — inkluder sync-router
-- `frontend/src/pages/SettingsPage.tsx` — synk-konfigurasjon
-
----
-
-## Hva som ikke endres
-
-- Alle eksisterende API-endepunkter
-- SQLAlchemy-modeller (utover nye synk-tabeller)
-- Pillow-basert bildebehandling og hothash-algoritme
-- Sentral servers Docker Compose-oppsett
-- `alembic/env.py` (leser allerede `DATABASE_URL` fra env)
-
----
-
 ## Kritiske filer
 
 | Fil | Rolle |
 |-----|-------|
-| `backend/main.py` | Oppstart, pgserver-init, migrasjoner |
+| `backend/main.py` | Oppstart, migrasjoner, maskinregistrering |
+| `backend/core/local_setup.py` | pgserver-init, platformdirs, machine_id-fil |
 | `backend/core/config.py` | Settings, DATABASE_URL, COLDPREVIEW_DIR |
-| `backend/core/local_setup.py` | (ny) pgserver + platformdirs-logikk |
-| `backend/database/session.py` | Engine og SessionLocal — opprettes etter config |
-| `backend/alembic/env.py` | Leser DATABASE_URL fra env (allerede korrekt) |
-| `frontend/electron/main.ts` | Spawner backend, config-lagring |
-| `frontend/src/App.tsx` | Routing, lokal vs. remote modus |
-| `frontend/src/pages/WelcomePage.tsx` | (ny) Første-gangs oppsett |
+| `backend/database/session.py` | Engine og SessionLocal |
+| `backend/alembic/env.py` | Leser DATABASE_URL fra env |
+| `build-zip.ps1` | Pakker zip-distribusjon |
+| `build-installer.ps1` | Pakker NSIS-installer |

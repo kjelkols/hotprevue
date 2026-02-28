@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 router = APIRouter(prefix="/system", tags=["system"])
 
-# ─── Filtyper (speil av Electron-logikken) ───────────────────────────────────
+# ─── Filtyper ────────────────────────────────────────────────────────────────
 
 MASTER_EXTS: dict[str, list[str]] = {
     "JPEG": [".jpg", ".jpeg"],

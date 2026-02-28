@@ -47,7 +47,7 @@ Radix Dialog som åpnes fra "Vis utvalg"-knappen.
 **Svakheter:**
 - Modal + bunnlinje = to trinn for å se og handle. Akseptabelt — de har ulik hensikt
 - Hotpreview-data mangler i store (kun hothashes lagres). Løses ved lazy fetch ved modal-åpning
-- Utvalg forsvinner ved Electron-restart. Akseptabelt for v1
+- Utvalg forsvinner ved sideoppdatering. Akseptabelt for v1
 
 ---
 

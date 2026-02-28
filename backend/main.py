@@ -23,6 +23,8 @@ async def lifespan(app: FastAPI):
     if os.environ.get("HOTPREVUE_LOCAL"):
         _run_migrations()
     _bootstrap_settings()
+    if os.environ.get("HOTPREVUE_MACHINE_ID"):
+        _register_machine()
     if settings.hotprevue_open_browser:
         threading.Timer(1.0, webbrowser.open, args=["http://localhost:8000"]).start()
     yield
@@ -57,9 +59,10 @@ import models.text_item  # noqa: F401
 import models.collection  # noqa: F401
 import models.input_session  # noqa: F401
 import models.photo  # noqa: F401
+import models.machine  # noqa: F401
 import models.settings  # noqa: F401
 
-from api import collections, events, input_sessions, photographers, photos, system, text_items  # noqa: E402
+from api import collections, events, input_sessions, photographers, photos, settings as settings_api, system, text_items  # noqa: E402
 app.include_router(photographers.router)
 app.include_router(events.router)
 app.include_router(input_sessions.router)
@@ -67,6 +70,7 @@ app.include_router(photos.router)
 app.include_router(collections.router)
 app.include_router(text_items.router)
 app.include_router(system.router)
+app.include_router(settings_api.router)
 
 # Statiske filer monteres sist slik at API-ruter tar prioritet
 if settings.hotprevue_frontend_dir:
@@ -81,3 +85,18 @@ def _bootstrap_settings() -> None:
         if db.query(SystemSettings).first() is None:
             db.add(SystemSettings(installation_id=uuid.uuid4()))
             db.commit()
+
+
+def _register_machine() -> None:
+    """Upsert the current machine row and update last_seen_at."""
+    from datetime import datetime, timezone
+    from models.machine import Machine
+
+    machine_id = uuid.UUID(os.environ["HOTPREVUE_MACHINE_ID"])
+    with SessionLocal() as db:
+        machine = db.query(Machine).filter(Machine.machine_id == machine_id).first()
+        if machine is None:
+            machine = Machine(machine_id=machine_id, machine_name="", settings={})
+            db.add(machine)
+        machine.last_seen_at = datetime.now(timezone.utc)
+        db.commit()

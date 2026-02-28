@@ -40,12 +40,37 @@ export interface Photographer {
   bio?: string | null
 }
 
+export interface GlobalSettings {
+  installation_id: string
+  instance_name: string
+  owner_name: string
+  owner_website: string | null
+  owner_bio: string | null
+  default_sort: string
+  show_deleted_in_gallery: boolean
+  browse_buffer_size: number
+  coldpreview_max_px: number
+  coldpreview_quality: number
+}
+
+export interface MachineSettings {
+  machine_id: string
+  machine_name: string
+  default_photographer_id: string | null
+}
+
+export interface Settings {
+  global_: GlobalSettings
+  machine: MachineSettings
+}
+
 export interface InputSessionCreate {
   name: string
   source_path: string
   default_photographer_id: string
   default_event_id?: string | null
   recursive?: boolean
+  notes?: string | null
 }
 
 export interface InputSession {
@@ -61,6 +86,7 @@ export interface InputSession {
   photo_count: number
   duplicate_count: number
   error_count: number
+  notes: string | null
 }
 
 export interface CheckResponse {

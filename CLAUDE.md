@@ -11,7 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Monorepo** with three main layers:
 
 - **`/backend`** — FastAPI (Python), SQLAlchemy (sync, psycopg2), Alembic for migrations. Structure: `api/`, `core/`, `database/`, `models/`, `schemas/`, `services/`, `utils/`.
-- **`/frontend`** — React 18 + TypeScript + Tailwind CSS + Vite. State: React Query (server), Zustand (client). UI primitives: Radix UI. **Browser-based** — the backend serves the built frontend as static files. An Electron wrapper (`electron/`) exists for optional desktop packaging. Structure: `src/api/`, `src/types/`, `src/components/ui/`, `src/features/`, `src/pages/`, `src/stores/`, `src/hooks/`, `src/lib/`.
+- **`/frontend`** — React 18 + TypeScript + Tailwind CSS + Vite. State: React Query (server), Zustand (client). UI primitives: Radix UI. **Browser-based** — the backend serves the built frontend as static files. Structure: `src/api/`, `src/types/`, `src/components/ui/`, `src/features/`, `src/pages/`, `src/stores/`, `src/hooks/`, `src/lib/`.
 - **`/tests`** — pytest-based tests.
 
 **Database:** pgserver (embedded PostgreSQL). No Docker needed. `HOTPREVUE_LOCAL=true` activates local mode.
@@ -132,7 +132,7 @@ Frontend må **ikke** npm-installeres fra WSL-filsystemet (Linux-symlenker brekk
 
 ## System API Endpoints
 
-The backend exposes these endpoints for filesystem operations (replacing Electron IPC):
+The backend exposes these endpoints for filesystem operations:
 
 - `POST /system/pick-directory` — opens a native OS directory picker (tkinter), returns `{ path: string | null }`
 - `POST /system/scan-directory` — scans a path for images, returns `{ groups: FileGroup[], total_files: number }`

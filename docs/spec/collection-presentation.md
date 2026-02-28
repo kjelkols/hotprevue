@@ -269,7 +269,7 @@ For en 1920×1080-projector er 1200px coldpreview mer enn tilstrekkelig.
 
 ### Frontend og originalfiler
 
-Frontend har tilgang til lokale disker (via Electron). En fremtidig eksportfunksjon kan hente originalfiler direkte fra disk i frontend og kombinere dem med metadata fra backend, i stedet for å sende store filer via API. Dette noteres som mulighet — ikke noe som trengs nå.
+En fremtidig eksportfunksjon kan hente originalfiler via backend og kombinere dem med metadata, i stedet for å sende store filer via et eget eksport-API. Dette noteres som mulighet — ikke noe som trengs nå.
 
 ### Eksport-endepunkt (skisse)
 
@@ -289,7 +289,7 @@ GET /collections/{id}/export?quality=compact
 | Overgangseeffekter | CSS — ingen DB-endring |
 | Auto-play med timing | `display_duration_ms INT` på CollectionItem — legg til ved behov |
 | To-skjerm presenter-modus | WebSocket-synkronisering — avansert, fremtidig |
-| Full-oppløsning eksport | Frontend henter fra lokal disk (Electron), kombinerer med ZIP fra backend |
+| Full-oppløsning eksport | Backend henter originalfiler og pakker ZIP |
 
 ---
 
@@ -310,4 +310,4 @@ GET /collections/{id}/export?quality=compact
 | 11 | Forelesningsnotater toggle (`N`) | Implementeres ved Visningsmodus |
 | 12 | Fullskjerm via Fullscreen API | Implementeres ved Visningsmodus |
 | 13 | HTML-eksport | Fremtidig |
-| 14 | Full-oppløsning eksport via Electron | Fremtidig |
+| 14 | Full-oppløsning eksport | Fremtidig |

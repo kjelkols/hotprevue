@@ -26,6 +26,17 @@ export default function TopNav() {
           {label}
         </NavLink>
       ))}
+      <div className="ml-auto">
+        <NavLink
+          to="/settings"
+          className={({ isActive }) =>
+            'px-3 py-1.5 rounded text-sm transition-colors ' +
+            (isActive ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800')
+          }
+        >
+          Innstillinger
+        </NavLink>
+      </div>
     </nav>
   )
 }

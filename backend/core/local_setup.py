@@ -1,4 +1,5 @@
 import os
+import uuid
 from pathlib import Path
 
 
@@ -22,10 +23,20 @@ def setup_local_environment() -> None:
 
     os.environ["DATABASE_URL"] = pg.get_uri(database="hotprevue")
     os.environ["COLDPREVIEW_DIR"] = str(coldpreviews)
+    os.environ["HOTPREVUE_MACHINE_ID"] = str(_get_or_create_machine_id(data_dir))
 
     # Hold referanse slik at pgserver ikke GC-es
     import builtins
     builtins._pg_server = pg  # type: ignore[attr-defined]
+
+
+def _get_or_create_machine_id(data_dir: Path) -> uuid.UUID:
+    id_file = data_dir / "machine_id"
+    if id_file.exists():
+        return uuid.UUID(id_file.read_text().strip())
+    new_id = uuid.uuid4()
+    id_file.write_text(str(new_id))
+    return new_id
 
 
 def _ensure_database(base_uri: str, dbname: str) -> None:

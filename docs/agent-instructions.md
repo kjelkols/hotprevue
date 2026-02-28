@@ -13,7 +13,7 @@ Dette dokumentet gir retningslinjer og beslutningsgrunnlag for AI-agenten og utv
 
 ## Teknologivalg
 - **Backend**: FastAPI, SQLAlchemy (sync, psycopg2-binary), Alembic for migrering. Aldri async — se backend-architecture.md.
-- **Frontend**: React 18 + TypeScript + Tailwind CSS + Vite. React Query for server-state, Zustand for klient-state, Radix UI for komplekse komponenter. Electron via electron-vite (valgfritt).
+- **Frontend**: React 18 + TypeScript + Tailwind CSS + Vite. React Query for server-state, Zustand for klient-state, Radix UI for komplekse komponenter.
 - **CI/CD**: Github Actions, Docker Compose for lokal utvikling.
 
 ## Viktige beslutninger

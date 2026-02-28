@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -31,6 +31,7 @@ class InputSession(Base):
     photo_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     duplicate_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     error_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     errors: Mapped[list["SessionError"]] = relationship(
         "SessionError",

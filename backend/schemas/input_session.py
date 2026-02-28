@@ -10,6 +10,7 @@ class InputSessionCreate(BaseModel):
     default_photographer_id: uuid.UUID
     default_event_id: uuid.UUID | None = None
     recursive: bool = True
+    notes: str | None = None
 
 
 class InputSessionOut(BaseModel):
@@ -27,6 +28,7 @@ class InputSessionOut(BaseModel):
     photo_count: int
     duplicate_count: int
     error_count: int
+    notes: str | None
 
 
 class SessionErrorOut(BaseModel):

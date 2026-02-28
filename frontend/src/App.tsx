@@ -10,6 +10,7 @@ import CollectionPage from './pages/CollectionPage'
 import CollectionPresentPage from './pages/CollectionPresentPage'
 import SessionsListPage from './pages/SessionsListPage'
 import EventsListPage from './pages/EventsListPage'
+import SettingsPage from './pages/SettingsPage'
 import ContextMenuOverlay from './components/ui/ContextMenuOverlay'
 import SelectionTray from './features/selection/SelectionTray'
 import useSelectionStore from './stores/useSelectionStore'
@@ -47,6 +48,7 @@ export default function App() {
           <Route path="/collections/:id" element={<CollectionPage />} />
           <Route path="/sessions"        element={<SessionsListPage />} />
           <Route path="/events"          element={<EventsListPage />} />
+          <Route path="/settings"        element={<SettingsPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

@@ -1,7 +1,7 @@
 import uuid
 
 from sqlalchemy import Boolean, Integer, String, Text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from models.base import Base
@@ -22,3 +22,4 @@ class SystemSettings(Base):
     browse_buffer_size: Mapped[int] = mapped_column(Integer, nullable=False, default=100)
     coldpreview_max_px: Mapped[int] = mapped_column(Integer, nullable=False, default=1200)
     coldpreview_quality: Mapped[int] = mapped_column(Integer, nullable=False, default=85)
+    extra: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)

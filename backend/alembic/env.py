@@ -14,6 +14,7 @@ import models.event  # noqa: E402, F401
 import models.collection  # noqa: E402, F401
 import models.input_session  # noqa: E402, F401
 import models.photo  # noqa: E402, F401
+import models.machine  # noqa: E402, F401
 import models.settings  # noqa: E402, F401
 
 config = context.config
