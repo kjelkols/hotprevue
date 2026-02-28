@@ -18,6 +18,8 @@ dependencies = [
   "pillow>=10.0",
   "pydantic-settings>=2.0",
   "python-multipart>=0.0.22",
+  "pgserver>=0.1",
+  "platformdirs>=4.0",
 ]
 
 [project.optional-dependencies]

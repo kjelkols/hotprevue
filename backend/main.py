@@ -1,5 +1,10 @@
+import os
 import uuid
 from contextlib import asynccontextmanager
+
+if os.environ.get("HOTPREVUE_LOCAL"):
+    from core.local_setup import setup_local_environment
+    setup_local_environment()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,8 +15,17 @@ from models.settings import SystemSettings
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    if os.environ.get("HOTPREVUE_LOCAL"):
+        _run_migrations()
     _bootstrap_settings()
     yield
+
+
+def _run_migrations() -> None:
+    from alembic.config import Config
+    from alembic import command
+    cfg = Config("alembic.ini")
+    command.upgrade(cfg, "head")
 
 
 app = FastAPI(title="Hotprevue", version="0.1.0", lifespan=lifespan)

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { HashRouter, Route, Routes, Navigate } from 'react-router-dom'
 import { setBaseUrl } from './api/client'
 import type { AppConfig } from './types/api'
-import SetupPage from './pages/SetupPage'
+import WelcomePage from './pages/WelcomePage'
 import AppLayout from './pages/AppLayout'
 import HomePage from './pages/HomePage'
 import BrowsePage from './pages/BrowsePage'
@@ -63,7 +63,7 @@ export default function App() {
   return (
     <HashRouter>
       <Routes>
-        <Route path="/setup" element={<SetupPage onSaved={handleConfigSaved} />} />
+        <Route path="/setup" element={<WelcomePage onSaved={handleConfigSaved} />} />
         <Route
           path="/collections/:id/present"
           element={config ? <CollectionPresentPage /> : <Navigate to="/setup" replace />}

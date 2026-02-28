@@ -59,25 +59,48 @@ These rules apply to all frontend code and exist to prevent AI formatting errors
 
 ## Development Commands
 
+Run these in WSL:
+
 ```sh
-# Start backend and database
-docker compose up
+# Start backend (pgserver starter PostgreSQL automatisk)
+make dev-backend
+# eller direkte:
+cd backend && HOTPREVUE_LOCAL=true uv run uvicorn main:app --host 0.0.0.0 --port 8000
 
-# Backend only (FastAPI with auto-reload)
-uvicorn main:app --reload --host 0.0.0.0
-
-# Run backend tests
-pytest tests/
-
-# Run a single test
-pytest tests/path/to/test_file.py::test_function_name
-
-# Frontend dev server
+# Start Electron-frontend (i nytt skall, krever at backend kjører)
+make dev-frontend
+# eller direkte:
 cd frontend && npm run dev
 
-# Frontend build
-cd frontend && npm run build
+# Kjør tester
+make test
+# eller:
+cd backend && uv run pytest tests/ -v
+
+# Kjør én test
+cd backend && uv run pytest tests/path/to/test_file.py::test_function_name
 ```
+
+## Bygge Windows-installer
+
+Kjøres fra **Windows PowerShell** (ikke WSL):
+
+```powershell
+# Steg 1: bygg backend-binær (PyInstaller)
+cd "\\wsl$\Ubuntu-22.04\home\kjell\hotprevue\backend"
+$env:UV_PROJECT_ENVIRONMENT = ".venv-win"
+uv run --python 3.12 --with pyinstaller pyinstaller hotprevue.spec
+
+# Steg 2: kopier til byggkatalog og bygg installer
+robocopy "\\wsl$\Ubuntu-22.04\home\kjell\hotprevue\frontend" "C:\hotprevue-build\frontend" /e /xd node_modules
+robocopy "\\wsl$\Ubuntu-22.04\home\kjell\hotprevue\backend\dist" "C:\hotprevue-build\backend\dist" /e
+cd C:\hotprevue-build\frontend
+npm install
+npm run dist
+# Installer: C:\hotprevue-build\frontend\dist-installer\Hotprevue Setup x.x.x.exe
+```
+
+**Merk:** Bygg alltid backend-binæren på Windows (PyInstaller lager platform-spesifikke binærer).
 
 ## Data Flow
 

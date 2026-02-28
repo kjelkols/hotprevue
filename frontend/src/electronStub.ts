@@ -20,6 +20,17 @@ if (typeof window !== 'undefined' && !window.electron) {
     },
     setConfig: async (cfg) => {
       localStorage.setItem('hotprevue-config', JSON.stringify(cfg))
+    },
+    getSettings: async () => {
+      const stored = localStorage.getItem('hotprevue-settings')
+      return stored ? JSON.parse(stored) : null
+    },
+    setSettings: async (s) => {
+      localStorage.setItem('hotprevue-settings', JSON.stringify(s))
+    },
+    chooseDataDir: async () => {
+      const path = prompt('Stub: skriv inn datakatalog')
+      return path ?? null
     }
   }
 }

@@ -1,11 +1,16 @@
 import { app, BrowserWindow, dialog, ipcMain } from 'electron'
 import { join, extname, basename } from 'path'
 import { readFileSync, writeFileSync, readdirSync, statSync } from 'fs'
+import { spawn, ChildProcess } from 'child_process'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface AppConfig {
   backendUrl: string
+}
+
+interface AppSettings {
+  data_dir: string
 }
 
 interface CompanionFile {
@@ -114,6 +119,37 @@ function scanDirectory(dirPath: string, recursive: boolean): ScanResult {
   return { groups, totalFiles }
 }
 
+// ─── Backend process ──────────────────────────────────────────────────────────
+
+let backendProcess: ChildProcess | null = null
+
+function startBackend(dataDir: string): void {
+  const isDev = !app.isPackaged
+  const env = { ...process.env, HOTPREVUE_LOCAL: '1', HOTPREVUE_DATA_DIR: dataDir }
+
+  if (isDev) {
+    const backendDir = join(__dirname, '../../../backend')
+    backendProcess = spawn('uv', ['run', 'uvicorn', 'main:app', '--host', '0.0.0.0', '--port', '8000'], {
+      cwd: backendDir, env, shell: true
+    })
+  } else {
+    const ext = process.platform === 'win32' ? '.exe' : ''
+    const backendExe = join(process.resourcesPath, 'backend', `hotprevue${ext}`)
+    backendProcess = spawn(backendExe, [], { env })
+  }
+}
+
+async function waitForBackend(url: string, retries = 30): Promise<boolean> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const res = await fetch(`${url}/health`)
+      if (res.ok) return true
+    } catch { /* not ready yet */ }
+    await new Promise(r => setTimeout(r, 500))
+  }
+  return false
+}
+
 // ─── Config helpers ───────────────────────────────────────────────────────────
 
 function configPath(userData: string): string {
@@ -130,6 +166,24 @@ function readConfig(userData: string): AppConfig | null {
 
 function writeConfig(userData: string, cfg: AppConfig): void {
   writeFileSync(configPath(userData), JSON.stringify(cfg, null, 2))
+}
+
+// ─── Settings helpers ─────────────────────────────────────────────────────────
+
+function settingsPath(userData: string): string {
+  return join(userData, 'settings.json')
+}
+
+function readSettings(userData: string): AppSettings | null {
+  try {
+    return JSON.parse(readFileSync(settingsPath(userData), 'utf8')) as AppSettings
+  } catch {
+    return null
+  }
+}
+
+function writeSettings(userData: string, s: AppSettings): void {
+  writeFileSync(settingsPath(userData), JSON.stringify(s, null, 2))
 }
 
 // ─── Window ───────────────────────────────────────────────────────────────────
@@ -178,13 +232,50 @@ ipcMain.handle('set-config', (_event, cfg: AppConfig) =>
   writeConfig(app.getPath('userData'), cfg)
 )
 
+ipcMain.handle('get-settings', () => readSettings(app.getPath('userData')))
+
+ipcMain.handle('set-settings', (_event, s: AppSettings) =>
+  writeSettings(app.getPath('userData'), s)
+)
+
+ipcMain.handle('choose-data-dir', () =>
+  dialog
+    .showOpenDialog({ properties: ['openDirectory'], title: 'Velg datakatalog for Hotprevue' })
+    .then(r => (r.canceled ? null : r.filePaths[0]))
+)
+
 // ─── App lifecycle ────────────────────────────────────────────────────────────
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  const userData = app.getPath('userData')
+
+  let settings = readSettings(userData)
+  if (!settings) {
+    const result = await dialog.showOpenDialog({
+      properties: ['openDirectory'],
+      title: 'Velg datakatalog for Hotprevue',
+      buttonLabel: 'Velg katalog'
+    })
+    const dataDir = result.canceled ? join(userData, 'data') : result.filePaths[0]
+    settings = { data_dir: dataDir }
+    writeSettings(userData, settings)
+  }
+
+  startBackend(settings.data_dir)
+  await waitForBackend('http://localhost:8000')
+
+  if (!readConfig(userData)) {
+    writeConfig(userData, { backendUrl: 'http://localhost:8000' })
+  }
+
   createWindow()
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
+})
+
+app.on('before-quit', () => {
+  backendProcess?.kill()
 })
 
 app.on('window-all-closed', () => {

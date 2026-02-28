@@ -1,0 +1,16 @@
+appId: no.hotprevue.app
+productName: Hotprevue
+directories:
+  output: dist-installer
+extraResources:
+  - from: ../backend/dist/hotprevue/
+    to: backend/
+    filter: ["**/*"]
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+mac:
+  target: dmg
+linux:
+  target: AppImage

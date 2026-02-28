@@ -14,5 +14,14 @@ contextBridge.exposeInMainWorld('electron', {
     ipcRenderer.invoke('get-config'),
 
   setConfig: (cfg: unknown): Promise<void> =>
-    ipcRenderer.invoke('set-config', cfg)
+    ipcRenderer.invoke('set-config', cfg),
+
+  getSettings: (): Promise<unknown> =>
+    ipcRenderer.invoke('get-settings'),
+
+  setSettings: (s: unknown): Promise<void> =>
+    ipcRenderer.invoke('set-settings', s),
+
+  chooseDataDir: (): Promise<string | null> =>
+    ipcRenderer.invoke('choose-data-dir')
 })

@@ -31,6 +31,7 @@ MANIFEST
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
+!backend/hotprevue.spec
 
 # Installer logs
 pip-log.txt
@@ -138,6 +139,7 @@ celerybeat.pid
 .env
 .envrc
 .venv
+.venv-win
 env/
 venv/
 ENV/
@@ -215,6 +217,12 @@ node_modules/
 # Frontend build artifacts
 frontend/build/
 frontend/dist/
+frontend/out/
+frontend/dist-installer/
+
+# Backend build artifacts (PyInstaller output)
+backend/dist/
+backend/build/
 
 # User data (should be outside repo, but extra safety)
 data/

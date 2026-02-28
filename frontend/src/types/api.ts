@@ -4,6 +4,10 @@ export interface AppConfig {
   backendUrl: string
 }
 
+export interface AppSettings {
+  data_dir: string
+}
+
 // ─── Scanning ─────────────────────────────────────────────────────────────────
 
 export interface CompanionFile {
@@ -180,6 +184,9 @@ declare global {
       readFileBytes(filePath: string): Promise<Uint8Array>
       getConfig(): Promise<AppConfig | null>
       setConfig(config: AppConfig): Promise<void>
+      getSettings(): Promise<AppSettings | null>
+      setSettings(settings: AppSettings): Promise<void>
+      chooseDataDir(): Promise<string | null>
     }
   }
 }
