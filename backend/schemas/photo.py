@@ -13,6 +13,10 @@ class ImageFileSchema(BaseModel):
     file_path: str
     file_type: str
     is_master: bool
+    file_size_bytes: int | None
+    exif_data: dict
+    width: int | None
+    height: int | None
 
 
 class PhotoCorrectionSchema(BaseModel):
@@ -48,6 +52,8 @@ class PhotoListItem(BaseModel):
     is_stack_cover: bool
     deleted_at: datetime | None
     has_correction: bool
+    width: int | None
+    height: int | None
     camera_make: str | None
     camera_model: str | None
     iso: int | None
@@ -62,7 +68,6 @@ class CompanionCreate(BaseModel):
 
 
 class PhotoDetail(PhotoListItem):
-    exif_data: dict
     taken_at_source: int
     location_source: int | None
     input_session_id: uuid.UUID | None

@@ -19,7 +19,7 @@ class FileGroup:
 
 
 def scan_directory(source_path: str, recursive: bool = True) -> tuple[list[FileGroup], int]:
-    """Walk a directory and return (file_groups, unknown_file_count).
+    """Walk a directory and return (file_groups, total_file_count).
 
     Groups files by (directory, stem) — e.g. IMG_1234.CR2 and IMG_1234.JPG
     become one group. Master is RAW if present, else the first JPEG/other.
@@ -33,12 +33,10 @@ def scan_directory(source_path: str, recursive: bool = True) -> tuple[list[FileG
     all_files = [p for p in root.glob(pattern) if p.is_file()]
 
     groups_dict: dict[str, list[Path]] = {}
-    unknown_count = 0
 
     for path in all_files:
         suffix = path.suffix.lower()
         if suffix not in KNOWN_EXTENSIONS:
-            unknown_count += 1
             continue
         key = str(path.parent).lower() + "/" + path.stem.lower()
         groups_dict.setdefault(key, []).append(path)
@@ -53,7 +51,9 @@ def scan_directory(source_path: str, recursive: bool = True) -> tuple[list[FileG
         if not image_files:
             continue  # Only sidecars — skip
 
-        master = (jpegs + others)[0] if (jpegs or others) else raws[0]
+        # RAW is master when present — it is the highest-quality source for
+        # both EXIF extraction and preview generation.
+        master = raws[0] if raws else (jpegs + others)[0]
         companions = [f for f in files if f != master]
 
         result.append(FileGroup(
@@ -63,7 +63,7 @@ def scan_directory(source_path: str, recursive: bool = True) -> tuple[list[FileG
             has_jpeg=bool(jpegs),
         ))
 
-    return result, unknown_count
+    return result, len(all_files)
 
 
 def file_type_from_suffix(suffix: str) -> str:

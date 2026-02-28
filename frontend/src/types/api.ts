@@ -143,6 +143,8 @@ export interface PhotoListItem {
   is_stack_cover: boolean
   deleted_at: string | null
   has_correction: boolean
+  width: number | null
+  height: number | null
   camera_make: string | null
   camera_model: string | null
   iso: number | null
@@ -159,6 +161,10 @@ export interface ImageFileInfo {
   file_path: string
   file_type: string
   is_master: boolean
+  file_size_bytes: number | null
+  exif_data: Record<string, unknown>
+  width: number | null
+  height: number | null
 }
 
 export interface PhotoCorrection {
@@ -174,7 +180,6 @@ export interface PhotoCorrection {
 }
 
 export interface PhotoDetail extends PhotoListItem {
-  exif_data: Record<string, unknown>
   taken_at_source: number
   location_source: number | null
   input_session_id: string | null

@@ -22,6 +22,7 @@ from schemas.input_session import (
 )
 from utils.exif import extract_camera_fields, extract_exif, extract_gps, extract_taken_at
 from utils.previews import generate_coldpreview, generate_hotpreview, hotpreview_b64
+from utils.registration import RAW_EXTENSIONS
 
 
 def create(db: Session, data: InputSessionCreate) -> InputSession:
@@ -124,7 +125,7 @@ def register_group(
             tmp.write(file_bytes)
             tmp_path = tmp.name
 
-        jpeg_bytes, hothash = generate_hotpreview(tmp_path)
+        jpeg_bytes, hothash, orig_w, orig_h = generate_hotpreview(tmp_path)
 
         # Duplicate by content?
         existing_photo = db.query(Photo).filter(Photo.hothash == hothash).first()
@@ -146,10 +147,13 @@ def register_group(
         max_px = sys_settings.coldpreview_max_px if sys_settings else 1200
         quality = sys_settings.coldpreview_quality if sys_settings else 85
 
-        exif_data = extract_exif(tmp_path)
+        # --- EXIF extraction ---
+        # Master EXIF is the primary source for Photo canonical fields.
+        # With RAW-first master selection, this is already the richest source.
+        master_exif = extract_exif(tmp_path)
         camera_fields = extract_camera_fields(tmp_path)
-        taken_at = extract_taken_at(exif_data)
-        lat, lng = extract_gps(exif_data)
+        taken_at = extract_taken_at(master_exif)
+        lat, lng = extract_gps(master_exif)
 
         coldpreview_path = generate_coldpreview(
             tmp_path, hothash, app_settings.coldpreview_dir,
@@ -162,7 +166,6 @@ def register_group(
         photo = Photo(
             hothash=hothash,
             hotpreview_b64=hotpreview_b64(jpeg_bytes),
-            exif_data=exif_data,
             taken_at=taken_at,
             taken_at_source=0,
             taken_at_accuracy="second",
@@ -173,23 +176,54 @@ def register_group(
             photographer_id=photographer_id,
             input_session_id=session_id,
             event_id=event_id,
+            width=orig_w,
+            height=orig_h,
             **camera_fields,
         )
         db.add(photo)
         db.flush()
 
+        # Master ImageFile — dimensions from generate_hotpreview (actual pixel size)
         db.add(ImageFile(
             photo_id=photo.id,
             file_path=meta.master_path,
             file_type=meta.master_type,
             is_master=True,
+            file_size_bytes=len(file_bytes),
+            exif_data=master_exif,
+            width=orig_w,
+            height=orig_h,
         ))
+
+        # Companion ImageFiles — extract EXIF from each image file
         for comp in meta.companions:
+            comp_exif: dict = {}
+            comp_w: int | None = None
+            comp_h: int | None = None
+
+            if comp.type != "XMP":
+                # Read EXIF from the actual companion file on disk
+                try:
+                    comp_exif = extract_exif(comp.path)
+                    comp_w = comp_exif.get("width")
+                    comp_h = comp_exif.get("height")
+                except Exception:
+                    pass
+
+            try:
+                comp_size: int | None = Path(comp.path).stat().st_size
+            except OSError:
+                comp_size = None
+
             db.add(ImageFile(
                 photo_id=photo.id,
                 file_path=comp.path,
                 file_type=comp.type,
                 is_master=False,
+                file_size_bytes=comp_size,
+                exif_data=comp_exif,
+                width=comp_w,
+                height=comp_h,
             ))
 
         db.commit()
@@ -207,7 +241,6 @@ def register_group(
         raise
     except Exception as exc:
         db.rollback()
-        s = db.get(InputSession, session_id)
         db.add(SessionError(
             session_id=session_id,
             file_path=meta.master_path,

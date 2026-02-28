@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text, func
+from sqlalchemy import BigInteger, Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -18,7 +18,6 @@ class Photo(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     hothash: Mapped[str] = mapped_column(String, unique=True, nullable=False, index=True)
     hotpreview_b64: Mapped[str] = mapped_column(Text, nullable=False)
-    exif_data: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
 
     taken_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     taken_at_source: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
@@ -62,6 +61,9 @@ class Photo(Base):
     stack_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True, index=True)
     is_stack_cover: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
+    width: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    height: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
     registered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
@@ -104,6 +106,13 @@ class ImageFile(Base):
     file_path: Mapped[str] = mapped_column(String, nullable=False)
     file_type: Mapped[str] = mapped_column(String, nullable=False)  # RAW, JPEG, TIFF, PNG, HEIC, XMP
     is_master: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    file_size_bytes: Mapped[int | None] = mapped_column(BigInteger(), nullable=True)
+    last_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # Per-file EXIF and dimensions — populated at registration
+    exif_data: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    width: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    height: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     photo: Mapped["Photo"] = relationship("Photo", back_populates="image_files")
 
