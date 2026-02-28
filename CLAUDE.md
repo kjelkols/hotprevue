@@ -74,8 +74,8 @@ cd backend && HOTPREVUE_LOCAL=true uv run uvicorn main:app --host 0.0.0.0 --port
 # Åpne frontend i nettleseren (krever at backend kjører)
 # → http://localhost:8000
 
-# For Vite hot-reload under utvikling (valgfritt, kjør i nytt skall):
-make dev-frontend   # cd frontend && npm run dev  → http://localhost:5173
+# Start Vite dev-server med hot-reload (kjør i nytt skall):
+make dev-frontend   # cd frontend && npm run dev:web  → http://localhost:5173
 
 # Kjør tester
 make test
@@ -91,6 +91,10 @@ make build-web
 ```
 
 **Merk:** `--reload` virker ikke med pgserver (socket-problem med subprocess).
+
+**WSL-utvikling med Windows-filer:** Katalogfeltet i registreringsveiviseren aksepterer
+Windows-stier direkte og konverterer automatisk: `C:\Bilder\Ferie` → `/mnt/c/Bilder/Ferie`.
+Tkinter-dialogen («Velg…»-knappen) fungerer bare skikkelig i zip-distribusjonen på Windows.
 
 ## Bygge Windows zip-distribusjon (primær)
 
