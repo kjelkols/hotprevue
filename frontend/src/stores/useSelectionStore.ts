@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { createSelectionSlice, type SelectionSlice } from '../lib/selectionSlice'
+import { createSelectionSlice, type SelectionSlice } from '../utils/selectionSlice'
 
 const useSelectionStore = create<SelectionSlice>()(set =>
   createSelectionSlice(set)

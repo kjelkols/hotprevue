@@ -7,6 +7,7 @@ import FileBrowser from '../../components/FileBrowser'
 import { getSettings } from '../../api/settings'
 import { linkCopyToSession } from '../../api/fileCopy'
 import CopySection from './CopySection'
+import { winToWsl } from '../../utils/paths'
 import type { FileGroup, ScanResult } from '../../types/api'
 
 interface Props {
@@ -55,16 +56,7 @@ export default function StepSetup({ onDone }: Props) {
   }
 
   function handleDirInput(raw: string) {
-    // Konverter Windows-stier til WSL-stier automatisk:
-    // "C:\foo\bar" eller "C:/foo/bar"  →  "/mnt/c/foo/bar"
-    const winMatch = raw.match(/^([A-Za-z]):[\\\/](.*)/)
-    if (winMatch) {
-      const drive = winMatch[1].toLowerCase()
-      const rest = winMatch[2].replace(/\\/g, '/')
-      setDirPath(`/mnt/${drive}/${rest}`)
-    } else {
-      setDirPath(raw)
-    }
+    setDirPath(winToWsl(raw))
   }
 
   async function handleCreatePhotographer() {
