@@ -368,7 +368,6 @@ function ShortcutsTab() {
             <FileBrowser
               initialPath={newPath}
               onSelect={p => handleNewPath(p)}
-              imagesOnly={false}
               trigger={
                 <button
                   type="button"

@@ -150,7 +150,6 @@ export default function CopySection({ onCopyCompleted }: Props) {
           <FileBrowser
             initialPath={parentDir}
             onSelect={setParentDir}
-            imagesOnly={false}
             trigger={
               <button
                 type="button"

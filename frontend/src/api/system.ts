@@ -5,8 +5,8 @@ export function pickDirectory(): Promise<{ path: string | null }> {
   return apiFetch<{ path: string | null }>('/system/pick-directory', { method: 'POST' })
 }
 
-export function browseDirectory(path: string, imagesOnly = true): Promise<BrowseResult> {
-  const params = new URLSearchParams({ path, images_only: String(imagesOnly) })
+export function browseDirectory(path: string): Promise<BrowseResult> {
+  const params = new URLSearchParams({ path })
   return apiFetch<BrowseResult>(`/system/browse?${params}`)
 }
 

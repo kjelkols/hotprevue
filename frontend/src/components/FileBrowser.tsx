@@ -8,10 +8,9 @@ interface Props {
   initialPath?: string
   onSelect: (path: string) => void
   trigger: React.ReactNode
-  imagesOnly?: boolean
 }
 
-export default function FileBrowser({ initialPath, onSelect, trigger, imagesOnly = true }: Props) {
+export default function FileBrowser({ initialPath, onSelect, trigger }: Props) {
   const [open, setOpen] = useState(false)
   const [path, setPath] = useState('')
 
@@ -33,8 +32,8 @@ export default function FileBrowser({ initialPath, onSelect, trigger, imagesOnly
   const resolvedPath = path === '' && shortcuts.length > 0 ? shortcuts[0].path : path
 
   const { data, isLoading } = useQuery({
-    queryKey: ['browse', resolvedPath, imagesOnly],
-    queryFn: () => browseDirectory(resolvedPath, imagesOnly),
+    queryKey: ['browse', resolvedPath],
+    queryFn: () => browseDirectory(resolvedPath),
     enabled: open,
   })
 
@@ -107,20 +106,14 @@ export default function FileBrowser({ initialPath, onSelect, trigger, imagesOnly
             ))}
 
             {isEmpty && (
-              <p className="py-8 text-center text-sm text-gray-600">
-                {imagesOnly ? 'Ingen bildefiler funnet' : 'Tom katalog'}
-              </p>
+              <p className="py-8 text-center text-sm text-gray-600">Tom katalog</p>
             )}
           </div>
 
           {/* Bunn */}
           <div className="shrink-0 flex items-center justify-between gap-2 px-4 py-3 border-t border-gray-800">
             <span className="text-xs text-gray-600">
-              {data && imagesOnly
-                ? `${data.files.length} bildefil${data.files.length !== 1 ? 'er' : ''} her`
-                : data
-                  ? `${data.dirs.length} mappe${data.dirs.length !== 1 ? 'r' : ''}`
-                  : ''}
+              {data ? `${data.dirs.length} mappe${data.dirs.length !== 1 ? 'r' : ''}` : ''}
             </span>
             <div className="flex gap-2">
               <Dialog.Close asChild>

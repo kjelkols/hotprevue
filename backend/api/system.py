@@ -79,23 +79,8 @@ class BrowseResult(BaseModel):
     files: list[BrowseFile]
 
 
-def _dir_has_images(dir_path: str, exts: set[str], depth: int = 0) -> bool:
-    if depth > 10:
-        return False
-    try:
-        with os.scandir(dir_path) as it:
-            for entry in it:
-                if entry.is_file() and Path(entry.path).suffix.lower() in exts:
-                    return True
-                if entry.is_dir(follow_symlinks=False) and _dir_has_images(entry.path, exts, depth + 1):
-                    return True
-    except OSError:
-        pass
-    return False
-
-
 @router.get("/browse", response_model=BrowseResult)
-def browse_directory(path: str = "", images_only: bool = True):
+def browse_directory(path: str = ""):
     p = Path(path) if path else Path.home()
     parent = str(p.parent) if p.parent != p else None
     image_exts = KNOWN_EXTENSIONS - {".xmp"}
@@ -107,8 +92,7 @@ def browse_directory(path: str = "", images_only: bool = True):
         entries = sorted(p.iterdir(), key=lambda e: (not e.is_dir(), e.name.lower()))
         for entry in entries:
             if entry.is_dir(follow_symlinks=False):
-                if not images_only or _dir_has_images(str(entry), image_exts):
-                    dirs.append(BrowseDir(name=entry.name, path=str(entry)))
+                dirs.append(BrowseDir(name=entry.name, path=str(entry)))
             elif entry.is_file() and entry.suffix.lower() in image_exts:
                 files.append(BrowseFile(
                     name=entry.name,
