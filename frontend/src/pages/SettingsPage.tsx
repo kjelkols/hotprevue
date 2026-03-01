@@ -269,7 +269,7 @@ function ShortcutsTab() {
   const createMut = useMutation({
     mutationFn: createShortcut,
     onSuccess: () => { setNewName(''); setNewPath(''); setCreateError(null); invalidate() },
-    onError: () => setCreateError('Kunne ikke lagre. Sjekk at backend kjører.'),
+    onError: (err) => setCreateError(err instanceof Error ? err.message : 'Ukjent feil'),
   })
   const patchMut = useMutation({
     mutationFn: ({ id, data }: { id: string; data: { name: string } }) => patchShortcut(id, data),
