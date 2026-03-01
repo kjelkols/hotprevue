@@ -91,7 +91,7 @@ def browse_directory(path: str = ""):
     try:
         entries = sorted(p.iterdir(), key=lambda e: (not e.is_dir(), e.name.lower()))
         for entry in entries:
-            if entry.is_dir(follow_symlinks=False):
+            if entry.is_dir():
                 dirs.append(BrowseDir(name=entry.name, path=str(entry)))
             elif entry.is_file() and entry.suffix.lower() in image_exts:
                 files.append(BrowseFile(
