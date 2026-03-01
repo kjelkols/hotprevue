@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { suggestName, startCopy, getCopyOperation, cancelCopyOperation, getCopySkips } from '../../api/fileCopy'
+import FileBrowser from '../../components/FileBrowser'
 import type { FileCopyOperation, FileCopySkip } from '../../types/api'
 
 interface Props {
@@ -67,11 +68,6 @@ export default function CopySection({ onCopyCompleted }: Props) {
     return () => { if (pollRef.current) clearInterval(pollRef.current) }
   }, [operation?.id, operation?.status])
 
-  async function pickDirectory(setter: (p: string) => void) {
-    const r = await fetch('/system/pick-directory', { method: 'POST' }).then(r => r.json())
-    if (r.path) setter(r.path)
-  }
-
   function handleNameKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Tab' && suggestion && dirName === '') {
       e.preventDefault()
@@ -114,18 +110,23 @@ export default function CopySection({ onCopyCompleted }: Props) {
         <label className="block text-sm font-medium text-gray-700 mb-1">Kilde</label>
         <div className="flex gap-2">
           <input
-            className="flex-1 rounded border border-gray-300 px-3 py-1.5 text-sm font-mono"
+            className="flex-1 rounded border border-gray-300 px-3 py-1.5 text-sm font-mono text-gray-800"
             value={sourcePath}
             onChange={e => setSourcePath(e.target.value)}
             placeholder="/Volumes/EOS_DIGITAL/DCIM"
             disabled={!!operation}
           />
-          <button
-            type="button"
-            className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40"
-            onClick={() => pickDirectory(setSourcePath)}
-            disabled={!!operation}
-          >Velg…</button>
+          <FileBrowser
+            initialPath={sourcePath}
+            onSelect={setSourcePath}
+            trigger={
+              <button
+                type="button"
+                className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+                disabled={!!operation}
+              >Velg…</button>
+            }
+          />
         </div>
         {scanning && <p className="mt-1 text-xs text-gray-500">Skanner kilde…</p>}
         {filesFound !== null && !scanning && (
@@ -140,24 +141,30 @@ export default function CopySection({ onCopyCompleted }: Props) {
         <label className="block text-sm font-medium text-gray-700 mb-1">Destinasjon</label>
         <div className="flex gap-2 mb-1">
           <input
-            className="flex-1 rounded border border-gray-300 px-3 py-1.5 text-sm font-mono"
+            className="flex-1 rounded border border-gray-300 px-3 py-1.5 text-sm font-mono text-gray-800"
             value={parentDir}
             onChange={e => setParentDir(e.target.value)}
             placeholder="/bilder"
             disabled={!!operation}
           />
-          <button
-            type="button"
-            className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40"
-            onClick={() => pickDirectory(setParentDir)}
-            disabled={!!operation}
-          >Velg…</button>
+          <FileBrowser
+            initialPath={parentDir}
+            onSelect={setParentDir}
+            imagesOnly={false}
+            trigger={
+              <button
+                type="button"
+                className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+                disabled={!!operation}
+              >Velg…</button>
+            }
+          />
         </div>
         <div className="flex gap-2 items-center">
           <span className="text-sm text-gray-400 select-none">/</span>
           <input
             ref={nameInputRef}
-            className="flex-1 rounded border border-gray-300 px-3 py-1.5 text-sm font-mono"
+            className="flex-1 rounded border border-gray-300 px-3 py-1.5 text-sm font-mono text-gray-800"
             value={dirName}
             onChange={e => setDirName(e.target.value)}
             onKeyDown={handleNameKeyDown}
@@ -181,7 +188,7 @@ export default function CopySection({ onCopyCompleted }: Props) {
           Enhetsnavn <span className="font-normal text-gray-400">(valgfritt)</span>
         </label>
         <input
-          className="w-full rounded border border-gray-300 px-3 py-1.5 text-sm"
+          className="w-full rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-800"
           value={deviceLabel}
           onChange={e => setDeviceLabel(e.target.value)}
           placeholder="Sony A7IV kort 1"

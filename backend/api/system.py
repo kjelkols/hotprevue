@@ -95,7 +95,7 @@ def _dir_has_images(dir_path: str, exts: set[str], depth: int = 0) -> bool:
 
 
 @router.get("/browse", response_model=BrowseResult)
-def browse_directory(path: str = ""):
+def browse_directory(path: str = "", images_only: bool = True):
     p = Path(path) if path else Path.home()
     parent = str(p.parent) if p.parent != p else None
     image_exts = KNOWN_EXTENSIONS - {".xmp"}
@@ -107,7 +107,7 @@ def browse_directory(path: str = ""):
         entries = sorted(p.iterdir(), key=lambda e: (not e.is_dir(), e.name.lower()))
         for entry in entries:
             if entry.is_dir(follow_symlinks=False):
-                if _dir_has_images(str(entry), image_exts):
+                if not images_only or _dir_has_images(str(entry), image_exts):
                     dirs.append(BrowseDir(name=entry.name, path=str(entry)))
             elif entry.is_file() and entry.suffix.lower() in image_exts:
                 files.append(BrowseFile(

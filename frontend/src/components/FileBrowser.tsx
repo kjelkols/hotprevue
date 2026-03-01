@@ -7,9 +7,10 @@ interface Props {
   initialPath?: string
   onSelect: (path: string) => void
   trigger: React.ReactNode
+  imagesOnly?: boolean
 }
 
-export default function FileBrowser({ initialPath, onSelect, trigger }: Props) {
+export default function FileBrowser({ initialPath, onSelect, trigger, imagesOnly = true }: Props) {
   const [open, setOpen] = useState(false)
   const [path, setPath] = useState('')
 
@@ -19,8 +20,8 @@ export default function FileBrowser({ initialPath, onSelect, trigger }: Props) {
   }
 
   const { data, isLoading } = useQuery({
-    queryKey: ['browse', path],
-    queryFn: () => browseDirectory(path),
+    queryKey: ['browse', path, imagesOnly],
+    queryFn: () => browseDirectory(path, imagesOnly),
     enabled: open,
   })
 
@@ -28,6 +29,8 @@ export default function FileBrowser({ initialPath, onSelect, trigger }: Props) {
     if (data) onSelect(data.path)
     setOpen(false)
   }
+
+  const isEmpty = data && !isLoading && data.dirs.length === 0 && data.files.length === 0
 
   return (
     <Dialog.Root open={open} onOpenChange={handleOpenChange}>
@@ -70,15 +73,21 @@ export default function FileBrowser({ initialPath, onSelect, trigger }: Props) {
               </div>
             ))}
 
-            {data && !isLoading && data.dirs.length === 0 && data.files.length === 0 && (
-              <p className="py-8 text-center text-sm text-gray-600">Ingen bildefiler funnet</p>
+            {isEmpty && (
+              <p className="py-8 text-center text-sm text-gray-600">
+                {imagesOnly ? 'Ingen bildefiler funnet' : 'Tom katalog'}
+              </p>
             )}
           </div>
 
           {/* Bunn */}
           <div className="shrink-0 flex items-center justify-between gap-2 px-4 py-3 border-t border-gray-800">
             <span className="text-xs text-gray-600">
-              {data ? `${data.files.length} bildefil${data.files.length !== 1 ? 'er' : ''} her` : ''}
+              {data && imagesOnly
+                ? `${data.files.length} bildefil${data.files.length !== 1 ? 'er' : ''} her`
+                : data
+                  ? `${data.dirs.length} mappe${data.dirs.length !== 1 ? 'r' : ''}`
+                  : ''}
             </span>
             <div className="flex gap-2">
               <Dialog.Close asChild>
