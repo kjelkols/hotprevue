@@ -260,3 +260,14 @@ export interface SuggestNameResult {
   bytes_total: number
 }
 
+// ─── Shortcuts ────────────────────────────────────────────────────────────────
+
+export interface Shortcut {
+  id: string
+  machine_id: string
+  name: string
+  path: string
+  position: number
+  created_at: string
+}
+

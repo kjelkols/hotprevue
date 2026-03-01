@@ -228,3 +228,34 @@ Alltid eksakt én rad. Opprettes automatisk ved første oppstart med standardver
 | `browse_buffer_size` | int | `100` | Antall photos per batch ved progressiv lasting i BrowseView. |
 | `coldpreview_max_px` | int | `1200` | Maks langside i piksler ved generering av coldpreview ved registrering. Påvirker ikke eksisterende coldpreviews. |
 | `coldpreview_quality` | int | `85` | JPEG-kvalitet for coldpreview ved registrering (1–100). Påvirker ikke eksisterende coldpreviews. Anbefalt: 85. |
+| `copy_verify_after_copy` | bool | `true` | SHA256-verifisering av hver fil etter kopiering. |
+| `copy_include_videos` | bool | `false` | Inkluder videofiler ved filkopiering. |
+
+---
+
+## Machine
+
+Én rad per maskin som har brukt databasen. Identifikatoren (`machine_id`) genereres lokalt ved første oppstart og lagres i `DATA_DIR/machine_id`.
+
+| Felt | Type | Standard | Beskrivelse |
+|---|---|---|---|
+| `machine_id` | UUID PK | lokalt generert | Immutabelt. Unik per maskin, overlever DB-rekreasjon. |
+| `machine_name` | string | `""` | Brukerdefinert navn, f.eks. `"Stue-PC"`. |
+| `settings` | JSONB | `{}` | Utvidbar JSONB for maskin-spesifikke innstillinger, f.eks. `default_photographer_id`. |
+| `last_seen_at` | datetime (nullable) | `null` | Oppdateres ved hver oppstart. |
+| `created_at` | datetime | auto | — |
+
+---
+
+## Shortcut
+
+Navngitte katalogsnarveier for en spesifikk maskin. Vises i filutforskeren (FileBrowser) og brukes som startpunkt. Seedes automatisk med «Hjemmeområde» ved nyinstallasjon.
+
+| Felt | Type | Standard | Beskrivelse |
+|---|---|---|---|
+| `id` | UUID PK | auto | — |
+| `machine_id` | UUID FK → machines | — | Snarveien tilhører én maskin. Slettes cascade. |
+| `name` | string | — | Visningsnavn, f.eks. `"Bilder"`. |
+| `path` | string | — | Absolutt filsti, f.eks. `/home/kjell/Bilder`. |
+| `position` | int | `0` | Sorteringsrekkefølge innen maskinen. |
+| `created_at` | datetime | auto | — |

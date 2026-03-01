@@ -6,6 +6,22 @@ Format: `## YYYY-MM-DD — Kort beskrivelse`
 
 ---
 
+## 2026-03-01 — Filkopiering og katalogsnarveier
+
+- Valgfritt kopieringssteg i registreringsprosessen: kopiér fra minnekort/ekstern kilde til destinasjon før skanning
+- `file_copy_operations` og `file_copy_skips` tabeller (migrasjon 0010)
+- `utils/file_copy.py`: kopieringsmotor med ThreadPoolExecutor, SHA256-verifisering, avbrytelse via `threading.Event`, EXIF-basert katalognavn-forslag (Tab-completion)
+- `GlobalSettings`: `copy_verify_after_copy` og `copy_include_videos`
+- FileBrowser: `imagesOnly`-prop — `false` viser alle kataloger uten bildefilter (brukes til destinasjonsvalg)
+- Backend `GET /system/browse` fikk `images_only`-param (default `true`)
+- Snarveier (migrasjon 0011): `shortcuts`-tabell med `machine_id`, `name`, `path`, `position`
+- `GET/POST/PATCH/DELETE /shortcuts` + `move-up`/`move-down`
+- Standardsnarvei «Hjemmeområde» seedes automatisk ved nyinstallasjon
+- FileBrowser viser snarveier som chips under navigasjonsheaderen; brukes som startpunkt
+- Ny innstillingsfane «Snarveier» med liste, inline navneredigering, rekkefølgestyring og legg-til-skjema
+
+---
+
 ## 2026-02-28 — Perceptual hashes
 
 - `photos.dct_perceptual_hash` og `photos.difference_hash` (BIGINT, migrasjon 0008) — 64-bit perceptual hashes beregnet fra hotpreview ved registrering

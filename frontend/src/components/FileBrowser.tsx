@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import * as Dialog from '@radix-ui/react-dialog'
 import { browseDirectory } from '../api/system'
+import { listShortcuts } from '../api/shortcuts'
 
 interface Props {
   initialPath?: string
@@ -14,14 +15,26 @@ export default function FileBrowser({ initialPath, onSelect, trigger, imagesOnly
   const [open, setOpen] = useState(false)
   const [path, setPath] = useState('')
 
+  const { data: shortcuts = [] } = useQuery({
+    queryKey: ['shortcuts'],
+    queryFn: listShortcuts,
+    enabled: open,
+  })
+
   function handleOpenChange(next: boolean) {
-    if (next) setPath(initialPath ?? '')
+    if (next) {
+      // Start at initialPath if set, otherwise first shortcut, otherwise home (backend decides)
+      setPath(initialPath ?? '')
+    }
     setOpen(next)
   }
 
+  // Once shortcuts load: if path is still empty, jump to the first shortcut
+  const resolvedPath = path === '' && shortcuts.length > 0 ? shortcuts[0].path : path
+
   const { data, isLoading } = useQuery({
-    queryKey: ['browse', path, imagesOnly],
-    queryFn: () => browseDirectory(path, imagesOnly),
+    queryKey: ['browse', resolvedPath, imagesOnly],
+    queryFn: () => browseDirectory(resolvedPath, imagesOnly),
     enabled: open,
   })
 
@@ -50,6 +63,26 @@ export default function FileBrowser({ initialPath, onSelect, trigger, imagesOnly
             </button>
             <p className="flex-1 text-xs text-gray-500 font-mono truncate" title={data?.path}>{data?.path ?? '…'}</p>
           </div>
+
+          {/* Snarveier */}
+          {shortcuts.length > 0 && (
+            <div className="shrink-0 flex gap-1.5 flex-wrap px-3 py-2 border-b border-gray-800">
+              {shortcuts.map(s => (
+                <button
+                  key={s.id}
+                  onClick={() => setPath(s.path)}
+                  title={s.path}
+                  className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                    data?.path === s.path
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white'
+                  }`}
+                >
+                  {s.name}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Liste */}
           <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
