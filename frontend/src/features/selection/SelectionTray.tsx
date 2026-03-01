@@ -8,6 +8,7 @@ export default function SelectionTray() {
   const selected = useSelectionStore(s => s.selected)
   const clear = useSelectionStore(s => s.clear)
   const activeCollectionId = useCollectionViewStore(s => s.activeCollectionId)
+  const activeCollectionName = useCollectionViewStore(s => s.activeCollectionName)
   const [modalOpen, setModalOpen] = useState(false)
 
   if (selected.size === 0) return null
@@ -30,8 +31,11 @@ export default function SelectionTray() {
 
         <div className="flex-1" />
 
-        {activeCollectionId && (
-          <CollectionInsertButton collectionId={activeCollectionId} />
+        {activeCollectionId && activeCollectionName && (
+          <CollectionInsertButton
+            collectionId={activeCollectionId}
+            collectionName={activeCollectionName}
+          />
         )}
 
         <button

@@ -2,12 +2,14 @@ import { create } from 'zustand'
 
 interface CollectionViewStore {
   activeCollectionId: string | null
-  setActiveCollectionId: (id: string | null) => void
+  activeCollectionName: string | null
+  setActiveCollection: (id: string | null, name: string | null) => void
 }
 
 const useCollectionViewStore = create<CollectionViewStore>()(set => ({
   activeCollectionId: null,
-  setActiveCollectionId: (id) => set({ activeCollectionId: id }),
+  activeCollectionName: null,
+  setActiveCollection: (id, name) => set({ activeCollectionId: id, activeCollectionName: name }),
 }))
 
 export default useCollectionViewStore

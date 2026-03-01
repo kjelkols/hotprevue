@@ -5,6 +5,7 @@ import { getCollection, deleteCollection } from '../api/collections'
 import { getBaseUrl } from '../api/client'
 import CollectionGrid from '../features/collection/CollectionGrid'
 import TextCardCreateDialog from '../features/collection/TextCardCreateDialog'
+import useCollectionViewStore from '../stores/useCollectionViewStore'
 
 export default function CollectionPage() {
   const { id } = useParams<{ id: string }>()
@@ -17,6 +18,18 @@ export default function CollectionPage() {
     queryFn: () => getCollection(id!),
     enabled: !!id,
   })
+
+  const activeCollectionId = useCollectionViewStore(s => s.activeCollectionId)
+  const setActiveCollection = useCollectionViewStore(s => s.setActiveCollection)
+  const isTarget = activeCollectionId === id
+
+  function toggleTarget() {
+    if (isTarget) {
+      setActiveCollection(null, null)
+    } else {
+      setActiveCollection(id!, collection?.name ?? '')
+    }
+  }
 
   const deleteMutation = useMutation({
     mutationFn: () => deleteCollection(id!),
@@ -49,6 +62,16 @@ export default function CollectionPage() {
         <span className="text-sm text-gray-500 shrink-0">
           {collection.item_count} element{collection.item_count !== 1 ? 'er' : ''}
         </span>
+        <button
+          onClick={toggleTarget}
+          className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors shrink-0 ${
+            isTarget
+              ? 'bg-blue-600 text-white hover:bg-blue-700'
+              : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+          }`}
+        >
+          {isTarget ? 'Mål ✓' : 'Sett som mål'}
+        </button>
         <button
           onClick={() => navigate(`/collections/${id}/present`)}
           className="rounded-lg bg-gray-800 px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-700 transition-colors shrink-0"
