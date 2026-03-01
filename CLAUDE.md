@@ -130,23 +130,6 @@ powershell -ExecutionPolicy Bypass -File "\\wsl$\Ubuntu-22.04\home\kjell\hotprev
 Zip-en inneholder: `backend/` (kildekode), `frontend/` (bygd), `uv.exe`, `Hotprevue.bat`.
 Brukeren dobbeltklikker på `Hotprevue.bat` — backend starter og nettleseren åpnes automatisk.
 
-## Bygge Windows NSIS-installer (alternativ)
-
-Kjøres fra **Windows PowerShell** (ikke WSL):
-
-```powershell
-# Steg 1: bygg backend-binær (PyInstaller)
-cd "\\wsl$\Ubuntu-22.04\home\kjell\hotprevue\backend"
-$env:UV_PROJECT_ENVIRONMENT = ".venv-win"
-uv run --python 3.12 --with pyinstaller pyinstaller hotprevue.spec
-
-# Steg 2: pakk og bygg installer
-powershell -ExecutionPolicy Bypass -File "\\wsl$\Ubuntu-22.04\home\kjell\hotprevue\build-installer.ps1"
-# Installer: frontend/dist-installer/Hotprevue Setup x.x.x.exe
-```
-
-**Merk:** Bygg alltid backend-binæren på Windows (PyInstaller lager platform-spesifikke binærer).
-Frontend må **ikke** npm-installeres fra WSL-filsystemet (Linux-symlenker brekker Windows npm).
 
 ## System API Endpoints
 

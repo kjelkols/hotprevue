@@ -206,11 +206,6 @@ cython_debug/
 # Next.js
 .next/
 
-# Electron
-/dist/
-/electron/dist/
-/electron/out/
-
 # Node.js
 node_modules/
 
