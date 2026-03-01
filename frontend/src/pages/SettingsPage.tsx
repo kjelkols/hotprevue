@@ -5,7 +5,7 @@ import { getSettings, patchGlobalSettings, patchMachineSettings } from '../api/s
 import { listPhotographers } from '../api/photographers'
 import { listShortcuts, createShortcut, patchShortcut, deleteShortcut, moveShortcutUp, moveShortcutDown } from '../api/shortcuts'
 import FileBrowser from '../components/FileBrowser'
-import { winToWsl } from '../utils/paths'
+
 
 // ─── Tab: Denne maskinen ──────────────────────────────────────────────────────
 
@@ -258,10 +258,9 @@ function ShortcutsTab() {
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['shortcuts'] })
 
   function handleNewPath(raw: string) {
-    const wsl = winToWsl(raw)
-    setNewPath(wsl)
+    setNewPath(raw)
     if (!newName) {
-      const last = wsl.replace(/\/+$/, '').split('/').at(-1) ?? ''
+      const last = raw.replace(/[/\\]+$/, '').split(/[/\\]/).at(-1) ?? ''
       if (last) setNewName(last)
     }
   }

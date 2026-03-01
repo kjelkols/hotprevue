@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { suggestName, startCopy, getCopyOperation, cancelCopyOperation, getCopySkips } from '../../api/fileCopy'
 import FileBrowser from '../../components/FileBrowser'
-import { winToWsl } from '../../utils/paths'
 import type { FileCopyOperation, FileCopySkip } from '../../types/api'
 
 interface Props {
@@ -113,7 +112,7 @@ export default function CopySection({ onCopyCompleted }: Props) {
           <input
             className="flex-1 rounded border border-gray-300 px-3 py-1.5 text-sm font-mono text-gray-800"
             value={sourcePath}
-            onChange={e => setSourcePath(winToWsl(e.target.value))}
+            onChange={e => setSourcePath(e.target.value)}
             placeholder="/Volumes/EOS_DIGITAL/DCIM"
             disabled={!!operation}
           />
@@ -144,7 +143,7 @@ export default function CopySection({ onCopyCompleted }: Props) {
           <input
             className="flex-1 rounded border border-gray-300 px-3 py-1.5 text-sm font-mono text-gray-800"
             value={parentDir}
-            onChange={e => setParentDir(winToWsl(e.target.value))}
+            onChange={e => setParentDir(e.target.value)}
             placeholder="/bilder"
             disabled={!!operation}
           />

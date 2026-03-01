@@ -7,7 +7,6 @@ import FileBrowser from '../../components/FileBrowser'
 import { getSettings } from '../../api/settings'
 import { linkCopyToSession } from '../../api/fileCopy'
 import CopySection from './CopySection'
-import { winToWsl } from '../../utils/paths'
 import type { FileGroup, ScanResult } from '../../types/api'
 
 interface Props {
@@ -56,7 +55,7 @@ export default function StepSetup({ onDone }: Props) {
   }
 
   function handleDirInput(raw: string) {
-    setDirPath(winToWsl(raw))
+    setDirPath(raw)
   }
 
   async function handleCreatePhotographer() {

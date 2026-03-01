@@ -110,9 +110,7 @@ make build-web
 
 **Merk:** `--reload` virker ikke med pgserver (socket-problem med subprocess).
 
-**WSL-utvikling med Windows-filer:** Katalogfeltet i registreringsveiviseren aksepterer
-Windows-stier direkte og konverterer automatisk: `C:\Bilder\Ferie` → `/mnt/c/Bilder/Ferie`.
-Tkinter-dialogen («Velg…»-knappen) fungerer bare skikkelig i zip-distribusjonen på Windows.
+**WSL-utvikling:** Bruk native WSL-stier (f.eks. `/mnt/c/Bilder`). Tkinter-dialogen («Velg…»-knappen) fungerer bare skikkelig i zip-distribusjonen på Windows.
 
 ## Bygge Windows zip-distribusjon (primær)
 
