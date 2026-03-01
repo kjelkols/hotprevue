@@ -1,5 +1,6 @@
 import uuid
-from datetime import datetime, timezone
+from collections import defaultdict
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from fastapi import HTTPException
@@ -10,6 +11,22 @@ from models.saved_search import SavedSearch
 from schemas.saved_search import SavedSearchCreate, SavedSearchPatch, SearchCriterion
 
 
+# ---------------------------------------------------------------------------
+# Base query (no eager loading – used by both execute and timeline)
+# ---------------------------------------------------------------------------
+
+def _base_query(db: Session, logic: str, criteria: list[SearchCriterion]):
+    q = db.query(Photo).filter(Photo.deleted_at.is_(None))
+    f = _build_filters(criteria, logic)
+    if f is not None:
+        q = q.filter(f)
+    return q
+
+
+# ---------------------------------------------------------------------------
+# Execute search
+# ---------------------------------------------------------------------------
+
 def execute(
     db: Session,
     logic: str,
@@ -17,19 +34,107 @@ def execute(
     sort: str = "taken_at_desc",
     limit: int = 100,
     offset: int = 0,
+    date_filter: str | None = None,
 ) -> list[Photo]:
     from services.photo_service import _apply_sort
 
-    q = db.query(Photo).options(selectinload(Photo.correction))
-    q = q.filter(Photo.deleted_at.is_(None))
+    q = _base_query(db, logic, criteria).options(selectinload(Photo.correction))
 
-    f = _build_filters(criteria, logic)
-    if f is not None:
-        q = q.filter(f)
+    # date_filter is always ANDed regardless of `logic` – see docs/decisions/006-timeline.md
+    if date_filter:
+        day_start = _parse_dt(date_filter).replace(hour=0, minute=0, second=0, microsecond=0)
+        day_end = day_start + timedelta(days=1)
+        q = q.filter(Photo.taken_at >= day_start, Photo.taken_at < day_end)
 
     q = _apply_sort(q, sort)
     return q.offset(offset).limit(limit).all()
 
+
+# ---------------------------------------------------------------------------
+# Timeline
+# ---------------------------------------------------------------------------
+
+def timeline(db: Session, logic: str, criteria: list[SearchCriterion]) -> list[dict]:
+    """Return a year→month→day tree for all dated photos matching the criteria.
+
+    Only photos with taken_at IS NOT NULL are included. Photos without a date
+    are excluded; the caller must handle them separately if needed.
+
+    Cover photo per node = newest photo in that node (taken_at DESC).
+    Grouping uses UTC dates from the stored taken_at value.
+    """
+    q = _base_query(db, logic, criteria)
+
+    # Lightweight fetch: only 3 columns, no ORM overhead for corrections etc.
+    rows = (
+        q.with_entities(Photo.hothash, Photo.hotpreview_b64, Photo.taken_at)
+        .filter(Photo.taken_at.isnot(None))
+        .order_by(Photo.taken_at.asc())  # ascending so last element = newest
+        .all()
+    )
+
+    if not rows:
+        return []
+
+    # Group by (year, month, day)
+    day_map: dict[tuple, list] = defaultdict(list)
+    for row in rows:
+        key = (row.taken_at.year, row.taken_at.month, row.taken_at.day)
+        day_map[key].append(row)
+
+    # Build nested structure – iterate keys newest-first so first-seen cover
+    # for each year/month is already the newest day's photo
+    year_map: dict[int, dict] = {}
+
+    for (year, month, day) in sorted(day_map.keys(), reverse=True):
+        day_rows = day_map[(year, month, day)]
+        cover = day_rows[-1]  # last in ascending list = newest photo
+        count = len(day_rows)
+
+        if year not in year_map:
+            year_map[year] = {"count": 0, "cover": cover, "months": {}}
+
+        ym = year_map[year]["months"]
+        if month not in ym:
+            ym[month] = {"count": 0, "cover": cover, "days": []}
+
+        year_map[year]["count"] += count
+        ym[month]["count"] += count
+        ym[month]["days"].append({
+            "day": day,
+            "count": count,
+            "cover_hothash": cover.hothash,
+            "cover_hotpreview_b64": cover.hotpreview_b64,
+        })
+
+    # Serialize – newest year/month first; days already in descending order
+    result = []
+    for year in sorted(year_map.keys(), reverse=True):
+        y = year_map[year]
+        months = []
+        for month in sorted(y["months"].keys(), reverse=True):
+            m = y["months"][month]
+            months.append({
+                "month": month,
+                "count": m["count"],
+                "cover_hothash": m["cover"].hothash,
+                "cover_hotpreview_b64": m["cover"].hotpreview_b64,
+                "days": m["days"],
+            })
+        result.append({
+            "year": year,
+            "count": y["count"],
+            "cover_hothash": y["cover"].hothash,
+            "cover_hotpreview_b64": y["cover"].hotpreview_b64,
+            "months": months,
+        })
+
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Filter builders
+# ---------------------------------------------------------------------------
 
 def _build_filters(criteria: list[SearchCriterion], logic: str):
     from sqlalchemy import and_, or_

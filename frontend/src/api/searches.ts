@@ -1,5 +1,5 @@
 import { apiFetch } from './client'
-import type { SavedSearch, SearchCriterion, PhotoListItem } from '../types/api'
+import type { SavedSearch, SearchCriterion, PhotoListItem, TimelineYear } from '../types/api'
 
 export interface ExecuteSearchRequest {
   logic: 'AND' | 'OR'
@@ -7,6 +7,8 @@ export interface ExecuteSearchRequest {
   sort?: string
   limit: number
   offset: number
+  /** Always ANDed with search expression. See docs/decisions/006-timeline.md */
+  date_filter?: string  // ISO date "YYYY-MM-DD"
 }
 
 export function listSearches(): Promise<SavedSearch[]> {
@@ -41,6 +43,16 @@ export function deleteSearch(id: string): Promise<void> {
 
 export function executeSearch(req: ExecuteSearchRequest): Promise<PhotoListItem[]> {
   return apiFetch<PhotoListItem[]>('/searches/execute', {
+    method: 'POST',
+    body: JSON.stringify(req),
+  })
+}
+
+export function fetchSearchTimeline(req: {
+  logic: 'AND' | 'OR'
+  criteria: SearchCriterion[]
+}): Promise<TimelineYear[]> {
+  return apiFetch<TimelineYear[]>('/searches/timeline', {
     method: 'POST',
     body: JSON.stringify(req),
   })

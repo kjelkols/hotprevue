@@ -268,6 +268,31 @@ export interface SuggestNameResult {
   bytes_total: number
 }
 
+// ─── Timeline ─────────────────────────────────────────────────────────────────
+
+export interface TimelineDay {
+  day: number
+  count: number
+  cover_hothash: string
+  cover_hotpreview_b64: string
+}
+
+export interface TimelineMonth {
+  month: number
+  count: number
+  cover_hothash: string
+  cover_hotpreview_b64: string
+  days: TimelineDay[]
+}
+
+export interface TimelineYear {
+  year: number
+  count: number
+  cover_hothash: string
+  cover_hotpreview_b64: string
+  months: TimelineMonth[]
+}
+
 // ─── Saved searches ───────────────────────────────────────────────────────────
 
 export interface SearchCriterion {
