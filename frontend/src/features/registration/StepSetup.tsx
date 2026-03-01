@@ -25,7 +25,7 @@ export default function StepSetup({ onDone }: Props) {
   const [notes, setNotes] = useState('')
   const [newPhotographerName, setNewPhotographerName] = useState('')
   const [creatingPhotographer, setCreatingPhotographer] = useState(false)
-  const [copyFiles, setCopyFiles] = useState(false)
+  const [sourceMode, setSourceMode] = useState<'manual' | 'copy'>('manual')
   const [copyOperationId, setCopyOperationId] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -45,6 +45,14 @@ export default function StepSetup({ onDone }: Props) {
       setPhotographerId(settingsData.machine.default_photographer_id)
     }
   }, [settingsData])
+
+  function handleModeChange(mode: 'manual' | 'copy') {
+    setSourceMode(mode)
+    if (mode === 'manual') {
+      setCopyOperationId(null)
+      setDirPath('')
+    }
+  }
 
   function handleDirInput(raw: string) {
     // Konverter Windows-stier til WSL-stier automatisk:
@@ -128,25 +136,69 @@ export default function StepSetup({ onDone }: Props) {
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-300">Katalog</label>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={dirPath}
-            onChange={e => handleDirInput(e.target.value)}
-            className="flex-1 rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-white outline-none focus:border-blue-500"
-            placeholder="Lim inn sti, f.eks. C:\Bilder\Ferie2025"
-          />
-          <FileBrowser
-            initialPath={dirPath}
-            onSelect={setDirPath}
-            trigger={
-              <button className="rounded-lg bg-gray-700 px-4 py-2 text-sm font-medium text-white hover:bg-gray-600">
-                Bla…
-              </button>
-            }
-          />
+        <label className="mb-2 block text-sm font-medium text-gray-300">Katalog</label>
+
+        <div className="mb-3 flex overflow-hidden rounded-lg border border-gray-700 text-sm">
+          <button
+            type="button"
+            onClick={() => handleModeChange('manual')}
+            disabled={!!copyOperationId}
+            className={`flex-1 px-3 py-1.5 transition-colors disabled:opacity-50 ${
+              sourceMode === 'manual' ? 'bg-gray-700 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'
+            }`}
+          >Velg katalog</button>
+          <button
+            type="button"
+            onClick={() => handleModeChange('copy')}
+            disabled={!!copyOperationId}
+            className={`flex-1 border-l border-gray-700 px-3 py-1.5 transition-colors disabled:opacity-50 ${
+              sourceMode === 'copy' ? 'bg-gray-700 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'
+            }`}
+          >Kopier fra kilde</button>
         </div>
+
+        {sourceMode === 'manual' && (
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={dirPath}
+              onChange={e => handleDirInput(e.target.value)}
+              className="flex-1 rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-white outline-none focus:border-blue-500"
+              placeholder="Lim inn sti, f.eks. C:\Bilder\Ferie2025"
+            />
+            <FileBrowser
+              initialPath={dirPath}
+              onSelect={setDirPath}
+              trigger={
+                <button className="rounded-lg bg-gray-700 px-4 py-2 text-sm font-medium text-white hover:bg-gray-600">
+                  Bla…
+                </button>
+              }
+            />
+          </div>
+        )}
+
+        {sourceMode === 'copy' && !copyOperationId && (
+          <CopySection
+            onCopyCompleted={(destPath, opId) => {
+              setDirPath(destPath)
+              setCopyOperationId(opId)
+            }}
+          />
+        )}
+
+        {sourceMode === 'copy' && copyOperationId && (
+          <div className="flex items-center gap-2 rounded-lg border border-green-700 bg-green-900/20 px-3 py-2 text-sm">
+            <span className="text-green-400">✓</span>
+            <span className="flex-1 truncate font-mono text-green-300">{dirPath}</span>
+            <button
+              type="button"
+              onClick={() => { setCopyOperationId(null); setDirPath('') }}
+              className="shrink-0 text-xs text-gray-400 hover:text-white"
+            >Nullstill</button>
+          </div>
+        )}
+
         <label className="mt-2 flex items-center gap-2 text-sm text-gray-400">
           <input
             type="checkbox"
@@ -156,27 +208,6 @@ export default function StepSetup({ onDone }: Props) {
           />
           Inkluder undermapper
         </label>
-      </div>
-
-      <div>
-        <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={copyFiles}
-            onChange={e => setCopyFiles(e.target.checked)}
-            className="rounded"
-            disabled={!!copyOperationId}
-          />
-          Kopier filer fra minnekort eller annen kilde
-        </label>
-        {copyFiles && (
-          <CopySection
-            onCopyCompleted={(destPath, opId) => {
-              setDirPath(destPath)
-              setCopyOperationId(opId)
-            }}
-          />
-        )}
       </div>
 
       <div>

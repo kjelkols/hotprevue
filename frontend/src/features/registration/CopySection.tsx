@@ -122,7 +122,7 @@ export default function CopySection({ onCopyCompleted }: Props) {
           />
           <button
             type="button"
-            className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-40"
+            className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40"
             onClick={() => pickDirectory(setSourcePath)}
             disabled={!!operation}
           >Velg…</button>
@@ -148,7 +148,7 @@ export default function CopySection({ onCopyCompleted }: Props) {
           />
           <button
             type="button"
-            className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-40"
+            className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40"
             onClick={() => pickDirectory(setParentDir)}
             disabled={!!operation}
           >Velg…</button>
