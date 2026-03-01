@@ -268,6 +268,24 @@ export interface SuggestNameResult {
   bytes_total: number
 }
 
+// ─── Saved searches ───────────────────────────────────────────────────────────
+
+export interface SearchCriterion {
+  field: string
+  operator: string
+  value?: unknown
+}
+
+export interface SavedSearch {
+  id: string
+  name: string
+  description: string | null
+  logic: 'AND' | 'OR'
+  criteria: SearchCriterion[]
+  created_at: string
+  updated_at: string
+}
+
 // ─── Shortcuts ────────────────────────────────────────────────────────────────
 
 export interface Shortcut {

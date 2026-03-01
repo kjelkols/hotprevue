@@ -5,6 +5,7 @@ const NAV = [
   { to: '/collections', label: 'Kolleksjoner',   end: false },
   { to: '/sessions',    label: 'Sesjoner',       end: false },
   { to: '/tags',        label: 'Tags',           end: false },
+  { to: '/searches',    label: 'Søk',            end: false },
 ] as const
 
 export default function TopNav() {

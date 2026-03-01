@@ -2,7 +2,7 @@ import { create } from 'zustand'
 
 export interface NavSource {
   id: string
-  type: 'event' | 'session' | 'tag'
+  type: 'event' | 'session' | 'tag' | 'search'
   label: string
   url: string
 }
