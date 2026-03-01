@@ -105,6 +105,7 @@ Coldpreview har ingen egen kolonne — stien beregnes fra `hothash` ved behov: `
 | `file_type` | string | `RAW`, `JPEG`, `TIFF`, `PNG`, `HEIC`, `XMP` |
 | `is_master` | bool | Kildefil for Photo sin hotpreview og EXIF (alltid false for XMP) |
 | `file_size_bytes` | bigint (nullable) | Filstørrelse ved registrering — brukes til filgjenkjenning ved filforflytting |
+| `file_content_hash` | text (nullable) | SHA256 hex av råbytene — eksakt byte-identitet, uavhengig av visuell prosessering |
 | `last_verified_at` | datetime (nullable) | Sist bekreftet tilgjengelig på disk |
 | `exif_data` | jsonb | Rå EXIF fra denne spesifikke filen — hvert ImageFile har egne data |
 | `width` | int (nullable) | Bildebredde i piksler |

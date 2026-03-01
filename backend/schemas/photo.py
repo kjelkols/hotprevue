@@ -14,6 +14,7 @@ class ImageFileSchema(BaseModel):
     file_type: str
     is_master: bool
     file_size_bytes: int | None
+    file_content_hash: str | None
     exif_data: dict
     width: int | None
     height: int | None

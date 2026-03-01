@@ -164,6 +164,7 @@ export interface ImageFileInfo {
   file_type: string
   is_master: boolean
   file_size_bytes: number | null
+  file_content_hash: string | null
   exif_data: Record<string, unknown>
   width: number | null
   height: number | null

@@ -110,6 +110,7 @@ class ImageFile(Base):
     file_type: Mapped[str] = mapped_column(String, nullable=False)  # RAW, JPEG, TIFF, PNG, HEIC, XMP
     is_master: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     file_size_bytes: Mapped[int | None] = mapped_column(BigInteger(), nullable=True)
+    file_content_hash: Mapped[str | None] = mapped_column(String, nullable=True)
     last_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Per-file EXIF and dimensions — populated at registration

@@ -1,5 +1,6 @@
 """InputSession service — create, check, register groups, complete."""
 
+import hashlib
 import tempfile
 import uuid
 from datetime import datetime, timezone
@@ -193,6 +194,7 @@ def register_group(
             file_type=meta.master_type,
             is_master=True,
             file_size_bytes=len(file_bytes),
+            file_content_hash=hashlib.sha256(file_bytes).hexdigest(),
             exif_data=master_exif,
             width=orig_w,
             height=orig_h,
@@ -213,10 +215,14 @@ def register_group(
                 except Exception:
                     pass
 
+            comp_size: int | None = None
+            comp_content_hash: str | None = None
             try:
-                comp_size: int | None = Path(comp.path).stat().st_size
+                comp_bytes = Path(comp.path).read_bytes()
+                comp_size = len(comp_bytes)
+                comp_content_hash = hashlib.sha256(comp_bytes).hexdigest()
             except OSError:
-                comp_size = None
+                pass
 
             db.add(ImageFile(
                 photo_id=photo.id,
@@ -224,6 +230,7 @@ def register_group(
                 file_type=comp.type,
                 is_master=False,
                 file_size_bytes=comp_size,
+                file_content_hash=comp_content_hash,
                 exif_data=comp_exif,
                 width=comp_w,
                 height=comp_h,

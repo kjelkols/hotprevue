@@ -201,6 +201,45 @@ def test_file_size_bytes_populated(client, real_image_dir):
         assert f["file_size_bytes"] > 0
 
 
+@pytest.mark.real_images
+def test_file_content_hash_populated(client, real_image_dir):
+    """ImageFile.file_content_hash (SHA256) is set for both master and companion."""
+    nef = real_image_dir / "nikon_d800.NEF"
+    jpeg = real_image_dir / "nikon_d800.JPG"
+    photographer_id = _create_photographer(client)
+    session_id = _create_session(client, photographer_id, str(real_image_dir))
+
+    r = _register_by_path(
+        client, session_id, nef, "RAW",
+        companions=[{"path": str(jpeg), "type": "JPEG"}],
+    )
+    hothash = r.json()["hothash"]
+
+    files = client.get(f"/photos/{hothash}/files").json()
+    for f in files:
+        assert f["file_content_hash"] is not None, f"{f['file_type']} has no file_content_hash"
+        assert len(f["file_content_hash"]) == 64, "SHA256 hex must be 64 chars"
+
+
+@pytest.mark.real_images
+def test_file_content_hash_differs_between_nef_and_jpeg(client, real_image_dir):
+    """NEF and JPEG are different files — their file_content_hash must differ."""
+    nef = real_image_dir / "nikon_d800.NEF"
+    jpeg = real_image_dir / "nikon_d800.JPG"
+    photographer_id = _create_photographer(client)
+    session_id = _create_session(client, photographer_id, str(real_image_dir))
+
+    r = _register_by_path(
+        client, session_id, nef, "RAW",
+        companions=[{"path": str(jpeg), "type": "JPEG"}],
+    )
+    hothash = r.json()["hothash"]
+
+    files = client.get(f"/photos/{hothash}/files").json()
+    hashes = [f["file_content_hash"] for f in files]
+    assert len(set(hashes)) == len(hashes), "Each file must have a unique file_content_hash"
+
+
 # ---------------------------------------------------------------------------
 # Previews
 # ---------------------------------------------------------------------------
