@@ -82,6 +82,11 @@ def compute_perceptual_hashes(jpeg_bytes: bytes) -> tuple[int, int]:
     img = Image.open(io.BytesIO(jpeg_bytes))
     dct = int(str(imagehash.phash(img)), 16)
     diff = int(str(imagehash.dhash(img)), 16)
+    # PostgreSQL BIGINT is signed 64-bit — convert unsigned values > 2^63
+    if dct >= 2**63:
+        dct -= 2**64
+    if diff >= 2**63:
+        diff -= 2**64
     return dct, diff
 
 
