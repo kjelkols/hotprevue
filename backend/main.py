@@ -64,7 +64,7 @@ import models.settings  # noqa: F401
 import models.file_copy  # noqa: F401
 import models.shortcut  # noqa: F401
 
-from api import collections, events, file_copy, input_sessions, photographers, photos, settings as settings_api, shortcuts, system, text_items  # noqa: E402
+from api import collections, events, file_copy, input_sessions, photographers, photos, settings as settings_api, shortcuts, system, tags, text_items  # noqa: E402
 app.include_router(photographers.router)
 app.include_router(events.router)
 app.include_router(input_sessions.router)
@@ -75,6 +75,7 @@ app.include_router(system.router)
 app.include_router(settings_api.router)
 app.include_router(file_copy.router)
 app.include_router(shortcuts.router)
+app.include_router(tags.router)
 
 # Statiske filer monteres sist slik at API-ruter tar prioritet
 if settings.hotprevue_frontend_dir:

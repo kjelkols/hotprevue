@@ -42,6 +42,11 @@ export interface BrowseResult {
 
 // ─── Backend API types ────────────────────────────────────────────────────────
 
+export interface Tag {
+  name: string
+  photo_count: number
+}
+
 export interface EventNode {
   id: string
   name: string

@@ -12,6 +12,7 @@ import RegisterPage from './pages/RegisterPage'
 import SessionsListPage from './pages/SessionsListPage'
 import EventsListPage from './pages/EventsListPage'
 import EventPage from './pages/EventPage'
+import TagsPage from './pages/TagsPage'
 import SettingsPage from './pages/SettingsPage'
 import ContextMenuOverlay from './components/ui/ContextMenuOverlay'
 import SelectionTray from './features/selection/SelectionTray'
@@ -52,6 +53,7 @@ export default function App() {
           <Route path="/sessions"        element={<SessionsListPage />} />
           <Route path="/events"          element={<EventsListPage />} />
           <Route path="/events/:id"      element={<EventPage />} />
+          <Route path="/tags"            element={<TagsPage />} />
           <Route path="/settings"        element={<SettingsPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

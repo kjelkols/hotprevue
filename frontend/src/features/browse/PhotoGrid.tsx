@@ -9,15 +9,16 @@ const LIMIT = 100
 interface Props {
   sessionId?: string
   eventId?: string
+  tag?: string
 }
 
-export default function PhotoGrid({ sessionId, eventId }: Props) {
+export default function PhotoGrid({ sessionId, eventId, tag }: Props) {
   const selectAll = useSelectionStore(s => s.selectAll)
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError } =
     useInfiniteQuery({
-      queryKey: ['photos', { sessionId, eventId }],
-      queryFn: ({ pageParam }) => listPhotos({ limit: LIMIT, offset: pageParam, sort: 'taken_at_desc', sessionId, eventId }),
+      queryKey: ['photos', { sessionId, eventId, tag }],
+      queryFn: ({ pageParam }) => listPhotos({ limit: LIMIT, offset: pageParam, sort: 'taken_at_desc', sessionId, eventId, tag }),
       initialPageParam: 0,
       getNextPageParam: (lastPage, _allPages, lastPageParam) => {
         if (lastPage.length < LIMIT) return undefined

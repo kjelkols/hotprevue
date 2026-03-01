@@ -2,14 +2,14 @@ import { create } from 'zustand'
 
 export interface NavSource {
   id: string
-  type: 'event' | 'session'
+  type: 'event' | 'session' | 'tag'
   label: string
   url: string
 }
 
 export interface NavTarget {
   id: string
-  type: 'event' | 'collection'
+  type: 'event' | 'collection' | 'tag'
   label: string
   url: string
 }

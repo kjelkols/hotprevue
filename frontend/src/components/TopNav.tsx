@@ -4,6 +4,7 @@ const NAV = [
   { to: '/events',      label: 'Events',         end: false },
   { to: '/collections', label: 'Kolleksjoner',   end: false },
   { to: '/sessions',    label: 'Sesjoner',       end: false },
+  { to: '/tags',        label: 'Tags',           end: false },
 ] as const
 
 export default function TopNav() {

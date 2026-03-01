@@ -8,23 +8,34 @@ export default function BrowsePage() {
   const [searchParams] = useSearchParams()
   const sessionId = searchParams.get('session_id') ?? undefined
   const eventId = searchParams.get('event_id') ?? undefined
-  const title = searchParams.get('title') ?? 'Utvalg'
+  const tag = searchParams.get('tag') ?? undefined
+  const title = searchParams.get('title') ?? tag ?? 'Utvalg'
 
   const addSource = useNavigationStore(s => s.addSource)
-  const isSource = useNavigationStore(s =>
-    sessionId ? s.sources.some(src => src.id === sessionId)
-    : eventId ? s.sources.some(src => src.id === eventId)
-    : false
-  )
+  const setTarget = useNavigationStore(s => s.setTarget)
+  const sources = useNavigationStore(s => s.sources)
+  const navTarget = useNavigationStore(s => s.target)
 
-  const sourceId = sessionId ?? eventId
-  const sourceType = sessionId ? 'session' : 'event'
+  const sourceId = tag ?? sessionId ?? eventId
+  const sourceType = tag ? 'tag' : sessionId ? 'session' : 'event'
+  const isSource = sourceId ? sources.some(s => s.id === sourceId) : false
+  const isTarget = sourceId ? navTarget?.id === sourceId : false
 
   function handleAddSource() {
     if (!sourceId) return
     addSource({
       id: sourceId,
-      type: sourceType as 'session' | 'event',
+      type: sourceType as 'session' | 'event' | 'tag',
+      label: title,
+      url: location.pathname + location.search,
+    })
+  }
+
+  function handleSetTarget() {
+    if (!sourceId || sourceType === 'session') return
+    setTarget({
+      id: sourceId,
+      type: sourceType as 'event' | 'tag',
       label: title,
       url: location.pathname + location.search,
     })
@@ -43,19 +54,33 @@ export default function BrowsePage() {
         {sourceId && (
           <button
             onClick={handleAddSource}
+            disabled={isTarget}
             className={`rounded-lg px-3 py-1.5 text-sm transition-colors shrink-0 ${
               isSource
                 ? 'bg-gray-600 text-white hover:bg-gray-500'
-                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                : 'bg-gray-800 text-gray-300 hover:bg-gray-700 disabled:opacity-40'
             }`}
           >
             {isSource ? 'Kilde ✓' : 'Sett som kilde'}
           </button>
         )}
+        {sourceId && sourceType !== 'session' && (
+          <button
+            onClick={handleSetTarget}
+            disabled={isSource}
+            className={`rounded-lg px-3 py-1.5 text-sm transition-colors shrink-0 ${
+              isTarget
+                ? 'bg-amber-700 text-white hover:bg-amber-600'
+                : 'bg-gray-800 text-gray-300 hover:bg-gray-700 disabled:opacity-40'
+            }`}
+          >
+            {isTarget ? 'Mål ✓' : 'Sett som mål'}
+          </button>
+        )}
       </div>
 
       <div className="p-4">
-        <PhotoGrid sessionId={sessionId} eventId={eventId} />
+        <PhotoGrid sessionId={sessionId} eventId={eventId} tag={tag} />
       </div>
     </div>
   )
