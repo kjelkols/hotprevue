@@ -69,6 +69,8 @@ export interface GlobalSettings {
   browse_buffer_size: number
   coldpreview_max_px: number
   coldpreview_quality: number
+  copy_verify_after_copy: boolean
+  copy_include_videos: boolean
 }
 
 export interface MachineSettings {
@@ -220,5 +222,41 @@ export interface CollectionItem {
   position: number
   caption: string | null
   notes: string | null           // presenter/speaker notes; shown in visningsmodus only
+}
+
+// ─── File copy ────────────────────────────────────────────────────────────────
+
+export interface FileCopyOperation {
+  id: string
+  source_path: string
+  destination_path: string
+  device_label: string | null
+  notes: string | null
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled'
+  files_total: number
+  files_copied: number
+  files_skipped: number
+  bytes_total: number
+  bytes_copied: number
+  verify_after_copy: boolean
+  include_videos: boolean
+  started_at: string
+  completed_at: string | null
+  error: string | null
+  input_session_id: string | null
+}
+
+export interface FileCopySkip {
+  id: string
+  operation_id: string
+  source_path: string
+  reason: 'already_exists' | 'hash_mismatch' | 'read_error' | 'write_error'
+  skipped_at: string
+}
+
+export interface SuggestNameResult {
+  suggested_name: string | null
+  files_found: number
+  bytes_total: number
 }
 

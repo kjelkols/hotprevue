@@ -175,6 +175,68 @@ function GeneralTab() {
   )
 }
 
+// ─── Tab: Filkopiering ────────────────────────────────────────────────────────
+
+function CopyTab() {
+  const queryClient = useQueryClient()
+  const { data: settings } = useQuery({ queryKey: ['settings'], queryFn: getSettings })
+
+  const [verifyAfterCopy, setVerifyAfterCopy] = useState(true)
+  const [includeVideos, setIncludeVideos] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    if (!settings) return
+    setVerifyAfterCopy(settings.global_.copy_verify_after_copy)
+    setIncludeVideos(settings.global_.copy_include_videos)
+  }, [settings])
+
+  const mutation = useMutation({
+    mutationFn: patchGlobalSettings,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings'] })
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    },
+  })
+
+  return (
+    <div className="space-y-5">
+      <label className="flex items-start gap-3 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={verifyAfterCopy}
+          onChange={e => setVerifyAfterCopy(e.target.checked)}
+          className="mt-0.5 rounded"
+        />
+        <div>
+          <p className="text-sm font-medium text-gray-300">Verifiser etter kopiering</p>
+          <p className="mt-0.5 text-xs text-gray-500">SHA256-sjekk av hver fil etter den er kopiert. Anbefales.</p>
+        </div>
+      </label>
+
+      <label className="flex items-start gap-3 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={includeVideos}
+          onChange={e => setIncludeVideos(e.target.checked)}
+          className="mt-0.5 rounded"
+        />
+        <div>
+          <p className="text-sm font-medium text-gray-300">Inkluder videofiler</p>
+          <p className="mt-0.5 text-xs text-gray-500">MP4, MOV, MXF og andre videoformater kopieres i tillegg til bilder.</p>
+        </div>
+      </label>
+
+      <SaveRow
+        onSave={() => mutation.mutate({ copy_verify_after_copy: verifyAfterCopy, copy_include_videos: includeVideos })}
+        pending={mutation.isPending}
+        saved={saved}
+      />
+    </div>
+  )
+}
+
 // ─── Placeholder-tabs ─────────────────────────────────────────────────────────
 
 function PlaceholderTab({ items }: { items: string[] }) {
@@ -216,6 +278,7 @@ function SaveRow({ onSave, pending, saved }: { onSave: () => void; pending: bool
 const TABS = [
   { id: 'machine',    label: 'Denne maskinen' },
   { id: 'general',   label: 'Generelt'        },
+  { id: 'copy',      label: 'Filkopiering'    },
   { id: 'images',    label: 'Bilder'          },
   { id: 'appearance',label: 'Utseende'        },
   { id: 'advanced',  label: 'Avansert'        },
@@ -250,6 +313,10 @@ export default function SettingsPage() {
 
           <Tabs.Content value="general" className="p-6 max-w-xl">
             <GeneralTab />
+          </Tabs.Content>
+
+          <Tabs.Content value="copy" className="p-6 max-w-xl">
+            <CopyTab />
           </Tabs.Content>
 
           <Tabs.Content value="images" className="p-6 max-w-xl">

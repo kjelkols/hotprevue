@@ -22,4 +22,6 @@ class SystemSettings(Base):
     browse_buffer_size: Mapped[int] = mapped_column(Integer, nullable=False, default=100)
     coldpreview_max_px: Mapped[int] = mapped_column(Integer, nullable=False, default=1200)
     coldpreview_quality: Mapped[int] = mapped_column(Integer, nullable=False, default=85)
+    copy_verify_after_copy: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    copy_include_videos: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     extra: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)

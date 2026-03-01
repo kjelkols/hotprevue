@@ -16,6 +16,8 @@ class GlobalSettingsOut(BaseModel):
     browse_buffer_size: int
     coldpreview_max_px: int
     coldpreview_quality: int
+    copy_verify_after_copy: bool
+    copy_include_videos: bool
 
 
 class GlobalSettingsPatch(BaseModel):
@@ -28,6 +30,8 @@ class GlobalSettingsPatch(BaseModel):
     browse_buffer_size: int | None = None
     coldpreview_max_px: int | None = None
     coldpreview_quality: int | None = None
+    copy_verify_after_copy: bool | None = None
+    copy_include_videos: bool | None = None
 
 
 class MachineSettingsOut(BaseModel):

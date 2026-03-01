@@ -5,6 +5,8 @@ import { createSession, checkPaths } from '../../api/inputSessions'
 import { scanDirectory } from '../../api/system'
 import FileBrowser from '../../components/FileBrowser'
 import { getSettings } from '../../api/settings'
+import { linkCopyToSession } from '../../api/fileCopy'
+import CopySection from './CopySection'
 import type { FileGroup, ScanResult } from '../../types/api'
 
 interface Props {
@@ -23,6 +25,8 @@ export default function StepSetup({ onDone }: Props) {
   const [notes, setNotes] = useState('')
   const [newPhotographerName, setNewPhotographerName] = useState('')
   const [creatingPhotographer, setCreatingPhotographer] = useState(false)
+  const [copyFiles, setCopyFiles] = useState(false)
+  const [copyOperationId, setCopyOperationId] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
@@ -91,6 +95,10 @@ export default function StepSetup({ onDone }: Props) {
         notes: notes.trim() || null,
       })
 
+      if (copyOperationId) {
+        await linkCopyToSession(copyOperationId, session.id)
+      }
+
       // Check which master paths are already known
       const masterPaths = scan.groups.map(g => g.master_path)
       const check = await checkPaths(session.id, masterPaths)
@@ -148,6 +156,27 @@ export default function StepSetup({ onDone }: Props) {
           />
           Inkluder undermapper
         </label>
+      </div>
+
+      <div>
+        <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={copyFiles}
+            onChange={e => setCopyFiles(e.target.checked)}
+            className="rounded"
+            disabled={!!copyOperationId}
+          />
+          Kopier filer fra minnekort eller annen kilde
+        </label>
+        {copyFiles && (
+          <CopySection
+            onCopyCompleted={(destPath, opId) => {
+              setDirPath(destPath)
+              setCopyOperationId(opId)
+            }}
+          />
+        )}
       </div>
 
       <div>
