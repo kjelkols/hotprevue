@@ -5,6 +5,7 @@ import { getSettings, patchGlobalSettings, patchMachineSettings } from '../api/s
 import { listPhotographers } from '../api/photographers'
 import { listShortcuts, createShortcut, patchShortcut, deleteShortcut, moveShortcutUp, moveShortcutDown } from '../api/shortcuts'
 import FileBrowser from '../components/FileBrowser'
+import { winToWsl } from '../utils/paths'
 
 // ─── Tab: Denne maskinen ──────────────────────────────────────────────────────
 
@@ -250,14 +251,25 @@ function ShortcutsTab() {
 
   const [newName, setNewName] = useState('')
   const [newPath, setNewPath] = useState('')
+  const [createError, setCreateError] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['shortcuts'] })
 
+  function handleNewPath(raw: string) {
+    const wsl = winToWsl(raw)
+    setNewPath(wsl)
+    if (!newName) {
+      const last = wsl.replace(/\/+$/, '').split('/').at(-1) ?? ''
+      if (last) setNewName(last)
+    }
+  }
+
   const createMut = useMutation({
     mutationFn: createShortcut,
-    onSuccess: () => { setNewName(''); setNewPath(''); invalidate() },
+    onSuccess: () => { setNewName(''); setNewPath(''); setCreateError(null); invalidate() },
+    onError: () => setCreateError('Kunne ikke lagre. Sjekk at backend kjører.'),
   })
   const patchMut = useMutation({
     mutationFn: ({ id, data }: { id: string; data: { name: string } }) => patchShortcut(id, data),
@@ -350,13 +362,13 @@ function ShortcutsTab() {
           <div className="flex gap-2">
             <input
               value={newPath}
-              onChange={e => setNewPath(e.target.value)}
+              onChange={e => handleNewPath(e.target.value)}
               placeholder="/home/bruker/Bilder"
               className="flex-1 rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white font-mono outline-none focus:border-blue-500"
             />
             <FileBrowser
               initialPath={newPath}
-              onSelect={setNewPath}
+              onSelect={p => handleNewPath(p)}
               imagesOnly={false}
               trigger={
                 <button
@@ -367,6 +379,7 @@ function ShortcutsTab() {
             />
           </div>
         </div>
+        {createError && <p className="text-sm text-red-400">{createError}</p>}
         <button
           onClick={() => createMut.mutate({ name: newName.trim(), path: newPath.trim() })}
           disabled={!newName.trim() || !newPath.trim() || createMut.isPending}
