@@ -5,7 +5,7 @@ import { getCollection, deleteCollection } from '../api/collections'
 import { getBaseUrl } from '../api/client'
 import CollectionGrid from '../features/collection/CollectionGrid'
 import TextCardCreateDialog from '../features/collection/TextCardCreateDialog'
-import useCollectionViewStore from '../stores/useCollectionViewStore'
+import useNavigationStore from '../stores/useNavigationStore'
 
 export default function CollectionPage() {
   const { id } = useParams<{ id: string }>()
@@ -13,22 +13,23 @@ export default function CollectionPage() {
   const queryClient = useQueryClient()
   const [textCardOpen, setTextCardOpen] = useState(false)
 
+  const setTarget = useNavigationStore(s => s.setTarget)
+  const isTarget = useNavigationStore(s => s.target?.id === id)
+
   const { data: collection, isLoading, isError } = useQuery({
     queryKey: ['collection', id],
     queryFn: () => getCollection(id!),
     enabled: !!id,
   })
 
-  const activeCollectionId = useCollectionViewStore(s => s.activeCollectionId)
-  const setActiveCollection = useCollectionViewStore(s => s.setActiveCollection)
-  const isTarget = activeCollectionId === id
-
   function toggleTarget() {
-    if (isTarget) {
-      setActiveCollection(null, null)
-    } else {
-      setActiveCollection(id!, collection?.name ?? '')
-    }
+    if (!collection) return
+    setTarget(isTarget ? null : {
+      id: id!,
+      type: 'collection',
+      label: collection.name,
+      url: `/collections/${id}`,
+    })
   }
 
   const deleteMutation = useMutation({
@@ -66,7 +67,7 @@ export default function CollectionPage() {
           onClick={toggleTarget}
           className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors shrink-0 ${
             isTarget
-              ? 'bg-blue-600 text-white hover:bg-blue-700'
+              ? 'bg-amber-700 text-white hover:bg-amber-600'
               : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
           }`}
         >

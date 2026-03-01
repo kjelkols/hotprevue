@@ -28,3 +28,10 @@ export function getPhoto(hothash: string): Promise<PhotoDetail> {
 export function computePerceptualHashes(): Promise<{ updated: number; already_computed: number }> {
   return apiFetch('/photos/compute-perceptual-hashes', { method: 'POST' })
 }
+
+export function assignEvent(hothashes: string[], eventId: string | null): Promise<{ updated: number }> {
+  return apiFetch<{ updated: number }>('/photos/batch/event', {
+    method: 'POST',
+    body: JSON.stringify({ hothashes, event_id: eventId }),
+  })
+}

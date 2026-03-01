@@ -45,9 +45,12 @@ export interface BrowseResult {
 export interface EventNode {
   id: string
   name: string
-  parent_id: string | null
+  description: string | null
+  date: string | null
+  location: string | null
+  cover_hothash: string | null
+  created_at: string
   photo_count: number
-  children: EventNode[]
 }
 
 export interface Photographer {

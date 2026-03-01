@@ -11,6 +11,7 @@ export interface SelectionSlice {
   selectOnly: (id: string) => void
   toggleOne: (id: string) => void
   selectRange: (id: string, orderedIds: string[]) => void
+  selectAll: (ids: string[]) => void
   clear: () => void
 }
 
@@ -42,6 +43,9 @@ export function createSelectionSlice(set: AnySet): SelectionSlice {
         const to = Math.max(anchorIndex, targetIndex)
         return { selected: new Set(orderedIds.slice(from, to + 1)) }
       }),
+
+    selectAll: (ids) =>
+      set(() => ({ selected: new Set(ids), anchor: ids[ids.length - 1] ?? null })),
 
     clear: () =>
       set(() => ({ selected: new Set<string>(), anchor: null })),

@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   DndContext, closestCenter, PointerSensor, KeyboardSensor,
@@ -6,7 +5,6 @@ import {
 } from '@dnd-kit/core'
 import { SortableContext, sortableKeyboardCoordinates, rectSortingStrategy, arrayMove } from '@dnd-kit/sortable'
 import { getCollectionItems, reorderCollectionItems } from '../../api/collections'
-import useCollectionViewStore from '../../stores/useCollectionViewStore'
 import CollectionItemCell from './CollectionItemCell'
 
 interface Props {
@@ -15,17 +13,11 @@ interface Props {
 
 export default function CollectionGrid({ collectionId }: Props) {
   const queryClient = useQueryClient()
-  const setActiveCollectionId = useCollectionViewStore(s => s.setActiveCollectionId)
 
   const { data: items = [], isLoading, isError } = useQuery({
     queryKey: ['collection-items', collectionId],
     queryFn: () => getCollectionItems(collectionId),
   })
-
-  useEffect(() => {
-    setActiveCollectionId(collectionId)
-    return () => setActiveCollectionId(null)
-  }, [collectionId, setActiveCollectionId])
 
   const reorderMutation = useMutation({
     mutationFn: (itemIds: string[]) => reorderCollectionItems(collectionId, itemIds),

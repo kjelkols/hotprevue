@@ -1,6 +1,8 @@
+import { useEffect } from 'react'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { listPhotos } from '../../api/photos'
 import PhotoThumbnail from './PhotoThumbnail'
+import useSelectionStore from '../../stores/useSelectionStore'
 
 const LIMIT = 100
 
@@ -10,6 +12,8 @@ interface Props {
 }
 
 export default function PhotoGrid({ sessionId, eventId }: Props) {
+  const selectAll = useSelectionStore(s => s.selectAll)
+
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError } =
     useInfiniteQuery({
       queryKey: ['photos', { sessionId, eventId }],
@@ -20,6 +24,22 @@ export default function PhotoGrid({ sessionId, eventId }: Props) {
         return (lastPageParam as number) + LIMIT
       },
     })
+
+  const photos = data?.pages.flat() ?? []
+  const orderedHashes = photos.map(p => p.hothash)
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+        const tag = (e.target as HTMLElement).tagName
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+        e.preventDefault()
+        selectAll(orderedHashes)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [orderedHashes, selectAll])
 
   if (isLoading) {
     return (
@@ -37,12 +57,9 @@ export default function PhotoGrid({ sessionId, eventId }: Props) {
     )
   }
 
-  const photos = data?.pages.flat() ?? []
-  const orderedHashes = photos.map(p => p.hothash)
-
   return (
     <div>
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-1">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-1 select-none">
         {photos.map(photo => (
           <PhotoThumbnail key={photo.hothash} photo={photo} orderedHashes={orderedHashes} />
         ))}

@@ -10,7 +10,6 @@ class EventCreate(BaseModel):
     description: str | None = None
     date: dt_date | None = None
     location: str | None = None
-    parent_id: uuid.UUID | None = None
 
 
 class EventPatch(BaseModel):
@@ -18,7 +17,6 @@ class EventPatch(BaseModel):
     description: str | None = None
     date: dt_date | None = None
     location: str | None = None
-    parent_id: uuid.UUID | None = None
     cover_hothash: str | None = None
 
 
@@ -30,11 +28,6 @@ class EventOut(BaseModel):
     description: str | None
     date: dt_date | None
     location: str | None
-    parent_id: uuid.UUID | None
     cover_hothash: str | None
     created_at: datetime
     photo_count: int = 0
-
-
-class EventTree(EventOut):
-    children: list[EventOut] = []
