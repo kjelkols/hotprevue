@@ -1,7 +1,6 @@
 import { NavLink, Link } from 'react-router-dom'
 
 const NAV = [
-  { to: '/browse',      label: 'Utvalg',        end: true  },
   { to: '/events',      label: 'Events',         end: false },
   { to: '/collections', label: 'Kolleksjoner',   end: false },
   { to: '/sessions',    label: 'Sesjoner',       end: false },
