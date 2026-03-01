@@ -8,6 +8,7 @@ import PhotoDetailPage from './pages/PhotoDetailPage'
 import CollectionsListPage from './pages/CollectionsListPage'
 import CollectionPage from './pages/CollectionPage'
 import CollectionPresentPage from './pages/CollectionPresentPage'
+import RegisterPage from './pages/RegisterPage'
 import SessionsListPage from './pages/SessionsListPage'
 import EventsListPage from './pages/EventsListPage'
 import SettingsPage from './pages/SettingsPage'
@@ -40,6 +41,7 @@ export default function App() {
     <HashRouter>
       <Routes>
         <Route path="/collections/:id/present" element={<CollectionPresentPage />} />
+        <Route path="/register" element={<RegisterPage />} />
         <Route element={<AppLayout />}>
           <Route path="/"                element={<HomePage />} />
           <Route path="/browse"          element={<BrowsePage />} />

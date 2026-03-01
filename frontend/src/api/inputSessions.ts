@@ -66,3 +66,7 @@ export function completeSession(sessionId: string): Promise<ProcessResult> {
     method: 'POST'
   })
 }
+
+export function deleteSession(sessionId: string): Promise<void> {
+  return apiFetch<void>(`/input-sessions/${sessionId}`, { method: 'DELETE' })
+}
