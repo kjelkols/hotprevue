@@ -88,10 +88,32 @@ def _find_frontend_dir() -> Path | None:
         p = Path(settings.hotprevue_frontend_dir)
         if p.exists():
             return p
-    auto = Path(__file__).parent.parent / "frontend"
-    if (auto / "index.html").exists():
-        return auto
+    # Relativ til main.py (løst til absolutt sti)
+    for candidate in [
+        Path(__file__).resolve().parent.parent / "frontend",
+        Path.cwd().parent / "frontend",
+    ]:
+        if (candidate / "index.html").exists():
+            return candidate
     return None
+
+
+@app.get("/api/debug/frontend")
+def debug_frontend():
+    """Midlertidig diagnostikkendepunkt — viser hvor backenden leter etter frontend."""
+    base = Path(__file__).resolve().parent.parent
+    cwd_base = Path.cwd().parent
+    return {
+        "hotprevue_frontend_dir": settings.hotprevue_frontend_dir,
+        "main_py": str(Path(__file__).resolve()),
+        "auto_path": str(base / "frontend"),
+        "auto_path_exists": (base / "frontend").exists(),
+        "auto_index_exists": (base / "frontend" / "index.html").exists(),
+        "cwd_path": str(cwd_base / "frontend"),
+        "cwd_index_exists": (cwd_base / "frontend" / "index.html").exists(),
+        "resolved": str(_frontend_dir) if _frontend_dir else None,
+    }
+
 
 _frontend_dir = _find_frontend_dir()
 if _frontend_dir:
