@@ -5,8 +5,8 @@ export interface ExecuteSearchRequest {
   logic: 'AND' | 'OR'
   criteria: SearchCriterion[]
   sort?: string
-  limit: number
-  offset: number
+  limit?: number
+  offset?: number
   /** Always ANDed with search expression. See docs/decisions/006-timeline.md */
   date_filter?: string  // ISO date "YYYY-MM-DD"
 }
@@ -48,12 +48,21 @@ export function executeSearch(req: ExecuteSearchRequest): Promise<PhotoListItem[
   })
 }
 
-export function fetchSearchTimeline(req: {
-  logic: 'AND' | 'OR'
-  criteria: SearchCriterion[]
+export function fetchTimeline(req: {
+  sessionId?: string
+  eventId?: string
+  tag?: string
+  logic?: 'AND' | 'OR'
+  criteria?: SearchCriterion[]
 }): Promise<TimelineYear[]> {
   return apiFetch<TimelineYear[]>('/searches/timeline', {
     method: 'POST',
-    body: JSON.stringify(req),
+    body: JSON.stringify({
+      logic: req.logic ?? 'AND',
+      criteria: req.criteria ?? [],
+      session_id: req.sessionId ?? null,
+      event_id: req.eventId ?? null,
+      tags: req.tag ? [req.tag] : [],
+    }),
   })
 }

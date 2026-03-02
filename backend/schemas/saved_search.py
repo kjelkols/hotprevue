@@ -52,6 +52,9 @@ class ExecuteSearchRequest(BaseModel):
 class TimelineRequest(BaseModel):
     logic: str = "AND"
     criteria: list[SearchCriterion] = []
+    session_id: uuid.UUID | None = None
+    event_id: uuid.UUID | None = None
+    tags: list[str] = []
 
 
 class TimelineDay(BaseModel):

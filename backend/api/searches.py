@@ -35,7 +35,12 @@ def execute_search(req: ExecuteSearchRequest, db: Session = Depends(get_db)):
 
 @router.post("/timeline", response_model=list[TimelineYear])
 def search_timeline(req: TimelineRequest, db: Session = Depends(get_db)):
-    return search_service.timeline(db, req.logic, req.criteria)
+    return search_service.timeline(
+        db, req.logic, req.criteria,
+        session_id=req.session_id,
+        event_id=req.event_id,
+        tags=req.tags or None,
+    )
 
 
 @router.get("/{search_id}", response_model=SavedSearchOut)

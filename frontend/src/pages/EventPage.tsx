@@ -4,6 +4,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getEvent, patchEvent, deleteEvent } from '../api/events'
 import useNavigationStore from '../stores/useNavigationStore'
 import PhotoGrid from '../features/browse/PhotoGrid'
+import PhotoTimeline from '../features/browse/PhotoTimeline'
+import ViewToggle from '../components/ViewToggle'
+import { usePhotoSource } from '../hooks/usePhotoSource'
 
 export default function EventPage() {
   const { id } = useParams<{ id: string }>()
@@ -12,11 +15,14 @@ export default function EventPage() {
   const queryClient = useQueryClient()
   const [editing, setEditing] = useState(false)
   const [editName, setEditName] = useState('')
+  const [view, setView] = useState<'grid' | 'timeline'>('grid')
 
   const addSource = useNavigationStore(s => s.addSource)
   const setTarget = useNavigationStore(s => s.setTarget)
   const isSource = useNavigationStore(s => s.sources.some(src => src.id === id))
   const isTarget = useNavigationStore(s => s.target?.id === id)
+
+  const photoSource = usePhotoSource({ eventId: id })
 
   const { data: event, isLoading, isError } = useQuery({
     queryKey: ['event', id],
@@ -104,6 +110,7 @@ export default function EventPage() {
               )}
             </div>
             <span className="text-sm text-gray-500 shrink-0">{event.photo_count} bilder</span>
+            <ViewToggle view={view} onChange={setView} />
             <button
               onClick={handleAddSource}
               disabled={isTarget}
@@ -145,7 +152,10 @@ export default function EventPage() {
       </div>
 
       <div className="p-4">
-        <PhotoGrid eventId={id} />
+        {view === 'grid'
+          ? <PhotoGrid {...photoSource} />
+          : <PhotoTimeline key={id} eventId={id} />
+        }
       </div>
     </div>
   )

@@ -47,7 +47,7 @@ def list_photos(
     taken_before: datetime | None = None,
     deleted: bool = False,
     sort: str = "taken_at_desc",
-    limit: int = Query(default=100, le=1000),
+    limit: int = Query(default=100, le=10000),
     offset: int = 0,
 ):
     photos = photo_service.list_photos(

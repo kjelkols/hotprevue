@@ -15,11 +15,25 @@ from schemas.saved_search import SavedSearchCreate, SavedSearchPatch, SearchCrit
 # Base query (no eager loading – used by both execute and timeline)
 # ---------------------------------------------------------------------------
 
-def _base_query(db: Session, logic: str, criteria: list[SearchCriterion]):
+def _base_query(
+    db: Session,
+    logic: str,
+    criteria: list[SearchCriterion],
+    session_id=None,
+    event_id=None,
+    tags: list[str] | None = None,
+):
     q = db.query(Photo).filter(Photo.deleted_at.is_(None))
     f = _build_filters(criteria, logic)
     if f is not None:
         q = q.filter(f)
+    if session_id is not None:
+        q = q.filter(Photo.input_session_id == session_id)
+    if event_id is not None:
+        q = q.filter(Photo.event_id == event_id)
+    if tags:
+        for tag in tags:
+            q = q.filter(Photo.tags.contains([tag]))
     return q
 
 
@@ -54,7 +68,14 @@ def execute(
 # Timeline
 # ---------------------------------------------------------------------------
 
-def timeline(db: Session, logic: str, criteria: list[SearchCriterion]) -> list[dict]:
+def timeline(
+    db: Session,
+    logic: str,
+    criteria: list[SearchCriterion],
+    session_id=None,
+    event_id=None,
+    tags: list[str] | None = None,
+) -> list[dict]:
     """Return a year→month→day tree for all dated photos matching the criteria.
 
     Only photos with taken_at IS NOT NULL are included. Photos without a date
@@ -63,7 +84,7 @@ def timeline(db: Session, logic: str, criteria: list[SearchCriterion]) -> list[d
     Cover photo per node = newest photo in that node (taken_at DESC).
     Grouping uses UTC dates from the stored taken_at value.
     """
-    q = _base_query(db, logic, criteria)
+    q = _base_query(db, logic, criteria, session_id=session_id, event_id=event_id, tags=tags)
 
     # Lightweight fetch: only 3 columns, no ORM overhead for corrections etc.
     rows = (

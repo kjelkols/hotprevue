@@ -85,6 +85,8 @@ export interface MachineSettings {
   machine_id: string
   machine_name: string
   default_photographer_id: string | null
+  photo_limit: number
+  infinite_scroll: boolean
 }
 
 export interface Settings {

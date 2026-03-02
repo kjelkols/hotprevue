@@ -120,12 +120,12 @@ Frittstående vindu med avkryssede bilder og handlingsverktøylinje. Åpnes fra 
 
 ## Lasting og scrolling
 
-BrowseView bruker **progressiv lasting** — kontinuerlig scroll uten separate sider, som Windows Explorer.
+PhotoGrid bruker **paginert lasting** via `usePhotoSource`-hooken.
 
-- Initial last: `browse_buffer_size` photos (innstilling i SystemSettings, standard 100)
-- Neste batch lastes automatisk når brukeren scroller nær bunnen (`IntersectionObserver`)
+- `photo_limit` (maskin-innstilling, standard 1000) bestemmer antall bilder per batch
+- `infinite_scroll` (maskin-innstilling, standard false): automatisk laste neste batch via `IntersectionObserver` ved bunnen av grid, eller manuell «Last inn mer»-knapp
+- `useInfiniteQuery` i `usePhotoSource` håndterer batching og caching — ikke i `PhotoGrid` selv
 - Allerede lastede photos forblir i DOM
-- React Query `useInfiniteQuery` håndterer batching og caching
 
 **Virtualisering** (TanStack Virtual) legges til som ytelsesoptimering ved behov — ingen arkitekturendring kreves siden hotpreviews har fast størrelse (150×150px).
 

@@ -38,11 +38,15 @@ class MachineSettingsOut(BaseModel):
     machine_id: uuid.UUID
     machine_name: str
     default_photographer_id: uuid.UUID | None
+    photo_limit: int
+    infinite_scroll: bool
 
 
 class MachineSettingsPatch(BaseModel):
     machine_name: str | None = None
     default_photographer_id: uuid.UUID | None = None
+    photo_limit: int | None = None
+    infinite_scroll: bool | None = None
 
 
 class SettingsOut(BaseModel):

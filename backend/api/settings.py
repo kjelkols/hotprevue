@@ -34,6 +34,8 @@ def _machine_to_out(machine: Machine) -> MachineSettingsOut:
         machine_id=machine.machine_id,
         machine_name=machine.machine_name,
         default_photographer_id=machine.settings.get("default_photographer_id"),
+        photo_limit=machine.settings.get("photo_limit", 1000),
+        infinite_scroll=machine.settings.get("infinite_scroll", False),
     )
 
 
@@ -64,15 +66,19 @@ def patch_global_settings(body: GlobalSettingsPatch, db: Session = Depends(get_d
 @router.patch("/machine", response_model=MachineSettingsOut)
 def patch_machine_settings(body: MachineSettingsPatch, db: Session = Depends(get_db)):
     machine = _get_machine(db)
+    settings = dict(machine.settings)
     if body.machine_name is not None:
         machine.machine_name = body.machine_name
     if "default_photographer_id" in body.model_fields_set:
-        settings = dict(machine.settings)
         if body.default_photographer_id is not None:
             settings["default_photographer_id"] = str(body.default_photographer_id)
         else:
             settings.pop("default_photographer_id", None)
-        machine.settings = settings
+    if body.photo_limit is not None:
+        settings["photo_limit"] = body.photo_limit
+    if body.infinite_scroll is not None:
+        settings["infinite_scroll"] = body.infinite_scroll
+    machine.settings = settings
     db.commit()
     db.refresh(machine)
     return _machine_to_out(machine)

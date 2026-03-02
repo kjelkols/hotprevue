@@ -9,7 +9,7 @@ BrowseView og CollectionView ser identiske ut (150×150 hotpreview-grid, blå se
 | Elementtype | `PhotoListItem` | `CollectionItem` (foto eller tekstkort) |
 | Seleksjonsidentitet | `hothash` | `CollectionItem.id` (UUID) |
 | Rekkefølge | Server-bestemt (sorteringsparameter) | Brukerbestemt (eksplisitt `position`) |
-| Lasting | Infinitt (100 om gangen, `useInfiniteQuery`) | Full liste én gang (`useQuery`) |
+| Lasting | Via `usePhotoSource` (paginert med `useInfiniteQuery`, limit fra maskin-innstillinger) | Full liste én gang (`useQuery`) |
 | Reorganisering | Ikke mulig | Drag-to-reorder (dnd-kit) |
 | Ekstraelementer | Ingen | InsertionPoint, tekstkort |
 | Caption | Ingen | Per-element (nullable) |
@@ -64,9 +64,14 @@ InsertionPoint rendres som en full 150×150 celle med dashed-border og pluss-iko
 components/ui/
   ThumbnailShell.tsx          ← Delt visuell primitiv (img, ring, hake, overlay)
 
+components/
+  ViewToggle.tsx              ← Grid-variant-dropdown + Tidslinje-knapp
+  GridVariantDropdown.tsx     ← Dropdown for valg av grid-variant (Standard, Dato, …)
+
 features/browse/
-  PhotoGrid.tsx               ← Infinitt query, sort-kontroller
+  PhotoGrid.tsx               ← Ren renderer: photos[], hasMore, onLoadMore, …
   PhotoThumbnail.tsx          ← Bruker ThumbnailShell; hothash-seleksjon
+  PhotoTimeline.tsx           ← Tre-tidslinje (år→måned→dag); alternativt view
 
 features/collection/
   CollectionGrid.tsx          ← Full liste, DndContext + SortableContext
@@ -74,13 +79,60 @@ features/collection/
   InsertionPoint.tsx          ← 150×150 dashed-celle — cursor for innsetting
   TextCard.tsx                ← Tekstkort-celle (is_text_card = true)
 
+hooks/
+  usePhotoSource.ts           ← useInfiniteQuery for alle datakilder; limit fra innstillinger
+
 stores/
   useSelectionStore.ts        ← Photo-seleksjon (hothashes) + createSelectionSlice
   useCollectionViewStore.ts   ← CollectionItem-seleksjon (UUIDs) + InsertionPoint
+  useViewStore.ts             ← Grid-variant (persist → localStorage)
 
 lib/
   selectionSlice.ts           ← createSelectionSlice(set) — delt logikk
+  groupByDate.ts              ← Grupperer PhotoListItem[] etter UTC-dato
 ```
+
+---
+
+## PhotoGrid — dataflyt
+
+```
+Side (EventPage / BrowsePage / SearchPage)
+  │
+  ├── usePhotoSource({ eventId / sessionId / tag / criteria / … })
+  │     ├── useQuery(['settings']) → photo_limit, infinite_scroll
+  │     └── useInfiniteQuery → photos[], hasMore, loadMore, isFetchingMore
+  │
+  ├── useViewStore → gridVariant ('standard' | 'dato')
+  │
+  └── <ViewToggle view onChange />          ← i side-header
+        ├── <GridVariantDropdown />         ← skriver til useViewStore
+        └── <button>Tidslinje</button>      ← bytter view-state lokalt i siden
+  │
+  ├── view === 'grid'  → <PhotoGrid {...source} />
+  │     └── gridVariant === 'dato' → groupByDate(photos) med dato-headere
+  │
+  └── view === 'timeline' → <PhotoTimeline key={…} sessionId/eventId/tag/criteria />
+        └── dag-klikk → <TimelineDayView …>
+              └── usePhotoSource({ …, dateFilter }) → <PhotoGrid />
+```
+
+### Datakilde-parametre i usePhotoSource
+
+| Modus | Props | API-kall |
+|---|---|---|
+| Browse | `sessionId` / `eventId` / `tag` | `GET /photos` |
+| Søk | `criteria` + `logic` | `POST /searches/execute` |
+| Tidslinje-dag | + `dateFilter` | `POST /searches/execute` med `date_filter` |
+
+### Grid-varianter
+
+`useViewStore` er autoritativ for visningsvalg. Nye varianter legges til i `GRID_VARIANTS`-arrayen og håndteres i `PhotoGrid`:
+
+| Variant | Beskrivelse |
+|---|---|
+| `standard` | Ren bildeflyt uten tekst |
+| `dato` | Bilder gruppert etter UTC-dato med dato-headere |
 
 ---
 

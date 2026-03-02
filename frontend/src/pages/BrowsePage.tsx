@@ -1,5 +1,9 @@
+import { useState } from 'react'
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import PhotoGrid from '../features/browse/PhotoGrid'
+import PhotoTimeline from '../features/browse/PhotoTimeline'
+import ViewToggle from '../components/ViewToggle'
+import { usePhotoSource } from '../hooks/usePhotoSource'
 import useNavigationStore from '../stores/useNavigationStore'
 
 export default function BrowsePage() {
@@ -10,6 +14,9 @@ export default function BrowsePage() {
   const eventId = searchParams.get('event_id') ?? undefined
   const tag = searchParams.get('tag') ?? undefined
   const title = searchParams.get('title') ?? tag ?? 'Utvalg'
+
+  const photoSource = usePhotoSource({ sessionId, eventId, tag })
+  const [view, setView] = useState<'grid' | 'timeline'>('grid')
 
   const addSource = useNavigationStore(s => s.addSource)
   const setTarget = useNavigationStore(s => s.setTarget)
@@ -51,6 +58,7 @@ export default function BrowsePage() {
           ← Tilbake
         </button>
         <h1 className="text-xl font-semibold flex-1 truncate">{title}</h1>
+        <ViewToggle view={view} onChange={setView} />
         {sourceId && (
           <button
             onClick={handleAddSource}
@@ -80,7 +88,10 @@ export default function BrowsePage() {
       </div>
 
       <div className="p-4">
-        <PhotoGrid sessionId={sessionId} eventId={eventId} tag={tag} />
+        {view === 'grid'
+          ? <PhotoGrid {...photoSource} />
+          : <PhotoTimeline key={`${sessionId}-${eventId}-${tag}`} sessionId={sessionId} eventId={eventId} tag={tag} />
+        }
       </div>
     </div>
   )

@@ -3,8 +3,10 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getSearch, createSearch, patchSearch } from '../api/searches'
 import SearchCriteriaBuilder from '../features/search/SearchCriteriaBuilder'
-import SearchResultGrid from '../features/search/SearchResultGrid'
-import SearchTimeline from '../features/search/SearchTimeline'
+import PhotoGrid from '../features/browse/PhotoGrid'
+import PhotoTimeline from '../features/browse/PhotoTimeline'
+import ViewToggle from '../components/ViewToggle'
+import { usePhotoSource } from '../hooks/usePhotoSource'
 import useNavigationStore from '../stores/useNavigationStore'
 import type { SearchCriterion } from '../types/api'
 
@@ -24,6 +26,12 @@ export default function SearchPage() {
   const [applied, setApplied] = useState<Applied>(null)
   const [seeded, setSeeded] = useState(false)
   const [view, setView] = useState<View>('grid')
+
+  const photoSource = usePhotoSource({
+    logic: applied?.logic ?? 'AND',
+    criteria: applied?.criteria,
+    enabled: !!applied,
+  })
 
   const { data: saved } = useQuery({
     queryKey: ['searches', id],
@@ -74,6 +82,7 @@ export default function SearchPage() {
           placeholder="Søkenavn…"
           className="flex-1 bg-transparent text-xl font-semibold outline-none placeholder-gray-600 min-w-0"
         />
+        {applied && <ViewToggle view={view} onChange={setView} />}
         {id && (
           <button
             onClick={handleSetSource}
@@ -102,40 +111,20 @@ export default function SearchPage() {
           onLogicChange={setLogic}
           onCriteriaChange={setCriteria}
         />
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setApplied({ logic, criteria })}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-500 transition-colors"
-          >
-            Kjør søk
-          </button>
-          {applied && (
-            <div className="flex rounded-lg overflow-hidden border border-gray-700">
-              {(['grid', 'timeline'] as View[]).map(v => (
-                <button
-                  key={v}
-                  onClick={() => setView(v)}
-                  className={`px-3 py-1.5 text-sm transition-colors ${
-                    view === v
-                      ? 'bg-gray-600 text-white'
-                      : 'bg-gray-800 text-gray-400 hover:text-white'
-                  }`}
-                >
-                  {v === 'grid' ? 'Grid' : 'Tidslinje'}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        <button
+          onClick={() => setApplied({ logic, criteria })}
+          className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-500 transition-colors"
+        >
+          Kjør søk
+        </button>
       </div>
 
       {applied && (
         <div className="p-4">
           {view === 'grid' ? (
-            <SearchResultGrid logic={applied.logic} criteria={applied.criteria} />
+            <PhotoGrid {...photoSource} />
           ) : (
-            // key resets tree expand/collapse state on new search
-            <SearchTimeline
+            <PhotoTimeline
               key={JSON.stringify(applied)}
               logic={applied.logic}
               criteria={applied.criteria}

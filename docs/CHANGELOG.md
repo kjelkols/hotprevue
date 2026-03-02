@@ -6,6 +6,37 @@ Format: `## YYYY-MM-DD — Kort beskrivelse`
 
 ---
 
+## 2026-03-02 — PhotoGrid-arkitektur, grid-varianter og tidslinje for alle kilder
+
+### PhotoGrid — ren renderer + usePhotoSource-hook
+
+- `PhotoGrid` er nå en ren visningskomponent: tar `photos[]`, `hasMore`, `onLoadMore` osv. som props — ingen datafetching internt
+- Ny hook `src/hooks/usePhotoSource.ts`: `useInfiniteQuery` med limit fra maskin-innstillinger; støtter alle datakilder (event, sesjon, tag, søk, dateFilter)
+- `SearchResultGrid.tsx` slettet — søk er nå en likestilt datakilde i `usePhotoSource`
+- `photo_limit` (default 1000) og `infinite_scroll` (default false) lagt til i maskin-innstillinger — PATCH `/settings/machine`
+- `/photos`-endepunkt: limit-cap økt fra 1000 til 10000
+
+### Tidslinje generalisert til alle datakilder
+
+- `SearchTimeline.tsx` slettet — erstattet av `features/browse/PhotoTimeline.tsx`
+- `PhotoTimeline` fungerer fra alle sider som viser PhotoGrid (event, browse, søk)
+- Backend `TimelineRequest` utvidet med `session_id`, `event_id`, `tags`
+- `_base_query()` i `search_service` håndterer disse som alltid-AND-filtre
+- `fetchSearchTimeline` → `fetchTimeline` med full parameterstruktur
+- `TimelineDayView` forenklet — bruker `usePhotoSource` + `<PhotoGrid>`
+
+### Grid-varianter og visningsvalg
+
+- `useViewStore` (Zustand + `persist` → `localStorage`): holder `gridVariant: 'standard' | 'dato'`
+- `GRID_VARIANTS`-array i `useViewStore.ts` er autoritativ liste — legg til nye varianter her
+- `GridVariantDropdown`: dropdown-knapp med chevron; viser aktiv variant; deaktivert i tidslinjemodus
+- `ViewToggle`: ny komponent — `GridVariantDropdown` + Tidslinje-knapp side om side
+- Grid-varianten er persistent på tvers av alle sider; tidslinje-modus er lokal per side (`useState`)
+- Intern dato-toggle-knapp i PhotoGrid fjernet; PhotoGrid leser `gridVariant` fra `useViewStore`
+- `ViewToggle` lagt til i header-linjen for `EventPage`, `BrowsePage` og `SearchPage`
+
+---
+
 ## 2026-03-01 — Filkopiering og katalogsnarveier
 
 - Valgfritt kopieringssteg i registreringsprosessen: kopiér fra minnekort/ekstern kilde til destinasjon før skanning
