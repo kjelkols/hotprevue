@@ -6,13 +6,15 @@ const NAV = [
   { to: '/sessions',    label: 'Sesjoner',       end: false },
   { to: '/tags',        label: 'Tags',           end: false },
   { to: '/searches',    label: 'Søk',            end: false },
+  { to: '/sted',        label: 'Sted',           end: false },
+  { to: '/fotografer',  label: 'Fotografer',     end: false },
 ] as const
 
 export default function TopNav() {
   return (
     <nav className="shrink-0 flex items-center h-11 px-3 bg-gray-900 border-b border-gray-800 gap-1">
       <Link to="/" className="flex items-center gap-2 px-2 mr-2 shrink-0 hover:opacity-80 transition-opacity">
-        <img src="/hotprevue-32.png" alt="" className="w-6 h-6" />
+        <img src="/hotprevue-32.png" alt="" className="w-6 h-6 invert" />
         <span className="text-sm font-semibold text-white">Hotprevue</span>
       </Link>
       {NAV.map(({ to, label, end }) => (

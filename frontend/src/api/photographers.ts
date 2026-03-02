@@ -5,10 +5,30 @@ export function listPhotographers(): Promise<Photographer[]> {
   return apiFetch<Photographer[]>('/photographers')
 }
 
-export function createPhotographer(name: string): Promise<Photographer> {
+export function createPhotographer(data: {
+  name: string
+  website?: string | null
+  bio?: string | null
+  notes?: string | null
+}): Promise<Photographer> {
   return apiFetch<Photographer>('/photographers', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name })
+    body: JSON.stringify(data),
   })
+}
+
+export function patchPhotographer(id: string, data: {
+  name?: string
+  website?: string | null
+  bio?: string | null
+  notes?: string | null
+}): Promise<Photographer> {
+  return apiFetch<Photographer>(`/photographers/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}
+
+export function deletePhotographer(id: string): Promise<void> {
+  return apiFetch<void>(`/photographers/${id}`, { method: 'DELETE' })
 }

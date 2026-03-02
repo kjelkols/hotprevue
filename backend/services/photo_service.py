@@ -408,7 +408,7 @@ def add_companion(db: Session, hothash: str, data) -> ImageFile:
 # ---------------------------------------------------------------------------
 
 def _apply_sort(q, sort: str):
-    from sqlalchemy import asc, desc, nulls_last
+    from sqlalchemy import asc, desc, func, nulls_last
 
     secondary = asc(Photo.registered_at)
 
@@ -423,5 +423,7 @@ def _apply_sort(q, sort: str):
             return q.order_by(nulls_last(desc(Photo.rating)), secondary)
         case "rating_asc":
             return q.order_by(nulls_last(asc(Photo.rating)), secondary)
+        case "random":
+            return q.order_by(func.random())
         case _:  # taken_at_desc (default)
             return q.order_by(nulls_last(desc(Photo.taken_at)), secondary)

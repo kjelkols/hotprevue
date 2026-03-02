@@ -6,6 +6,24 @@ Format: `## YYYY-MM-DD — Kort beskrivelse`
 
 ---
 
+## 2026-03-02 — Kart og GPS-stedsdata i detaljvisning
+
+### Kartkomponent i PhotoDetailPage
+
+- `features/photos/PhotoLocationMap.tsx` — Leaflet-kart (OpenStreetMap-tiles) i høyre metapanel
+- Viser pin på bildekoordinater hvis tilgjengelig; blå pin = GPS EXIF, oransje pin = manuelt satt
+- Klikk på kartet tildeler stedsdata via `PATCH /photos/{hothash}` → `location_source = 1` (manuelt)
+- React Query-cache invalideres etter vellykket oppdatering — kartet oppdateres umiddelbart
+- `patchPhoto()` lagt til i `src/api/photos.ts`
+- Kartikoner bundlet fra `leaflet/dist/images/` — ingen CDN-avhengighet for standardpin
+- Leaflet + react-leaflet@4 installert som avhengigheter
+
+### Eksisterende infrastruktur bekreftet
+
+GPS-kolonnene (`location_lat`, `location_lng`, `location_source`, `location_accuracy`) var allerede på plass fra initial migrering. `utils/exif.extract_gps()` og populering ved registrering var også implementert — `location_source = 0` for GPS EXIF.
+
+---
+
 ## 2026-03-02 — PhotoGrid-arkitektur, grid-varianter og tidslinje for alle kilder
 
 ### PhotoGrid — ren renderer + usePhotoSource-hook

@@ -31,6 +31,18 @@ export function computePerceptualHashes(): Promise<{ updated: number; already_co
   return apiFetch('/photos/compute-perceptual-hashes', { method: 'POST' })
 }
 
+export function patchPhoto(hothash: string, data: {
+  location_lat?: number | null
+  location_lng?: number | null
+  location_source?: number | null
+  location_accuracy?: string | null
+}): Promise<PhotoDetail> {
+  return apiFetch<PhotoDetail>(`/photos/${hothash}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}
+
 export function assignEvent(hothashes: string[], eventId: string | null): Promise<{ updated: number }> {
   return apiFetch<{ updated: number }>('/photos/batch/event', {
     method: 'POST',

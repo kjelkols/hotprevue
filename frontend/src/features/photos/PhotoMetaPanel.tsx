@@ -1,4 +1,5 @@
 import type { PhotoDetail } from '../../types/api'
+import PhotoLocationMap from './PhotoLocationMap'
 
 function formatDate(taken_at: string | null): string {
   if (!taken_at) return 'Ukjent dato'
@@ -70,6 +71,8 @@ export default function PhotoMetaPanel({ photo }: Props) {
           </div>
         </div>
       )}
+
+      <PhotoLocationMap photo={photo} />
 
       <div>
         <p className="text-xs text-gray-500 mb-1">Filer</p>

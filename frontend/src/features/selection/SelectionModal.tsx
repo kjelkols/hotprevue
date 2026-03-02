@@ -1,12 +1,34 @@
 import * as Dialog from '@radix-ui/react-dialog'
 import { useQuery } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 import useSelectionStore from '../../stores/useSelectionStore'
+import useLocationEditorStore from '../../stores/useLocationEditorStore'
 import { listPhotos } from '../../api/photos'
 import SelectionThumbnail from './SelectionThumbnail'
 
 interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
+}
+
+function EditLocationButton({ hothashes, onClose }: { hothashes: string[]; onClose: () => void }) {
+  const navigate = useNavigate()
+  const addPhotos = useLocationEditorStore(s => s.addPhotos)
+
+  function handleClick() {
+    addPhotos(hothashes)
+    navigate('/sted')
+    onClose()
+  }
+
+  return (
+    <button
+      onClick={handleClick}
+      className="rounded-lg bg-blue-700 px-4 py-2 text-sm text-white hover:bg-blue-600 transition-colors"
+    >
+      Rediger sted
+    </button>
+  )
 }
 
 export default function SelectionModal({ open, onOpenChange }: Props) {
@@ -50,7 +72,8 @@ export default function SelectionModal({ open, onOpenChange }: Props) {
             )}
           </div>
 
-          <div className="px-5 py-3 border-t border-gray-700 flex justify-end">
+          <div className="px-5 py-3 border-t border-gray-700 flex justify-end gap-2">
+            <EditLocationButton hothashes={hothashes} onClose={() => onOpenChange(false)} />
             <Dialog.Close className="rounded-lg bg-gray-700 px-4 py-2 text-sm text-white hover:bg-gray-600 transition-colors">
               Lukk
             </Dialog.Close>

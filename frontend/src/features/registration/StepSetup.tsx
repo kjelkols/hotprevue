@@ -63,7 +63,7 @@ export default function StepSetup({ onDone }: Props) {
     setCreatingPhotographer(true)
     setError('')
     try {
-      const p = await createPhotographer(newPhotographerName.trim())
+      const p = await createPhotographer({ name: newPhotographerName.trim() })
       await refetchPhotographers()
       setPhotographerId(p.id)
       setNewPhotographerName('')

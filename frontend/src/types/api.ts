@@ -58,12 +58,28 @@ export interface EventNode {
   photo_count: number
 }
 
+export interface HomeStats {
+  total_photos: number
+  total_events: number
+  total_sessions: number
+  last_registered_at: string | null
+  photographers: Array<{
+    id: string
+    name: string
+    photo_count: number
+    is_unknown: boolean
+  }>
+}
+
 export interface Photographer {
   id: string
   name: string
-  email?: string | null
-  website?: string | null
-  bio?: string | null
+  website: string | null
+  bio: string | null
+  notes: string | null
+  is_default: boolean
+  is_unknown: boolean
+  created_at: string
 }
 
 export interface GlobalSettings {

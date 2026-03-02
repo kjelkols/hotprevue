@@ -16,6 +16,8 @@ import TagsPage from './pages/TagsPage'
 import SavedSearchesPage from './pages/SavedSearchesPage'
 import SearchPage from './pages/SearchPage'
 import SettingsPage from './pages/SettingsPage'
+import LocationEditorPage from './pages/LocationEditorPage'
+import PhotographersPage from './pages/PhotographersPage'
 import ContextMenuOverlay from './components/ui/ContextMenuOverlay'
 import SelectionTray from './features/selection/SelectionTray'
 import useSelectionStore from './stores/useSelectionStore'
@@ -60,6 +62,8 @@ export default function App() {
           <Route path="/searches/new"    element={<SearchPage />} />
           <Route path="/searches/:id"    element={<SearchPage />} />
           <Route path="/settings"        element={<SettingsPage />} />
+          <Route path="/sted"            element={<LocationEditorPage />} />
+          <Route path="/fotografer"      element={<PhotographersPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
