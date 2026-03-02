@@ -61,6 +61,8 @@ jobs:
           cp -r frontend/dist/. "$DIST/frontend/"
 
           cp Hotprevue.bat "$DIST/"
+          cp hotprevue-admin.bat "$DIST/"
+          cp -r admin/ "$DIST/admin/"
           cp uv.exe "$DIST/"
 
       - name: Pakk zip
