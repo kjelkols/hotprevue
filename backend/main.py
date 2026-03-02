@@ -81,11 +81,21 @@ app.include_router(shortcuts.router)
 app.include_router(tags.router)
 app.include_router(searches.router)
 
-# Statiske filer monteres sist slik at API-ruter tar prioritet
-if settings.hotprevue_frontend_dir:
-    _frontend_path = Path(settings.hotprevue_frontend_dir)
-    if _frontend_path.exists():
-        app.mount("/", StaticFiles(directory=str(_frontend_path), html=True), name="frontend")
+# Statiske filer monteres sist slik at API-ruter tar prioritet.
+# Prioritet: HOTPREVUE_FRONTEND_DIR env-var → frontend/ ved siden av backend/
+def _find_frontend_dir() -> Path | None:
+    if settings.hotprevue_frontend_dir:
+        p = Path(settings.hotprevue_frontend_dir)
+        if p.exists():
+            return p
+    auto = Path(__file__).parent.parent / "frontend"
+    if (auto / "index.html").exists():
+        return auto
+    return None
+
+_frontend_dir = _find_frontend_dir()
+if _frontend_dir:
+    app.mount("/", StaticFiles(directory=str(_frontend_dir), html=True), name="frontend")
 
 
 def _bootstrap_settings() -> None:
