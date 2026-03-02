@@ -51,8 +51,9 @@ Remove-Item -Force "$BuildDir\backend\.env" -ErrorAction SilentlyContinue
 # Ferdigbygd frontend (fra dist/)
 robocopy "$ProjectRoot\frontend\dist" "$BuildDir\frontend" /e | Out-Null
 
-# Startskript
+# Startskript og installer
 Copy-Item "$ProjectRoot\Hotprevue.bat" "$BuildDir\Hotprevue.bat"
+Copy-Item "$ProjectRoot\install.bat"   "$BuildDir\install.bat"
 
 # uv.exe (finn i PATH)
 $uvCmd = Get-Command uv -ErrorAction SilentlyContinue
