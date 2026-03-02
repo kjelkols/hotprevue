@@ -11,8 +11,9 @@ const NAV = [
 export default function TopNav() {
   return (
     <nav className="shrink-0 flex items-center h-11 px-3 bg-gray-900 border-b border-gray-800 gap-1">
-      <Link to="/" className="text-sm font-semibold text-white px-2 mr-2 shrink-0 hover:text-gray-300 transition-colors">
-        Hotprevue
+      <Link to="/" className="flex items-center gap-2 px-2 mr-2 shrink-0 hover:opacity-80 transition-opacity">
+        <img src="/hotprevue-32.png" alt="" className="w-6 h-6" />
+        <span className="text-sm font-semibold text-white">Hotprevue</span>
       </Link>
       {NAV.map(({ to, label, end }) => (
         <NavLink
