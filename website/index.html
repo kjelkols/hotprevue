@@ -202,7 +202,7 @@
 
     <!-- Last ned -->
     <div class="download">
-      <a href="PLACEHOLDER_URL">↓ Last ned Hotprevue PLACEHOLDER_VERSION</a>
+      <a id="download-btn" href="https://github.com/kjelkols/hotprevue/releases/latest">↓ Last ned Hotprevue</a>
       <span class="meta">Windows 10 / 11 &nbsp;·&nbsp; ZIP-fil, ingen installasjon nødvendig</span>
     </div>
 
@@ -239,6 +239,19 @@
       <a href="https://github.com/kjelkols/hotprevue">Kildekode på GitHub</a>
     </div>
   </footer>
+
+  <script>
+    fetch('https://api.github.com/repos/kjelkols/hotprevue/releases/latest')
+      .then(r => r.json())
+      .then(data => {
+        const asset = data.assets && data.assets.find(a => a.name.endsWith('.zip'));
+        if (!asset) return;
+        const btn = document.getElementById('download-btn');
+        btn.href = asset.browser_download_url;
+        btn.textContent = '↓ Last ned Hotprevue ' + data.tag_name.replace(/^v/, '');
+      })
+      .catch(() => {});
+  </script>
 
 </body>
 </html>
