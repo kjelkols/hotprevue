@@ -26,17 +26,23 @@ install.bat
   └─ uv run python installer.py --root <rotkatalog>
        │
        ├─ Steg 1: Velg datakatalog
-       │     ├─ Portabel    — <rotkatalog>\data\
+       │     ├─ Portabel     — <rotkatalog>\data\
        │     ├─ Brukerprofil — %APPDATA%\Hotprevue
-       │     └─ Egendefinert — bla-dialog + friteksst
+       │     └─ Egendefinert — bla-dialog + fritekst
        │
        ├─ Finnes pgdata allerede?
-       │     ├─ JA  → hopp til [Generer bat]
+       │     ├─ JA  → Steg 1b: Sikkerhetskopi
+       │     │           ├─ "Ta sikkerhetskopi…" → velg sted → zip lagres
+       │     │           └─ "Fortsett uten backup →"
+       │     │               └─ Generer hotprevue.bat → ferdig-skjerm
+       │     │
        │     └─ NEI → Steg 2: Maskinnavn + første fotograf
        │                 └─ Opprett DB, kjør migrasjoner,
        │                    registrer maskin og fotograf
+       │                    → Generer hotprevue.bat → ferdig-skjerm
        │
-       └─ Generer hotprevue.bat → vis ferdig-skjerm
+       └─ Ferdig-skjerm: vis sti til hotprevue.bat
+             └─ [Start Hotprevue nå] eller [Avslutt]
 ```
 
 ### Den genererte hotprevue.bat
@@ -53,11 +59,15 @@ Innholdet varierer etter valgt datakatalogmodus:
 rotkatalogen på installasjonstidspunktet. Portabel modus er derfor robust mot
 endring av diskbokstav.
 
-### Eksisterende database
+### Eksisterende database og sikkerhetskopi
 
-Hvis `<datakatalog>/pgdata` allerede finnes og ikke er tom, hopper veiviseren over
-steg 2 og går direkte til ferdig-skjerm. Dette støtter scenariet der brukeren
-reinstallerer programmet mot en eksisterende database.
+Hvis `<datakatalog>/pgdata` allerede finnes og ikke er tom, viser veiviseren
+et eget steg (1b) før den fortsetter. Brukeren informeres om å ta backup og
+kan opprette en zip-fil av databasen direkte i veiviseren.
+
+Etter backup (eller valg om å hoppe over) genereres `hotprevue.bat` og
+veiviseren avsluttes. Steg 2 (maskinnavn + fotograf) vises ikke — det er
+allerede registrert i databasen fra første gangs oppsett.
 
 ## Filstruktur
 
@@ -111,6 +121,40 @@ Hvis diskbokstaven endrer seg, vil ikke appen finne databasen.
 
 **Resultat:** Ikke offisielt støttet. Brukeren må selv håndtere eventuelle
 diskbokstav-konflikter.
+
+## Sikkerhetskopi
+
+### Hva backupen inneholder
+
+Backupen er en zip-fil med to mapper fra datakatalogen:
+
+| Mappe | Innhold |
+|---|---|
+| `pgdata/` | Hele PostgreSQL-dataklyngen (database, tabeller, indekser) |
+| `coldpreviews/` | Forhåndsvisningsfiler på disk (kan regenereres, men tar tid) |
+
+### Filformat og navngiving
+
+Zip-filen foreslås navngitt med tidsstempel:
+`hotprevue-backup-20260303-141500.zip`
+
+Brukeren velger selv hvor filen lagres via en standard lagre-dialog.
+
+### Hvorfor filbasert backup og ikke SQL-dump
+
+Admin-konsollen bruker `pg_dump` via den kjørende backenden (SQL-dump).
+Det krever at serveren er oppe.
+
+I installereren er pgserver ikke startet ennå. En filbasert kopi av
+`pgdata/` er trygg å gjøre mens PostgreSQL er nede, og er komplett —
+den inneholder alt `pg_dump` ville gitt, pluss konfigurasjon og
+transaksjonskøen.
+
+### Gjenoppretting
+
+Gjenoppretting er manuell: erstatt `pgdata/` og `coldpreviews/` i
+datakatalogen med innholdet fra zip-filen. Appen trenger ikke å kjøre
+under gjenoppretting.
 
 ## Tekniske detaljer
 
