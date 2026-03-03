@@ -5,16 +5,18 @@ Kalles fra install.bat i rotkatalogen:
     cd /d "%~dp0backend"
     "%~dp0uv.exe" run --python 3.12 python installer.py --root "%~dp0"
 
-Steg 1  — Velg datakatalog (portabel / brukerprofil / egendefinert).
-Steg 2  — Maskinnavn + første fotograf (kun ved ny database).
-Steg 3  — Ferdig. Genererer hotprevue.bat i rotkatalogen.
+Steg 1   — Velg datakatalog (portabel / brukerprofil / egendefinert).
+Steg 1b  — Sikkerhetskopi (kun hvis eksisterende database oppdages).
+Steg 2   — Maskinnavn + første fotograf (kun ved ny database).
+Steg 3   — Ferdig. Genererer hotprevue.bat i rotkatalogen.
 """
 
 import argparse
+import datetime
 import os
 import subprocess
-import sys
 import uuid
+import zipfile
 from pathlib import Path
 import tkinter as tk
 from tkinter import filedialog, messagebox
@@ -217,11 +219,87 @@ class InstallerApp(tk.Tk):
 
         if self._has_existing_database(data_dir):
             self.is_new_database = False
-            self._generate_bat()
-            self._show_done()
+            self._show_backup_step()
         else:
             self.is_new_database = True
             self._show_step2()
+
+    # ── Steg 1b: Sikkerhetskopi ───────────────────────────────────────────────
+    def _show_backup_step(self) -> None:
+        self._clear()
+        self._header(1, "Sikkerhetskopi anbefales")
+        body = self._body()
+
+        tk.Label(body,
+                 text="Vi fant en eksisterende database på valgt sted.",
+                 font=FONT_BODY).pack(anchor="w")
+        self._spacer(body, 8)
+        tk.Label(body,
+                 text="Før du fortsetter anbefaler vi å ta en sikkerhetskopi.\n"
+                      "Backupen er en zip-fil med hele databasen og forhåndsvisningene.\n"
+                      "Du velger selv hvor filen lagres.",
+                 font=FONT_BODY, justify="left").pack(anchor="w")
+        self._spacer(body, 16)
+
+        self._backup_status = tk.Label(body, text="", font=FONT_SMALL,
+                                       fg=COLOR_HINT, justify="left",
+                                       wraplength=WIN_W - 2 * PAD)
+        self._backup_status.pack(anchor="w")
+
+        bottom = self._bottom()
+        tk.Button(bottom, text="← Tilbake", command=self._show_step1,
+                  font=FONT_BODY, padx=8).pack(side="left")
+        tk.Button(bottom, text="Fortsett uten backup →",
+                  command=self._after_backup,
+                  font=FONT_BODY, padx=8).pack(side="right", padx=(0, 8))
+        tk.Button(bottom, text="Ta sikkerhetskopi…",
+                  command=self._do_backup,
+                  font=FONT_BODY, padx=12, pady=4).pack(side="right")
+
+    def _do_backup(self) -> None:
+        data_dir = self.resolved_data_dir
+        assert data_dir is not None
+
+        timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        default_name = f"hotprevue-backup-{timestamp}.zip"
+
+        dest = filedialog.asksaveasfilename(
+            title="Lagre sikkerhetskopi",
+            defaultextension=".zip",
+            filetypes=[("Zip-fil", "*.zip"), ("Alle filer", "*.*")],
+            initialfile=default_name,
+        )
+        if not dest:
+            return
+
+        self._backup_status.config(text="Lager backup…", fg=COLOR_HINT)
+        self.update()
+
+        try:
+            sources = [
+                ("pgdata",       data_dir / "pgdata"),
+                ("coldpreviews", data_dir / "coldpreviews"),
+            ]
+            with zipfile.ZipFile(dest, "w", zipfile.ZIP_DEFLATED) as zf:
+                for folder_name, folder_path in sources:
+                    if not folder_path.exists():
+                        continue
+                    for file in folder_path.rglob("*"):
+                        if file.is_file():
+                            zf.write(file, folder_name / file.relative_to(folder_path))
+
+            size_mb = round(Path(dest).stat().st_size / 1_048_576, 1)
+            self._backup_status.config(
+                text=f"✓  Backup lagret ({size_mb} MB):\n   {dest}",
+                fg=COLOR_HINT,
+            )
+        except Exception as exc:
+            messagebox.showerror("Backup feilet", str(exc))
+            self._backup_status.config(text="Backup mislyktes.", fg=COLOR_WARN)
+
+    def _after_backup(self) -> None:
+        self._generate_bat()
+        self._show_done()
 
     # ── Steg 2: Maskinnavn + fotograf ─────────────────────────────────────────
     def _show_step2(self) -> None:
