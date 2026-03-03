@@ -62,6 +62,7 @@ jobs:
 
           cp Hotprevue.bat "$DIST/"
           cp hotprevue-admin.bat "$DIST/"
+          cp install.bat "$DIST/"
           cp -r admin/ "$DIST/admin/"
           cp uv.exe "$DIST/"
 
