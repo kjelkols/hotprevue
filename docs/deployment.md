@@ -4,7 +4,7 @@
 
 En release består av to ting som skjer automatisk etter hverandre:
 
-1. **Zip-filen bygges** og lastes opp til GitHub Releases
+1. **Zip-filene bygges** og lastes opp til GitHub Releases (Windows + Linux)
 2. **Nettsiden oppdateres** med riktig versjonsnummer og nedlastingslenke
 
 Alt dette skjer i GitHub Actions — du trenger ikke gjøre noe annet enn å
@@ -36,18 +36,18 @@ GitHub ser taggen og starter workflow-en `build-release.yml`.
 GitHub Actions kjører `npm ci && npm run build:web` i `frontend/`-mappen.
 Resultatet er statiske filer i `frontend/dist/`.
 
-### 3. uv.exe lastes ned
+### 3. uv-binærer lastes ned
 
-`uv.exe` (Python-pakkehåndtereren for Windows) lastes ned fra astral-sh
-sine offisielle releases. Det er uv som gjør at brukeren slipper å
-installere Python selv.
+`uv` (Python-pakkehåndtereren) lastes ned fra astral-sh sine offisielle releases
+for hver plattform. Det er uv som gjør at brukeren slipper å installere Python selv.
 
-### 4. Zip-pakken settes sammen
+- Windows: `uv.exe` (x86_64)
+- Linux: `uv` (x86_64)
 
-Innholdet i zip-filen:
+### 4. Zip-pakkene settes sammen
 
+**Windows** `Hotprevue-0.2.0-windows.zip`:
 ```
-Hotprevue-0.2.0.zip
 ├── backend/          ← Python-kildekode (uten .venv, tester osv.)
 ├── frontend/         ← Ferdigbygde statiske filer
 ├── admin/            ← Admin-konsoll
@@ -57,13 +57,24 @@ Hotprevue-0.2.0.zip
 └── uv.exe
 ```
 
-`hotprevue.bat` er **ikke** med i zip-en — den genereres av `install.bat`
+**Linux** `Hotprevue-0.2.0-linux.zip`:
+```
+├── backend/
+├── frontend/
+├── admin/
+├── install.sh        ← Kjøres første gang
+├── hotprevue.sh      ← Startskript
+├── hotprevue-admin.sh
+└── uv                ← Kjørbar (chmod +x satt i zip)
+```
+
+`hotprevue.bat` (Windows) er **ikke** med i zip-en — den genereres av `install.bat`
 på brukerens maskin med brukerens valgte konfigurasjon.
 
 ### 5. GitHub Release opprettes
 
 En ny release publiseres automatisk under
-`github.com/kjelkols/hotprevue/releases` med zip-filen som vedlegg.
+`github.com/kjelkols/hotprevue/releases` med begge zip-filene som vedlegg.
 GitHub genererer automatiske release notes basert på commits siden forrige tag.
 
 ### 6. Nettsiden oppdateres
@@ -76,27 +87,25 @@ og publiserer siden til GitHub Pages.
 
 ## Versjonsnummeret
 
-Versjonsnummeret hentes fra taggen. Tag `v0.2.0` gir `Hotprevue-0.2.0.zip`.
+Versjonsnummeret hentes fra taggen. Tag `v0.2.0` gir `Hotprevue-0.2.0-windows.zip`
+og `Hotprevue-0.2.0-linux.zip`.
 
 Det finnes ikke ett sentralt sted i kildekoden der versjonen er definert —
-taggen **er** versjonen. Husk å bruke samme nummer i `build-zip.ps1` hvis
-du bygger manuelt fra Windows.
+taggen **er** versjonen.
 
 ---
 
-## Manuell bygging fra Windows (alternativt)
+## Manuell bygging fra Ubuntu-server (alternativt)
 
-Hvis du ikke vil vente på GitHub Actions, kan du bygge zip-filen selv:
+Hvis du ikke vil vente på GitHub Actions, kan du bygge zip-filene selv:
 
 ```bash
-# Steg 1: Bygg frontend (WSL)
-make build-web
-
-# Steg 2: Pakk zip (Windows PowerShell)
-powershell -ExecutionPolicy Bypass -File "\\wsl$\Ubuntu-22.04\home\kjell\hotprevue\build-zip.ps1"
+make build-zip-all       # Bygger begge plattformer
+make build-zip-windows   # Kun Windows
+make build-zip-linux     # Kun Linux
 ```
 
-Resultatet blir `hotprevue/Hotprevue-0.1.0.zip` (versjonsnummer satt i `build-zip.ps1`).
+Versjonsnummer hentes automatisk fra siste git-tag.
 
 ---
 
@@ -114,7 +123,10 @@ Hvis du vil oppdatere nettsiden uten å lage en ny release:
 
 | Fil | Formål |
 |---|---|
-| `.github/workflows/build-release.yml` | Bygger zip og lager GitHub Release |
+| `.github/workflows/build-release.yml` | Bygger zip-pakker og lager GitHub Release |
 | `.github/workflows/pages.yml` | Publiserer nettsiden til GitHub Pages |
-| `build-zip.ps1` | Manuell zip-bygging fra Windows |
+| `Makefile` | Lokale build-mål (`build-zip-windows`, `build-zip-linux`) |
+| `hotprevue.sh` | Linux-startskript (pakkes i linux-zip) |
+| `hotprevue-admin.sh` | Linux admin-startskript |
+| `install.sh` | Linux-installasjonsscript |
 | `website/index.html` | Nettside med nedlastingslenke (versjon injiseres av workflow) |

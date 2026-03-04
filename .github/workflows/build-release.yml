@@ -21,7 +21,8 @@ jobs:
           VER="${TAG#v}"
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
           echo "version=${VER}" >> $GITHUB_OUTPUT
-          echo "zipname=Hotprevue-${VER}.zip" >> $GITHUB_OUTPUT
+          echo "zip_windows=Hotprevue-${VER}-windows.zip" >> $GITHUB_OUTPUT
+          echo "zip_linux=Hotprevue-${VER}-linux.zip" >> $GITHUB_OUTPUT
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -33,47 +34,61 @@ jobs:
       - name: Bygg frontend
         run: cd frontend && npm ci && npm run build:web
 
-      - name: Last ned uv.exe
+      - name: Last ned uv-binærer
         run: |
           curl -fsSL "https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-pc-windows-msvc.zip" -o uv-win.zip
-          unzip uv-win.zip uv.exe
-          rm uv-win.zip
+          curl -fsSL "https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-unknown-linux-gnu.tar.gz" -o uv-linux.tar.gz
 
-      - name: Sett sammen distribusjon
+      - name: Sett sammen Windows-distribusjon
         run: |
-          DIST="hotprevue-dist"
+          DIST="hotprevue-dist-windows"
           mkdir -p "$DIST"
-
           rsync -a \
-            --exclude='.venv' \
-            --exclude='.venv-win' \
-            --exclude='dist' \
-            --exclude='build' \
-            --exclude='__pycache__' \
-            --exclude='.pytest_cache' \
-            --exclude='tests' \
-            --exclude='.env' \
-            --exclude='Dockerfile' \
-            --exclude='.dockerignore' \
+            --exclude='.venv' --exclude='.venv-win' \
+            --exclude='dist' --exclude='build' \
+            --exclude='__pycache__' --exclude='.pytest_cache' \
+            --exclude='tests' --exclude='.env' \
+            --exclude='Dockerfile' --exclude='.dockerignore' \
+            --exclude='hotprevue.spec' \
             backend/ "$DIST/backend/"
-
-          mkdir -p "$DIST/frontend"
-          cp -r frontend/dist/. "$DIST/frontend/"
-
-          cp Hotprevue.bat "$DIST/"
-          cp hotprevue-admin.bat "$DIST/"
-          cp install.bat "$DIST/"
+          mkdir -p "$DIST/frontend" && cp -r frontend/dist/. "$DIST/frontend/"
           cp -r admin/ "$DIST/admin/"
-          cp uv.exe "$DIST/"
+          unzip uv-win.zip uv.exe -d "$DIST/"
+          cp Hotprevue.bat hotprevue-admin.bat install.bat "$DIST/"
 
-      - name: Pakk zip
+      - name: Pakk Windows zip
         run: |
-          cd hotprevue-dist
-          zip -r "../${{ steps.ver.outputs.zipname }}" .
+          cd hotprevue-dist-windows
+          zip -r "../${{ steps.ver.outputs.zip_windows }}" .
+
+      - name: Sett sammen Linux-distribusjon
+        run: |
+          DIST="hotprevue-dist-linux"
+          mkdir -p "$DIST"
+          rsync -a \
+            --exclude='.venv' --exclude='.venv-win' \
+            --exclude='dist' --exclude='build' \
+            --exclude='__pycache__' --exclude='.pytest_cache' \
+            --exclude='tests' --exclude='.env' \
+            --exclude='Dockerfile' --exclude='.dockerignore' \
+            --exclude='hotprevue.spec' \
+            backend/ "$DIST/backend/"
+          mkdir -p "$DIST/frontend" && cp -r frontend/dist/. "$DIST/frontend/"
+          cp -r admin/ "$DIST/admin/"
+          tar -xzf uv-linux.tar.gz --strip-components=1 -C "$DIST/" uv-x86_64-unknown-linux-gnu/uv
+          cp hotprevue.sh hotprevue-admin.sh install.sh "$DIST/"
+          chmod +x "$DIST/uv" "$DIST/hotprevue.sh" "$DIST/hotprevue-admin.sh" "$DIST/install.sh"
+
+      - name: Pakk Linux zip
+        run: |
+          cd hotprevue-dist-linux
+          zip -r "../${{ steps.ver.outputs.zip_linux }}" .
 
       - name: Opprett GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           name: Hotprevue ${{ steps.ver.outputs.version }}
-          files: ${{ steps.ver.outputs.zipname }}
+          files: |
+            ${{ steps.ver.outputs.zip_windows }}
+            ${{ steps.ver.outputs.zip_linux }}
           generate_release_notes: true

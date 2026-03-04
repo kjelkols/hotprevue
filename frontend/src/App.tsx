@@ -23,9 +23,9 @@ import SelectionTray from './features/selection/SelectionTray'
 import useSelectionStore from './stores/useSelectionStore'
 import useContextMenuStore from './stores/useContextMenuStore'
 
-// I utvikling peker Vite mot localhost:8000 direkte.
-// I produksjon serveres frontend fra samme origin som API.
-setBaseUrl(import.meta.env.DEV ? 'http://localhost:8000' : '')
+// Frontend og API serveres alltid fra samme origin.
+// I utvikling proxyer Vite API-kall til backend på port 8000 (se vite.config.ts).
+setBaseUrl('')
 
 export default function App() {
   const clearPhotoSelection = useSelectionStore(s => s.clear)

@@ -81,19 +81,14 @@ See `docs/decisions/003-local-backend-as-system-proxy.md` for full rationale.
 
 ## Development Commands
 
-Run these in WSL:
-
 ```sh
 # Start backend (pgserver starter PostgreSQL automatisk)
 make dev-backend
 # eller direkte:
 cd backend && HOTPREVUE_LOCAL=true uv run uvicorn main:app --host 0.0.0.0 --port 8000
 
-# Åpne frontend i nettleseren (krever at backend kjører)
-# → http://localhost:8000
-
-# Start Vite dev-server med hot-reload (kjør i nytt skall):
-make dev-frontend   # cd frontend && npm run dev:web  → http://localhost:5173
+# Start Vite dev-server med hot-reload (tilgjengelig på nettverket, åpne i nettleser):
+make dev-frontend   # cd frontend && npm run dev:web  → http://<server-ip>:5173
 
 # Kjør tester
 make test
@@ -103,30 +98,37 @@ cd backend && uv run pytest tests/ -v
 # Kjør én test
 cd backend && uv run pytest tests/path/to/test_file.py::test_function_name
 
-# Bygg frontend til statiske filer (må gjøres fra WSL, ikke Windows)
+# Bygg frontend til statiske filer
 make build-web
 # eller: cd frontend && npm run build:web  → frontend/dist/
 ```
 
 **Merk:** `--reload` virker ikke med pgserver (socket-problem med subprocess).
 
-**WSL-utvikling:** Bruk native WSL-stier (f.eks. `/mnt/c/Bilder`). Tkinter-dialogen («Velg…»-knappen) fungerer bare skikkelig i zip-distribusjonen på Windows.
+**Vite dev-server:** Proxyer automatisk alle API-kall til backend på port 8000.
+Tilgjengelig på `0.0.0.0` slik at Windows-nettleser kan koble til via server-IP.
 
-## Bygge Windows zip-distribusjon (primær)
+**Tkinter-dialogen** («Velg…»-knappen) fungerer bare i zip-distribusjonen der
+brukeren har en skjerm. På en headless server brukes `/system/browse` i stedet.
 
-**Steg 1 — bygg frontend (WSL):**
+## Bygge distribusjonspakker
+
 ```sh
-make build-web
+make build-zip-windows   # Hotprevue-x.y.z-windows.zip
+make build-zip-linux     # Hotprevue-x.y.z-linux.zip
+make build-zip-all       # Begge
+
+# Versjonsnummer hentes automatisk fra siste git-tag
 ```
 
-**Steg 2 — pakk zip (Windows PowerShell):**
-```powershell
-powershell -ExecutionPolicy Bypass -File "\\wsl$\Ubuntu-22.04\home\kjell\hotprevue\build-zip.ps1"
-# Resultat: hotprevue/Hotprevue-0.1.0.zip  (~16 MB)
-```
+Zip-pakkene inneholder: `backend/` (kildekode), `frontend/` (bygd), `uv`-binær,
+startskript. Brukeren dobbeltklikker på `Hotprevue.bat` (Windows) eller
+kjører `./hotprevue.sh` (Linux) — backend starter og nettleseren åpnes automatisk.
 
-Zip-en inneholder: `backend/` (kildekode), `frontend/` (bygd), `uv.exe`, `Hotprevue.bat`.
-Brukeren dobbeltklikker på `Hotprevue.bat` — backend starter og nettleseren åpnes automatisk.
+**Release til GitHub:** Push en tag — GitHub Actions bygger og publiserer automatisk:
+```sh
+git tag v0.2.0 && git push origin v0.2.0
+```
 
 
 ## System API Endpoints
