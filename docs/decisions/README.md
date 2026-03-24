@@ -34,4 +34,12 @@ Hva innebærer denne beslutningen fremover?
 | Nr | Tittel | Status |
 |---|---|---|
 | 001 | Hothash som unik bilde-ID | Godkjent |
-| 002 | Backend kjører der filene er | Godkjent |
+| 002 | Backend leser originalfiler direkte | Erstattet av ADR-008 |
+| 003 | Lokal backend som systemproxy | Erstattet av ADR-008 |
+| 004 | Perceptuell hashing | Godkjent |
+| 005 | Source/target-navigasjon | Godkjent |
+| 006 | Tidslinje-arkitektur | Godkjent |
+| 007 | Tkinter-installer og generert startskript | Godkjent |
+| 008 | Klient-server-arkitektur: klienten prosesserer filer, backend lagrer | Godkjent |
+| 009 | Databasekonfigurasjon: lokal eller ekstern PostgreSQL | Godkjent |
+| 010 | Låsemekanisme for flermaskinsbruk | Godkjent |

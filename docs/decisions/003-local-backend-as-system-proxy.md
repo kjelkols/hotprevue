@@ -2,7 +2,7 @@
 
 ## Status
 
-Godkjent
+Erstattet av ADR-008
 
 ## Kontekst
 

@@ -8,14 +8,19 @@ from sqlalchemy import engine_from_config, pool
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from models.base import Base  # noqa: E402
-import models.photographer  # noqa: E402, F401
 import models.category  # noqa: E402, F401
-import models.event  # noqa: E402, F401
 import models.collection  # noqa: E402, F401
+import models.event  # noqa: E402, F401
+import models.file_copy  # noqa: E402, F401
 import models.input_session  # noqa: E402, F401
-import models.photo  # noqa: E402, F401
 import models.machine  # noqa: E402, F401
+import models.machine_lock  # noqa: E402, F401
+import models.photographer  # noqa: E402, F401
+import models.photo  # noqa: E402, F401
+import models.saved_search  # noqa: E402, F401
 import models.settings  # noqa: E402, F401
+import models.shortcut  # noqa: E402, F401
+import models.text_item  # noqa: E402, F401
 
 config = context.config
 

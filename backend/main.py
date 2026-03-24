@@ -60,6 +60,7 @@ import models.collection  # noqa: F401
 import models.input_session  # noqa: F401
 import models.photo  # noqa: F401
 import models.machine  # noqa: F401
+import models.machine_lock  # noqa: F401
 import models.settings  # noqa: F401
 import models.file_copy  # noqa: F401
 import models.shortcut  # noqa: F401

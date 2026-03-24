@@ -2,7 +2,7 @@
 
 ## Status
 
-Gjeldende
+Erstattet av ADR-008
 
 ## Kontekst
 

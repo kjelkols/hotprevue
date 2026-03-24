@@ -8,13 +8,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Architecture
 
-**Monorepo** with three main layers:
+Two separate components with clearly defined responsibilities:
 
-- **`/backend`** — FastAPI (Python), SQLAlchemy (sync, psycopg2), Alembic for migrations. Structure: `api/`, `core/`, `database/`, `models/`, `schemas/`, `services/`, `utils/`.
-- **`/frontend`** — React 18 + TypeScript + Tailwind CSS + Vite. State: React Query (server), Zustand (client). UI primitives: Radix UI. **Browser-based** — the backend serves the built frontend as static files. Structure: `src/api/`, `src/types/`, `src/components/ui/`, `src/features/`, `src/pages/`, `src/stores/`, `src/hooks/`, `src/lib/`.
-- **`/tests`** — pytest-based tests.
+**Client** (locally installed on the user's machine):
+- Python process + React UI in browser — same distribution format as before (zip + uv binary)
+- Reads local image files directly from disk
+- Extracts EXIF, generates hotpreview (150×150), computes hothash, generates coldpreview (max 1200px)
+- Sends processed results to backend API — never writes to database or disk itself
+- Serves React UI on localhost
 
-**Database:** pgserver (embedded PostgreSQL). No Docker needed. `HOTPREVUE_LOCAL=true` activates local mode.
+**Backend** (local or on a server):
+- FastAPI (Python), SQLAlchemy (sync, psycopg2), Alembic for migrations
+- Pure API server — never reads original image files
+- Stores metadata in PostgreSQL, stores coldpreviews on disk, serves coldpreviews via HTTP
+- Structure: `api/`, `core/`, `database/`, `models/`, `schemas/`, `services/`, `utils/`
+
+**Frontend** (React app, served by the client):
+- React 18 + TypeScript + Tailwind CSS + Vite
+- State: React Query (server), Zustand (client). UI primitives: Radix UI
+- Structure: `src/api/`, `src/types/`, `src/components/ui/`, `src/features/`, `src/pages/`, `src/stores/`, `src/hooks/`, `src/lib/`
+
+**Tests:** `/tests` — pytest-based.
+
+**Database:** pgserver (embedded PostgreSQL) for local installs. `HOTPREVUE_LOCAL=true` activates local mode. External PostgreSQL for server installs. See ADR-009.
 
 ## Backend is Synchronous
 
@@ -39,23 +55,33 @@ These rules apply to all frontend code and exist to prevent AI formatting errors
 - **React Query for all server state.** No `useState` for data that comes from the API.
 - **Zustand for client-only state** (selection mode, active filters, etc.).
 
-## Local Backend as System Proxy
+## Client Does File Processing
 
-The backend is not a remote server — it is a **local process** running on the same machine as the user's files. This means it has full OS access: filesystem, native dialogs, subprocesses.
+The client is a **local process** running on the user's machine with full filesystem access. The browser UI has no filesystem access — all file operations go through the local Python process.
 
-The browser UI has no filesystem access. All file operations go through the backend:
+The client (not the backend) owns all image processing:
 
 ```
-Browser (React)                  Python backend (local process)
-      │  GET /system/browse            │
-      │ ──────────────────────────→   │  os.scandir("/path/to/photos")
-      │  { dirs, files }               │  ← reads directly from disk
-      │ ←──────────────────────────   │
+Browser (React)       Local Python (client)         Backend API (local or remote)
+      │                       │                              │
+      │  "scan directory"     │                              │
+      │ ───────────────────►  │  os.scandir(path)            │
+      │                       │  read RAW files              │
+      │                       │  extract EXIF                │
+      │                       │  generate hotpreview         │
+      │                       │  compute hothash             │
+      │                       │  generate coldpreview        │
+      │                       │                              │
+      │                       │  POST /input-sessions/{id}/groups
+      │                       │  { hothash, previews, exif } │
+      │                       │ ────────────────────────────►│
+      │                       │                              │  store in PostgreSQL
+      │                       │                              │  save coldpreview to disk
 ```
 
-**Rule:** All filesystem operations in the frontend **must** go through `/system` endpoints — never attempt direct file access in the browser. New OS-level operations belong in `api/system.py`.
+**Rule:** The backend never reads original image files. All file processing happens client-side.
 
-See `docs/decisions/003-local-backend-as-system-proxy.md` for full rationale.
+See `docs/decisions/008-client-server-split.md` for full rationale.
 
 ## Key Technical Decisions
 
@@ -131,19 +157,32 @@ git tag v0.2.0 && git push origin v0.2.0
 ```
 
 
-## System API Endpoints
+## Registration API Endpoints
 
-The backend exposes these endpoints for filesystem operations:
+- `POST /input-sessions/{id}/groups` — registers one processed image group; client sends hothash, hotpreview (base64), coldpreview (base64), EXIF, and file metadata. Backend stores in DB and writes coldpreview to disk.
+- `POST /input-sessions/{id}/check-hothashes` — client sends list of hothashes, backend returns which are already registered. Call this *after* generating hotpreviews but *before* generating coldpreviews to skip duplicates early.
 
-- `POST /system/pick-directory` — opens a native OS directory picker (tkinter), returns `{ path: string | null }`
-- `POST /system/scan-directory` — scans a path for images, returns `{ groups: FileGroup[], total_files: number }`
-- `POST /input-sessions/{id}/groups-by-path` — registers an image group by file path (backend reads file directly, no bytes transfer)
+**Removed:** `/system/pick-directory`, `/system/scan-directory`, `/system/browse`, `/input-sessions/{id}/groups-by-path` — these were backend filesystem operations that are now the client's responsibility.
+
+## Lock API (multi-machine)
+
+- `GET /system/lock` — check current lock status
+- `POST /system/lock` — acquire lock (returns 409 if already held)
+- `DELETE /system/lock` — release lock
+
+Locks have a 30-minute TTL. See `docs/decisions/010-multi-machine-locking.md`.
 
 ## Data Flow
 
 1. User opens the app in browser at `http://localhost:8000` (or `http://localhost:5173` during Vite dev).
-2. User selects a directory via the backend's directory picker (`/system/pick-directory`).
-3. Backend scans the directory for images (`/system/scan-directory`).
-4. Backend registers each image by path: extracts EXIF, generates hotpreview (base64, stored in DB) and coldpreview (file on disk), stores metadata and original file path.
-5. Frontend uses database + coldpreview files for display. Original files are only accessed when explicitly needed.
-6. To sync between machines: copy both the database and the coldpreview directory (they must stay in sync).
+2. User selects a directory — the local Python client scans it directly.
+3. Client processes each image: extracts EXIF, generates hotpreview, computes hothash, generates coldpreview.
+4. Client calls `check-hothashes` to skip already-registered images before generating coldpreviews.
+5. Client sends each processed group to backend via `POST /input-sessions/{id}/groups`.
+6. Backend stores metadata in PostgreSQL and writes coldpreview to disk.
+7. Frontend fetches and displays images via backend API (coldpreviews served as HTTP files).
+
+**Installation modes** (chosen in setup wizard, see ADR-009):
+- Local: client + backend + pgserver on same machine
+- Server: backend on server, one or more clients point to backend URL
+- Client-only: install only the client, point to existing backend URL

@@ -1,126 +1,85 @@
-import os
-from pathlib import Path
+from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
-from utils.registration import (
-    KNOWN_EXTENSIONS,
-    file_type_from_suffix,
-    scan_directory as _scan_directory,
-)
+from database.session import get_db
+from models.machine_lock import MachineLock
 
 router = APIRouter(prefix="/system", tags=["system"])
 
-
-# ─── Skann katalog ────────────────────────────────────────────────────────────
-
-class CompanionFile(BaseModel):
-    path: str
-    type: str
+LOCK_TTL_MINUTES = 30
 
 
-class FileGroup(BaseModel):
-    master_path: str
-    master_type: str
-    companions: list[CompanionFile]
+# ─── Advisory locks (multi-machine coordination) ──────────────────────────────
+
+class LockRequest(BaseModel):
+    lock_type: str   # e.g. 'registration'
+    locked_by: str   # instance_name of the requesting machine
 
 
-class ScanResult(BaseModel):
-    groups: list[FileGroup]
-    total_files: int
+class LockStatus(BaseModel):
+    locked: bool
+    lock_type: str | None = None
+    locked_by: str | None = None
+    locked_at: datetime | None = None
+    expires_at: datetime | None = None
 
 
-class ScanRequest(BaseModel):
-    path: str
-    recursive: bool = True
+def _clear_expired(db: Session) -> None:
+    now = datetime.now(timezone.utc)
+    db.query(MachineLock).filter(MachineLock.expires_at <= now).delete()
+    db.commit()
 
 
-@router.post("/scan-directory", response_model=ScanResult)
-def scan_directory(req: ScanRequest):
-    try:
-        internal_groups, total_files = _scan_directory(req.path, req.recursive)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-    groups = []
-    for g in internal_groups:
-        master_type = file_type_from_suffix(g.master.suffix.lower())
-        companions = [
-            CompanionFile(path=str(c), type=file_type_from_suffix(c.suffix.lower()))
-            for c in g.companions
-        ]
-        groups.append(FileGroup(
-            master_path=str(g.master),
-            master_type=master_type,
-            companions=companions,
-        ))
-
-    return ScanResult(groups=groups, total_files=total_files)
+@router.get("/lock", response_model=LockStatus)
+def get_lock(db: Session = Depends(get_db)):
+    """Return current lock status. Expired locks are cleared automatically."""
+    _clear_expired(db)
+    lock = db.query(MachineLock).first()
+    if lock is None:
+        return LockStatus(locked=False)
+    return LockStatus(
+        locked=True,
+        lock_type=lock.lock_type,
+        locked_by=lock.locked_by,
+        locked_at=lock.locked_at,
+        expires_at=lock.expires_at,
+    )
 
 
-# ─── Filbrowser ───────────────────────────────────────────────────────────────
-
-class BrowseDir(BaseModel):
-    name: str
-    path: str
-
-
-class BrowseFile(BaseModel):
-    name: str
-    path: str
-    type: str
-
-
-class BrowseResult(BaseModel):
-    path: str
-    parent: str | None
-    dirs: list[BrowseDir]
-    files: list[BrowseFile]
-
-
-@router.get("/browse", response_model=BrowseResult)
-def browse_directory(path: str = ""):
-    p = Path(path) if path else Path.home()
-    parent = str(p.parent) if p.parent != p else None
-    image_exts = KNOWN_EXTENSIONS - {".xmp"}
-
-    dirs: list[BrowseDir] = []
-    files: list[BrowseFile] = []
-
-    try:
-        entries = sorted(p.iterdir(), key=lambda e: (not e.is_dir(), e.name.lower()))
-        for entry in entries:
-            if entry.is_dir():
-                dirs.append(BrowseDir(name=entry.name, path=str(entry)))
-            elif entry.is_file() and entry.suffix.lower() in image_exts:
-                files.append(BrowseFile(
-                    name=entry.name,
-                    path=str(entry),
-                    type=file_type_from_suffix(entry.suffix.lower()),
-                ))
-    except OSError:
-        pass
-
-    return BrowseResult(path=str(p), parent=parent, dirs=dirs, files=files)
+@router.post("/lock", response_model=LockStatus, status_code=201)
+def acquire_lock(req: LockRequest, db: Session = Depends(get_db)):
+    """Acquire an advisory lock. Returns 409 if a lock is already held."""
+    _clear_expired(db)
+    existing = db.query(MachineLock).filter(MachineLock.lock_type == req.lock_type).first()
+    if existing:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Lock '{req.lock_type}' is held by '{existing.locked_by}' until {existing.expires_at.isoformat()}",
+        )
+    now = datetime.now(timezone.utc)
+    lock = MachineLock(
+        lock_type=req.lock_type,
+        locked_by=req.locked_by,
+        locked_at=now,
+        expires_at=now + timedelta(minutes=LOCK_TTL_MINUTES),
+    )
+    db.add(lock)
+    db.commit()
+    db.refresh(lock)
+    return LockStatus(
+        locked=True,
+        lock_type=lock.lock_type,
+        locked_by=lock.locked_by,
+        locked_at=lock.locked_at,
+        expires_at=lock.expires_at,
+    )
 
 
-# ─── Velg katalog (native dialog) ─────────────────────────────────────────────
-
-class PickResult(BaseModel):
-    path: str | None
-
-
-@router.post("/pick-directory", response_model=PickResult)
-def pick_directory():
-    try:
-        import tkinter as tk
-        from tkinter import filedialog
-        root = tk.Tk()
-        root.withdraw()
-        root.attributes("-topmost", True)
-        path = filedialog.askdirectory(parent=root, title="Velg katalog")
-        root.destroy()
-        return PickResult(path=path or None)
-    except Exception:
-        return PickResult(path=None)
+@router.delete("/lock/{lock_type}", status_code=204)
+def release_lock(lock_type: str, db: Session = Depends(get_db)):
+    """Release a lock. Silent if the lock doesn't exist."""
+    db.query(MachineLock).filter(MachineLock.lock_type == lock_type).delete()
+    db.commit()

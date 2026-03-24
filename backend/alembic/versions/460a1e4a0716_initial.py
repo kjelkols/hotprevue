@@ -1,8 +1,8 @@
 """initial
 
-Revision ID: b8dc19f5ebe9
+Revision ID: 460a1e4a0716
 Revises: 
-Create Date: 2026-02-26 12:03:53.102722
+Create Date: 2026-03-11 23:24:45.226570
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = 'b8dc19f5ebe9'
+revision: str = '460a1e4a0716'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -44,11 +44,24 @@ def upgrade() -> None:
     sa.Column('description', sa.Text(), nullable=True),
     sa.Column('date', sa.Date(), nullable=True),
     sa.Column('location', sa.String(), nullable=True),
-    sa.Column('parent_id', sa.UUID(), nullable=True),
     sa.Column('cover_hothash', sa.String(), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-    sa.ForeignKeyConstraint(['parent_id'], ['events.id'], ondelete='RESTRICT'),
     sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('machine_locks',
+    sa.Column('lock_type', sa.Text(), nullable=False),
+    sa.Column('locked_by', sa.Text(), nullable=False),
+    sa.Column('locked_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('expires_at', sa.DateTime(timezone=True), nullable=False),
+    sa.PrimaryKeyConstraint('lock_type')
+    )
+    op.create_table('machines',
+    sa.Column('machine_id', sa.UUID(), nullable=False),
+    sa.Column('machine_name', sa.Text(), nullable=False),
+    sa.Column('settings', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+    sa.Column('last_seen_at', sa.DateTime(timezone=True), nullable=True),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.PrimaryKeyConstraint('machine_id')
     )
     op.create_table('photographers',
     sa.Column('id', sa.UUID(), nullable=False),
@@ -59,6 +72,16 @@ def upgrade() -> None:
     sa.Column('is_default', sa.Boolean(), nullable=False),
     sa.Column('is_unknown', sa.Boolean(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('saved_searches',
+    sa.Column('id', sa.UUID(), nullable=False),
+    sa.Column('name', sa.Text(), nullable=False),
+    sa.Column('description', sa.Text(), nullable=True),
+    sa.Column('logic', sa.String(length=3), nullable=False),
+    sa.Column('criteria', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('system_settings',
@@ -72,18 +95,27 @@ def upgrade() -> None:
     sa.Column('browse_buffer_size', sa.Integer(), nullable=False),
     sa.Column('coldpreview_max_px', sa.Integer(), nullable=False),
     sa.Column('coldpreview_quality', sa.Integer(), nullable=False),
+    sa.Column('copy_verify_after_copy', sa.Boolean(), nullable=False),
+    sa.Column('copy_include_videos', sa.Boolean(), nullable=False),
+    sa.Column('extra', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
     sa.PrimaryKeyConstraint('installation_id')
+    )
+    op.create_table('text_items',
+    sa.Column('id', sa.UUID(), nullable=False),
+    sa.Column('markup', sa.Text(), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.PrimaryKeyConstraint('id')
     )
     op.create_table('collection_items',
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('collection_id', sa.UUID(), nullable=False),
     sa.Column('hothash', sa.String(), nullable=True),
+    sa.Column('text_item_id', sa.UUID(), nullable=True),
     sa.Column('position', sa.Integer(), nullable=False),
     sa.Column('caption', sa.Text(), nullable=True),
-    sa.Column('is_text_card', sa.Boolean(), nullable=False),
-    sa.Column('title', sa.Text(), nullable=True),
-    sa.Column('text_content', sa.Text(), nullable=True),
+    sa.Column('notes', sa.Text(), nullable=True),
     sa.ForeignKeyConstraint(['collection_id'], ['collections.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['text_item_id'], ['text_items.id'], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('input_sessions',
@@ -99,16 +131,46 @@ def upgrade() -> None:
     sa.Column('photo_count', sa.Integer(), nullable=False),
     sa.Column('duplicate_count', sa.Integer(), nullable=False),
     sa.Column('error_count', sa.Integer(), nullable=False),
+    sa.Column('notes', sa.Text(), nullable=True),
     sa.ForeignKeyConstraint(['default_event_id'], ['events.id'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['default_photographer_id'], ['photographers.id'], ondelete='RESTRICT'),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('shortcuts',
+    sa.Column('id', sa.UUID(), nullable=False),
+    sa.Column('machine_id', sa.UUID(), nullable=False),
+    sa.Column('name', sa.Text(), nullable=False),
+    sa.Column('path', sa.Text(), nullable=False),
+    sa.Column('position', sa.Integer(), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.ForeignKeyConstraint(['machine_id'], ['machines.machine_id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('file_copy_operations',
+    sa.Column('id', sa.UUID(), nullable=False),
+    sa.Column('source_path', sa.Text(), nullable=False),
+    sa.Column('destination_path', sa.Text(), nullable=False),
+    sa.Column('device_label', sa.Text(), nullable=True),
+    sa.Column('notes', sa.Text(), nullable=True),
+    sa.Column('status', sa.String(), nullable=False),
+    sa.Column('files_total', sa.Integer(), nullable=False),
+    sa.Column('files_copied', sa.Integer(), nullable=False),
+    sa.Column('files_skipped', sa.Integer(), nullable=False),
+    sa.Column('bytes_total', sa.BigInteger(), nullable=False),
+    sa.Column('bytes_copied', sa.BigInteger(), nullable=False),
+    sa.Column('verify_after_copy', sa.Boolean(), nullable=False),
+    sa.Column('include_videos', sa.Boolean(), nullable=False),
+    sa.Column('started_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('completed_at', sa.DateTime(timezone=True), nullable=True),
+    sa.Column('error', sa.Text(), nullable=True),
+    sa.Column('input_session_id', sa.UUID(), nullable=True),
+    sa.ForeignKeyConstraint(['input_session_id'], ['input_sessions.id'], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('photos',
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('hothash', sa.String(), nullable=False),
     sa.Column('hotpreview_b64', sa.Text(), nullable=False),
-    sa.Column('coldpreview_path', sa.String(), nullable=True),
-    sa.Column('exif_data', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
     sa.Column('taken_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('taken_at_source', sa.Integer(), nullable=False),
     sa.Column('taken_at_accuracy', sa.String(), nullable=False),
@@ -131,6 +193,10 @@ def upgrade() -> None:
     sa.Column('event_id', sa.UUID(), nullable=True),
     sa.Column('stack_id', sa.UUID(), nullable=True),
     sa.Column('is_stack_cover', sa.Boolean(), nullable=False),
+    sa.Column('width', sa.Integer(), nullable=True),
+    sa.Column('height', sa.Integer(), nullable=True),
+    sa.Column('dct_perceptual_hash', sa.BigInteger(), nullable=True),
+    sa.Column('difference_hash', sa.BigInteger(), nullable=True),
     sa.Column('registered_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
     sa.ForeignKeyConstraint(['category_id'], ['categories.id'], ondelete='SET NULL'),
@@ -162,12 +228,27 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('file_path')
     )
+    op.create_table('file_copy_skips',
+    sa.Column('id', sa.UUID(), nullable=False),
+    sa.Column('operation_id', sa.UUID(), nullable=False),
+    sa.Column('source_path', sa.Text(), nullable=False),
+    sa.Column('reason', sa.String(), nullable=False),
+    sa.Column('skipped_at', sa.DateTime(timezone=True), nullable=False),
+    sa.ForeignKeyConstraint(['operation_id'], ['file_copy_operations.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id')
+    )
     op.create_table('image_files',
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('photo_id', sa.UUID(), nullable=False),
     sa.Column('file_path', sa.String(), nullable=False),
     sa.Column('file_type', sa.String(), nullable=False),
     sa.Column('is_master', sa.Boolean(), nullable=False),
+    sa.Column('file_size_bytes', sa.BigInteger(), nullable=True),
+    sa.Column('file_content_hash', sa.String(), nullable=True),
+    sa.Column('last_verified_at', sa.DateTime(timezone=True), nullable=True),
+    sa.Column('exif_data', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+    sa.Column('width', sa.Integer(), nullable=True),
+    sa.Column('height', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['photo_id'], ['photos.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
@@ -180,7 +261,6 @@ def upgrade() -> None:
     sa.Column('crop_top', sa.Float(), nullable=True),
     sa.Column('crop_right', sa.Float(), nullable=True),
     sa.Column('crop_bottom', sa.Float(), nullable=True),
-    sa.Column('corrected_coldpreview_path', sa.String(), nullable=True),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
     sa.ForeignKeyConstraint(['photo_id'], ['photos.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('photo_id')
@@ -193,16 +273,23 @@ def downgrade() -> None:
     # ### commands auto generated by Alembic - please adjust! ###
     op.drop_table('photo_corrections')
     op.drop_table('image_files')
+    op.drop_table('file_copy_skips')
     op.drop_table('duplicate_files')
     op.drop_table('session_errors')
     op.drop_index('ix_photos_tags_gin', table_name='photos', postgresql_using='gin')
     op.drop_index(op.f('ix_photos_stack_id'), table_name='photos')
     op.drop_index(op.f('ix_photos_hothash'), table_name='photos')
     op.drop_table('photos')
+    op.drop_table('file_copy_operations')
+    op.drop_table('shortcuts')
     op.drop_table('input_sessions')
     op.drop_table('collection_items')
+    op.drop_table('text_items')
     op.drop_table('system_settings')
+    op.drop_table('saved_searches')
     op.drop_table('photographers')
+    op.drop_table('machines')
+    op.drop_table('machine_locks')
     op.drop_table('events')
     op.drop_table('collections')
     op.drop_table('categories')
