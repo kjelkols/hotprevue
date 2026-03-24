@@ -43,3 +43,5 @@ Hva innebærer denne beslutningen fremover?
 | 008 | Klient-server-arkitektur: klienten prosesserer filer, backend lagrer | Godkjent |
 | 009 | Databasekonfigurasjon: lokal eller ekstern PostgreSQL | Godkjent |
 | 010 | Låsemekanisme for flermaskinsbruk | Godkjent |
+| 011 | Maskin-fotograf-kobling og maskin-felt på photo | Godkjent |
+| 012 | Identitetsvalg i nett-sesjon | Godkjent |
