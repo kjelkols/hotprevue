@@ -79,3 +79,27 @@ før machines-tabellen ble innført, eller bilder registrert på annen måte.
 - `collections`-modellen må oppdateres med `photographer_id`
 - Ny alembic-migrasjon nødvendig
 - Klienten må sende `machine_id` ved registrering av bilder
+
+## Note: Push-kompatibilitet
+
+`photos.photographer_id` er NOT NULL og er en FK til `photographers.id` (UUID).
+For at Push (lokal → sentral server) skal fungere i fremtiden, **må photographer
+UUID genereres på sentralserveren** — aldri lokalt på maskinen.
+
+Hvis en lokal maskin genererer sin egen photographer UUID, vil den UUID-en ikke
+finnes på sentralserveren, og push av bilder vil feile på FK-referansen.
+
+**Implementasjonskrav:** Når maskinregistrering implementeres, må flyten være:
+
+```
+1. Lokal maskin registrerer seg mot sentral server (POST /machines)
+2. Sentral server oppretter photographer + machine, returnerer begge UUIDs
+3. Lokal maskin lagrer photographer_id og machine_id permanent
+4. Alle lokalt registrerte bilder bruker denne photographer_id
+```
+
+Ved ren lokal installasjon (ingen sentral server) genereres UUID lokalt —
+men dette låser maskinen til lokal-modus inntil en eksplisitt
+"koble til sentral server"-operasjon kjøres og UUID-en synkroniseres.
+
+Se også: `docs/spec/push.md` — seksjon "Arkitektoniske forutsetninger"

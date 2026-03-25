@@ -45,3 +45,4 @@ Hva innebærer denne beslutningen fremover?
 | 010 | Låsemekanisme for flermaskinsbruk | Godkjent |
 | 011 | Maskin-fotograf-kobling og maskin-felt på photo | Godkjent |
 | 012 | Identitetsvalg i nett-sesjon | Godkjent |
+| 013 | Migrasjon fra lokal til sentral database | Godkjent |
