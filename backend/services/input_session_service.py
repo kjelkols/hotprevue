@@ -145,6 +145,7 @@ def register_group(
             difference_hash=payload.difference_hash,
             photographer_id=photographer_id,
             input_session_id=session_id,
+            registered_by_machine_id=payload.machine_id,
             event_id=event_id,
         )
         db.add(photo)

@@ -96,6 +96,8 @@ See `docs/decisions/008-client-server-split.md` for full rationale.
   - `DATA_DIR` — override data directory (default: `%APPDATA%\Hotprevue` / `~/.local/share/Hotprevue`)
   - `HOTPREVUE_FRONTEND_DIR` — directory to serve as static frontend
   - `HOTPREVUE_OPEN_BROWSER=true` — open browser automatically on startup
+  - `HOTPREVUE_MACHINE_ID` — UUID of this machine (activates `_register_machine()` on startup)
+  - `HOTPREVUE_PHOTOGRAPHER_ID` — UUID of the photographer to assign to this machine (used when creating a new machine row)
 
 ## Domain Concepts
 
@@ -104,6 +106,8 @@ See `docs/decisions/008-client-server-split.md` for full rationale.
 - **Collection:** Ordered group of images where order matters (many-to-many). Used for slideshows, portfolios, deliveries. Each image can have a caption; text cards can be interspersed.
 - **Companion files:** Each image can have associated files (RAW, JPEG, XMP, sidecar), stored as a list with type and file path.
 - **Register session:** Each registration run creates a session linked to the registered images.
+- **Machine:** Each client installation is a registered machine (`machines` table). A machine has exactly one photographer (ADR-011). `photos.registered_by_machine_id` records which machine registered a photo (nullable — may be absent for older rows).
+- **Session identity (web sessions):** When a browser accesses the backend without a Python client, the user selects their photographer identity from a list (ADR-012). Selection is persisted in `localStorage`. Stored in `useSessionStore` (Zustand). Write operations require a selected photographer.
 
 ## Development Commands
 
@@ -157,9 +161,17 @@ git tag v0.2.0 && git push origin v0.2.0
 ```
 
 
+## Machine API (ADR-011)
+
+- `POST /machines` — register a new machine; body: `{ machine_name, photographer_id? }`. If `photographer_id` is omitted, auto-resolves to default/first photographer or creates an "Ukjent" photographer. Returns `MachineOut`.
+- `GET /machines` — list all registered machines.
+- `GET /machines/{machine_id}` — get one machine.
+
+`GroupPayload` includes optional `machine_id` — client sends its machine UUID so backend can set `photos.registered_by_machine_id`.
+
 ## Registration API Endpoints
 
-- `POST /input-sessions/{id}/groups` — registers one processed image group; client sends hothash, hotpreview (base64), coldpreview (base64), EXIF, and file metadata. Backend stores in DB and writes coldpreview to disk.
+- `POST /input-sessions/{id}/groups` — registers one processed image group; client sends hothash, hotpreview (base64), coldpreview (base64), EXIF, file metadata, and optional `machine_id`. Backend stores in DB and writes coldpreview to disk.
 - `POST /input-sessions/{id}/check-hothashes` — client sends list of hothashes, backend returns which are already registered. Call this *after* generating hotpreviews but *before* generating coldpreviews to skip duplicates early.
 
 **Removed:** `/system/pick-directory`, `/system/scan-directory`, `/system/browse`, `/input-sessions/{id}/groups-by-path` — these were backend filesystem operations that are now the client's responsibility.

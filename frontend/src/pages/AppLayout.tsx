@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom'
 import TopNav from '../components/TopNav'
 import SourceTargetPanel from '../features/navigation/SourceTargetPanel'
+import PhotographerPicker from '../features/identity/PhotographerPicker'
 
 export default function AppLayout() {
   return (
@@ -10,6 +11,7 @@ export default function AppLayout() {
       <div className="flex-1 min-h-0 overflow-y-auto">
         <Outlet />
       </div>
+      <PhotographerPicker />
     </div>
   )
 }

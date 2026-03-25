@@ -66,10 +66,11 @@ import models.file_copy  # noqa: F401
 import models.shortcut  # noqa: F401
 import models.saved_search  # noqa: F401
 
-from api import admin, collections, events, file_copy, input_sessions, photographers, photos, searches, settings as settings_api, shortcuts, stats, system, tags, text_items  # noqa: E402
+from api import admin, collections, events, file_copy, input_sessions, machines, photographers, photos, searches, settings as settings_api, shortcuts, stats, system, tags, text_items  # noqa: E402
 app.include_router(admin.router)
 app.include_router(stats.router)
 app.include_router(photographers.router)
+app.include_router(machines.router)
 app.include_router(events.router)
 app.include_router(input_sessions.router)
 app.include_router(photos.router)
@@ -133,14 +134,34 @@ def _register_machine() -> None:
     """Upsert the current machine row, update last_seen_at, and seed default shortcut."""
     from datetime import datetime, timezone
     from models.machine import Machine
+    from models.photographer import Photographer
     from services.shortcut_service import seed_default
 
     machine_id = uuid.UUID(os.environ["HOTPREVUE_MACHINE_ID"])
     with SessionLocal() as db:
         machine = db.query(Machine).filter(Machine.machine_id == machine_id).first()
         if machine is None:
-            machine = Machine(machine_id=machine_id, machine_name="", settings={})
+            photographer_id = _resolve_default_photographer(db)
+            machine = Machine(machine_id=machine_id, machine_name="", settings={}, photographer_id=photographer_id)
             db.add(machine)
         machine.last_seen_at = datetime.now(timezone.utc)
         db.commit()
         seed_default(db, machine_id, str(Path.home()))
+
+
+def _resolve_default_photographer(db) -> uuid.UUID:
+    """Return photographer_id for new machine: env var → default → first → create unknown."""
+    from models.photographer import Photographer
+
+    pid_str = os.environ.get("HOTPREVUE_PHOTOGRAPHER_ID")
+    if pid_str:
+        return uuid.UUID(pid_str)
+
+    p = db.query(Photographer).filter(Photographer.is_default == True).first()  # noqa: E712
+    if p is None:
+        p = db.query(Photographer).order_by(Photographer.created_at).first()
+    if p is None:
+        p = Photographer(name="Ukjent", is_unknown=True)
+        db.add(p)
+        db.flush()
+    return p.id

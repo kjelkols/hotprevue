@@ -113,6 +113,9 @@ class GroupPayload(BaseModel):
     photographer_id: uuid.UUID | None = None
     event_id: uuid.UUID | None = None
 
+    # Registering machine (ADR-011)
+    machine_id: uuid.UUID | None = None
+
     # Companion files
     companions: list[CompanionFilePayload] = []
 

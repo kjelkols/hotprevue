@@ -2,7 +2,7 @@
 
 ## Status
 
-Godkjent
+Implementert (2026-03-25)
 
 ## Kontekst
 

@@ -15,6 +15,11 @@ class Collection(Base):
     name: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     cover_hothash: Mapped[str | None] = mapped_column(String, nullable=True)
+    photographer_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("photographers.id", ondelete="RESTRICT"),
+        nullable=True,  # nullable at DB level for migration safety; app enforces NOT NULL on new rows
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     items: Mapped[list["CollectionItem"]] = relationship(

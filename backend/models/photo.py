@@ -53,6 +53,11 @@ class Photo(Base):
         ForeignKey("input_sessions.id", ondelete="SET NULL"),
         nullable=True,
     )
+    registered_by_machine_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("machines.machine_id", ondelete="SET NULL"),
+        nullable=True,
+    )
     event_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("events.id", ondelete="SET NULL"),

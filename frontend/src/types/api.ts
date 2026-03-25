@@ -82,6 +82,14 @@ export interface Photographer {
   created_at: string
 }
 
+export interface Machine {
+  machine_id: string
+  machine_name: string
+  photographer_id: string | null
+  last_seen_at: string | null
+  created_at: string
+}
+
 export interface GlobalSettings {
   installation_id: string
   instance_name: string
