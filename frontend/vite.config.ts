@@ -2,12 +2,12 @@ import { resolve } from 'path'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-const BACKEND = 'http://localhost:8000'
+const BACKEND = process.env.VITE_BACKEND_URL ?? 'http://localhost:8000'
 
 // Alle API-ruter proxyes til backend i dev-modus.
 const API_ROUTES = [
   '/admin', '/collections', '/events', '/file-copy-operations',
-  '/input-sessions', '/photographers', '/photos', '/searches',
+  '/input-sessions', '/machines', '/photographers', '/photos', '/searches',
   '/settings', '/shortcuts', '/stats', '/system', '/tags',
   '/text-items', '/health', '/api',
 ]
