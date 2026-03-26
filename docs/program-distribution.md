@@ -143,7 +143,7 @@ Hotprevue-x.y.z-mac.zip
 ```bat
 @echo off
 setlocal
-set HOTPREVUE_LOCAL=true
+set HOTPREVUE_SERVER=local
 set HOTPREVUE_OPEN_BROWSER=true
 cd /d "%~dp0backend"
 "%~dp0uv.exe" run --python 3.12 uvicorn main:app --host 127.0.0.1 --port 8000
@@ -157,7 +157,7 @@ endlocal
 set -e
 DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$DIR/backend"
-HOTPREVUE_LOCAL=true HOTPREVUE_OPEN_BROWSER=true \
+HOTPREVUE_SERVER=local HOTPREVUE_OPEN_BROWSER=true \
   "$DIR/uv" run --python 3.12 uvicorn main:app --host 127.0.0.1 --port 8000
 ```
 
@@ -173,7 +173,7 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 # Fjern macOS-karantene fra uv-binæren (se Gatekeeper-note nedenfor)
 xattr -d com.apple.quarantine "$DIR/uv" 2>/dev/null || true
 cd "$DIR/backend"
-HOTPREVUE_LOCAL=true HOTPREVUE_OPEN_BROWSER=true \
+HOTPREVUE_SERVER=local HOTPREVUE_OPEN_BROWSER=true \
   "$DIR/uv" run --python 3.12 uvicorn main:app --host 127.0.0.1 --port 8000
 ```
 

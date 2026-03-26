@@ -30,7 +30,7 @@ class ServerManager:
         if self.is_running():
             return
         env = os.environ.copy()
-        env["HOTPREVUE_LOCAL"] = "true"
+        env["HOTPREVUE_SERVER"] = "local"
         env["HOTPREVUE_FRONTEND_DIR"] = str(APP_ROOT / "frontend")
         if data_dir:
             env["DATA_DIR"] = data_dir

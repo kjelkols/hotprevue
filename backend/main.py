@@ -5,7 +5,7 @@ import webbrowser
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-if os.environ.get("HOTPREVUE_LOCAL"):
+if os.environ.get("HOTPREVUE_SERVER") == "local":
     from core.local_setup import setup_local_environment
     setup_local_environment()
 
@@ -20,7 +20,7 @@ from models.settings import SystemSettings
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    if os.environ.get("HOTPREVUE_LOCAL"):
+    if os.environ.get("HOTPREVUE_SERVER") == "local":
         _run_migrations()
     _bootstrap_settings()
     if os.environ.get("HOTPREVUE_MACHINE_ID"):

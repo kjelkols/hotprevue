@@ -1,7 +1,7 @@
 @echo off
 setlocal
 
-set HOTPREVUE_LOCAL=true
+set HOTPREVUE_SERVER=local
 set HOTPREVUE_OPEN_BROWSER=true
 
 cd /d "%~dp0backend"

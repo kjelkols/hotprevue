@@ -369,7 +369,7 @@ class InstallerApp(tk.Tk):
         assert data_dir is not None
 
         os.environ["DATA_DIR"] = str(data_dir)
-        os.environ["HOTPREVUE_LOCAL"] = "true"
+        os.environ["HOTPREVUE_SERVER"] = "local"
 
         self._set_progress("Starter database…")
         from core.local_setup import setup_local_environment
@@ -435,7 +435,7 @@ class InstallerApp(tk.Tk):
             "@echo off\r\n"
             "setlocal\r\n"
             "\r\n"
-            "set HOTPREVUE_LOCAL=true\r\n"
+            "set HOTPREVUE_SERVER=local\r\n"
             "set HOTPREVUE_OPEN_BROWSER=true\r\n"
             f"{data_dir_line}\r\n"
             "\r\n"

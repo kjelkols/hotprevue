@@ -147,7 +147,7 @@ server-disk.
 
 Etter fullført migrasjon:
 
-- Konfigurasjonsfil oppdateres: `HOTPREVUE_LOCAL=false`, `DATABASE_URL=<sentral>`
+- Konfigurasjonsfil oppdateres: `HOTPREVUE_SERVER=http://<sentral>`, `DATABASE_URL=<sentral>`
 - pgserver startes ikke ved neste oppstart
 - Lokal data-katalog (`~/.local/share/Hotprevue` / `%APPDATA%\Hotprevue`)
   beholdes urørt som passiv backup

@@ -14,7 +14,7 @@ DIST_EXCLUDES := \
 
 # Start backend med pgserver (lokal PostgreSQL, ingen Docker)
 dev-backend:
-	cd backend && HOTPREVUE_LOCAL=true uv run uvicorn main:app --host 0.0.0.0 --port 8000
+	cd backend && HOTPREVUE_SERVER=local uv run uvicorn main:app --host 0.0.0.0 --port 8000
 
 # Start Vite dev-server med hot-reload (tilgjengelig på nettverket via 0.0.0.0)
 dev-frontend:

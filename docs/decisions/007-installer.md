@@ -160,7 +160,7 @@ under gjenoppretting.
 
 ### Databaseoppsett ved ny installasjon
 
-Installer-scriptet setter `DATA_DIR` og `HOTPREVUE_LOCAL=true` i `os.environ`
+Installer-scriptet setter `DATA_DIR` og `HOTPREVUE_SERVER=local` i `os.environ`
 og kaller deretter den eksisterende `core.local_setup.setup_local_environment()`.
 Dette starter pgserver og oppretter databasen via den vanlige kodeveien.
 Alembic-migrasjoner kjøres deretter direkte (`alembic upgrade head`).

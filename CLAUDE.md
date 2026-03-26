@@ -30,7 +30,7 @@ Two separate components with clearly defined responsibilities:
 
 **Tests:** `/tests` — pytest-based.
 
-**Database:** pgserver (embedded PostgreSQL) for local installs. `HOTPREVUE_LOCAL=true` activates local mode. External PostgreSQL for server installs. See ADR-009.
+**Database:** pgserver (embedded PostgreSQL) for local installs. `HOTPREVUE_SERVER=local` activates local mode. External PostgreSQL for server installs. See ADR-009.
 
 ## Backend is Synchronous
 
@@ -92,7 +92,7 @@ See `docs/decisions/008-client-server-split.md` for full rationale.
 - **Base64 for all image binary data** in API responses.
 - **API must listen on `0.0.0.0`** in dev (reachable via Tailscale), `127.0.0.1` in zip distribution.
 - **Environment variables** for database URL and all configuration:
-  - `HOTPREVUE_LOCAL=true` — activates pgserver mode (embedded DB)
+  - `HOTPREVUE_SERVER=local` — activates pgserver mode (embedded DB)
   - `DATA_DIR` — override data directory (default: `%APPDATA%\Hotprevue` / `~/.local/share/Hotprevue`)
   - `HOTPREVUE_FRONTEND_DIR` — directory to serve as static frontend
   - `HOTPREVUE_OPEN_BROWSER=true` — open browser automatically on startup
@@ -115,7 +115,7 @@ See `docs/decisions/008-client-server-split.md` for full rationale.
 # Start backend (pgserver starter PostgreSQL automatisk)
 make dev-backend
 # eller direkte:
-cd backend && HOTPREVUE_LOCAL=true uv run uvicorn main:app --host 0.0.0.0 --port 8000
+cd backend && HOTPREVUE_SERVER=local uv run uvicorn main:app --host 0.0.0.0 --port 8000
 
 # Start Vite dev-server med hot-reload (tilgjengelig på nettverket, åpne i nettleser):
 make dev-frontend   # cd frontend && npm run dev:web  → http://<server-ip>:5173

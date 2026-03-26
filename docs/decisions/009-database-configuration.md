@@ -22,7 +22,7 @@ Tre installasjonsscenarier:
 ### Scenario 1: Frittstående (lokal backend + lokal database)
 
 ```
-HOTPREVUE_LOCAL=true
+HOTPREVUE_SERVER=local
 ```
 
 pgserver starter automatisk en embedded PostgreSQL. Ingen ekstra installasjon.
@@ -67,7 +67,7 @@ Velg installasjonsmodus:
 ## Begrunnelse
 
 - Scenario 1 bevarer den enkle opplevelsen for enkeltbrukere — ingen PostgreSQL-kompetanse nødvendig
-- Eksisterende konfigurasjonsmønster (`HOTPREVUE_LOCAL`, `DATABASE_URL`) beholdes uendret
+- Konfigurasjonsmønsteret (`HOTPREVUE_SERVER`, `DATABASE_URL`) er tydelig og konsistent
 - Klienten i scenario 3 er stateless mht. database — lettere å sette opp og vedlikeholde
 
 ## Konsekvenser
