@@ -16,7 +16,7 @@ export default function StepScan({ scanResult, unknownGroups, onConfirm, onBack 
         <h2 className="mb-4 text-lg font-semibold text-white">Skannresultat</h2>
 
         <div className="grid grid-cols-2 gap-4">
-          <Stat label="Totalt filer" value={scanResult.totalFiles} />
+          <Stat label="Totalt filer" value={scanResult.total_files} />
           <Stat label="Bildegrupper" value={scanResult.groups.length} />
           <Stat label="Allerede registrert" value={known} color="text-gray-400" />
           <Stat label="Nye bilder" value={unknownGroups.length} color="text-blue-400" />
@@ -31,8 +31,8 @@ export default function StepScan({ scanResult, unknownGroups, onConfirm, onBack 
             </div>
             <ul className="divide-y divide-gray-800">
               {unknownGroups.map(g => (
-                <li key={g.masterPath} className="px-4 py-2">
-                  <p className="truncate text-sm text-gray-200">{g.masterPath}</p>
+                <li key={g.master_path} className="px-4 py-2">
+                  <p className="truncate text-sm text-gray-200">{g.master_path}</p>
                   {g.companions.length > 0 && (
                     <p className="text-xs text-gray-500">
                       + {g.companions.length} vedlegg ({g.companions.map(c => c.type).join(', ')})
