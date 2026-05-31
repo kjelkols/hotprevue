@@ -58,12 +58,12 @@ def list_volumes() -> list[VolumeEntry]:
 
     elif system == "Linux":
         user = os.environ.get("USER") or os.environ.get("LOGNAME") or ""
+        # Kun brukerspesifikke automount-punkter (udisks2 / systemd-automount).
+        # /media/ og /mnt/ utelates — de inneholder systemmonteringer og støy.
         candidates = [
             Path(f"/media/{user}"),
             Path(f"/run/media/{user}"),
-            Path("/media"),
-            Path("/mnt"),
-        ]
+        ] if user else [Path("/media"), Path("/mnt")]
         seen: set[str] = set()
         for base in candidates:
             if not base.exists() or not base.is_dir():
