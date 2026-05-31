@@ -1,16 +1,5 @@
 import { agentFetch } from './agentClient'
-
-export interface FileGroupOut {
-  master: string
-  companions: string[]
-  has_raw: boolean
-  has_jpeg: boolean
-}
-
-export interface ScanResponse {
-  groups: FileGroupOut[]
-  total_files: number
-}
+import type { ScanResult } from '../types/api'
 
 export interface ProcessResponse {
   hothash: string
@@ -25,16 +14,16 @@ export interface ProcessResponse {
   height: number
 }
 
-export function scanDirectory(path: string, recursive = true): Promise<ScanResponse> {
+export function scanDirectory(path: string, recursive = true): Promise<ScanResult> {
   return agentFetch('/scan', {
     method: 'POST',
     body: JSON.stringify({ path, recursive }),
   })
 }
 
-export function processFile(master: string, companions: string[] = []): Promise<ProcessResponse> {
+export function processFile(master_path: string, companions: string[] = []): Promise<ProcessResponse> {
   return agentFetch('/process', {
     method: 'POST',
-    body: JSON.stringify({ master, companions }),
+    body: JSON.stringify({ master: master_path, companions }),
   })
 }

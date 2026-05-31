@@ -3,7 +3,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from utils.registration import scan_directory, FileGroup
+from utils.registration import scan_directory, file_type_from_suffix
 
 router = APIRouter(prefix="/scan", tags=["scan"])
 
@@ -13,11 +13,15 @@ class ScanRequest(BaseModel):
     recursive: bool = True
 
 
+class CompanionFileOut(BaseModel):
+    path: str
+    type: str
+
+
 class FileGroupOut(BaseModel):
-    master: str
-    companions: list[str]
-    has_raw: bool
-    has_jpeg: bool
+    master_path: str
+    master_type: str
+    companions: list[CompanionFileOut]
 
 
 class ScanResponse(BaseModel):
@@ -35,10 +39,15 @@ def scan(req: ScanRequest) -> ScanResponse:
     return ScanResponse(
         groups=[
             FileGroupOut(
-                master=str(g.master),
-                companions=[str(c) for c in g.companions],
-                has_raw=g.has_raw,
-                has_jpeg=g.has_jpeg,
+                master_path=str(g.master),
+                master_type=file_type_from_suffix(g.master.suffix.lower()),
+                companions=[
+                    CompanionFileOut(
+                        path=str(c),
+                        type=file_type_from_suffix(c.suffix.lower()),
+                    )
+                    for c in g.companions
+                ],
             )
             for g in groups
         ],
