@@ -5,6 +5,7 @@ import { createSession, checkHothashes } from '../../api/inputSessions'
 import { scanDirectory, hashFile } from '../../api/agent'
 import FileBrowser from '../../components/FileBrowser'
 import { getSettings } from '../../api/settings'
+import { listVolumes } from '../../api/system'
 import CopySection from './CopySection'
 import type { FileGroup, ScanResult } from '../../types/api'
 
@@ -24,14 +25,13 @@ export default function StepSetup({ onDone }: Props) {
   const [notes, setNotes] = useState('')
   const [newPhotographerName, setNewPhotographerName] = useState('')
   const [creatingPhotographer, setCreatingPhotographer] = useState(false)
-  const [sourceMode, setSourceMode] = useState<'manual' | 'copy'>('manual')
-  const [copyDone, setCopyDone] = useState(false)
+  const [copiedDest, setCopiedDest] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
   const { data: photographers, refetch: refetchPhotographers } = useQuery({
     queryKey: ['photographers'],
-    queryFn: listPhotographers
+    queryFn: listPhotographers,
   })
 
   const { data: settingsData, error: settingsError } = useQuery({
@@ -40,22 +40,29 @@ export default function StepSetup({ onDone }: Props) {
     retry: 1,
   })
 
+  const { data: volumes = [] } = useQuery({
+    queryKey: ['volumes'],
+    queryFn: listVolumes,
+    staleTime: 10_000,
+  })
+
   useEffect(() => {
     if (settingsData?.machine.default_photographer_id && !photographerId) {
       setPhotographerId(settingsData.machine.default_photographer_id)
     }
   }, [settingsData])
 
-  function handleModeChange(mode: 'manual' | 'copy') {
-    setSourceMode(mode)
-    if (mode === 'manual') {
-      setCopyDone(false)
-      setDirPath('')
-    }
-  }
+  // Minnekort oppdaget hvis valgt sti er under et kjent volum
+  const isRemovable = dirPath !== '' && volumes.some(
+    v => dirPath === v.path || dirPath.startsWith(v.path + '/')
+  )
 
-  function handleDirInput(raw: string) {
-    setDirPath(raw)
+  // Den faktiske stien som skal skannes
+  const effectivePath = copiedDest ?? dirPath
+
+  function handleDirSelect(path: string) {
+    setDirPath(path)
+    setCopiedDest(null)
   }
 
   async function handleCreatePhotographer() {
@@ -76,30 +83,26 @@ export default function StepSetup({ onDone }: Props) {
 
   async function handleNext() {
     if (!sessionName.trim()) { setError('Oppgi et navn for registreringen'); return }
-    if (!dirPath) { setError('Velg en katalog'); return }
+    if (!effectivePath) { setError('Velg en katalog'); return }
     if (!photographerId) { setError('Velg eller opprett en fotograf'); return }
 
     setBusy(true)
     setError('')
     try {
-      // Scan directory via local agent
-      const scan = await scanDirectory(dirPath, recursive)
+      const scan = await scanDirectory(effectivePath, recursive)
 
-      // Create session
       const session = await createSession({
         name: sessionName.trim(),
-        source_path: dirPath,
+        source_path: effectivePath,
         default_photographer_id: photographerId,
         recursive,
         notes: notes.trim() || null,
       })
 
-      // Hash all files via agent (uses embedded thumbnail — fast)
       const hashResults = await Promise.all(
         scan.groups.map(g => hashFile(g.master_path).then(r => ({ group: g, hothash: r.hothash })))
       )
 
-      // Check which hothashes backend already has
       const hothashes = hashResults.map(r => r.hothash)
       const check = await checkHothashes(session.id, hothashes)
 
@@ -118,6 +121,8 @@ export default function StepSetup({ onDone }: Props) {
 
   return (
     <div className="mx-auto max-w-xl space-y-6">
+
+      {/* Navn */}
       <div>
         <label className="mb-1 block text-sm font-medium text-gray-300">Navn på registrering</label>
         <input
@@ -129,69 +134,28 @@ export default function StepSetup({ onDone }: Props) {
         />
       </div>
 
+      {/* Katalog */}
       <div>
-        <label className="mb-2 block text-sm font-medium text-gray-300">Katalog</label>
+        <label className="mb-1 block text-sm font-medium text-gray-300">Katalog</label>
 
-        <div className="mb-3 flex overflow-hidden rounded-lg border border-gray-700 text-sm">
-          <button
-            type="button"
-            onClick={() => handleModeChange('manual')}
-            disabled={copyDone}
-            className={`flex-1 px-3 py-1.5 transition-colors disabled:opacity-50 ${
-              sourceMode === 'manual' ? 'bg-gray-700 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'
-            }`}
-          >Velg katalog</button>
-          <button
-            type="button"
-            onClick={() => handleModeChange('copy')}
-            disabled={copyDone}
-            className={`flex-1 border-l border-gray-700 px-3 py-1.5 transition-colors disabled:opacity-50 ${
-              sourceMode === 'copy' ? 'bg-gray-700 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'
-            }`}
-          >Kopier fra kilde</button>
-        </div>
-
-        {sourceMode === 'manual' && (
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={dirPath}
-              onChange={e => handleDirInput(e.target.value)}
-              className="flex-1 rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-white outline-none focus:border-blue-500"
-              placeholder="Lim inn sti, f.eks. C:\Bilder\Ferie2025"
-            />
-            <FileBrowser
-              initialPath={dirPath}
-              onSelect={setDirPath}
-              trigger={
-                <button className="rounded-lg bg-gray-700 px-4 py-2 text-sm font-medium text-white hover:bg-gray-600">
-                  Bla…
-                </button>
-              }
-            />
-          </div>
-        )}
-
-        {sourceMode === 'copy' && !copyDone && (
-          <CopySection
-            onCopyCompleted={destPath => {
-              setDirPath(destPath)
-              setCopyDone(true)
-            }}
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={dirPath}
+            onChange={e => handleDirSelect(e.target.value)}
+            className="flex-1 rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-white outline-none focus:border-blue-500"
+            placeholder="Velg eller lim inn sti…"
           />
-        )}
-
-        {sourceMode === 'copy' && copyDone && (
-          <div className="flex items-center gap-2 rounded-lg border border-green-700 bg-green-900/20 px-3 py-2 text-sm">
-            <span className="text-green-400">✓</span>
-            <span className="flex-1 truncate font-mono text-green-300">{dirPath}</span>
-            <button
-              type="button"
-              onClick={() => { setCopyDone(false); setDirPath('') }}
-              className="shrink-0 text-xs text-gray-400 hover:text-white"
-            >Nullstill</button>
-          </div>
-        )}
+          <FileBrowser
+            initialPath={dirPath}
+            onSelect={handleDirSelect}
+            trigger={
+              <button className="rounded-lg bg-gray-700 px-4 py-2 text-sm font-medium text-white hover:bg-gray-600">
+                Bla…
+              </button>
+            }
+          />
+        </div>
 
         <label className="mt-2 flex items-center gap-2 text-sm text-gray-400">
           <input
@@ -202,8 +166,35 @@ export default function StepSetup({ onDone }: Props) {
           />
           Inkluder undermapper
         </label>
+
+        {/* Minnekort — kopieringssteg */}
+        {isRemovable && !copiedDest && (
+          <CopySection
+            sourcePath={dirPath}
+            onCopyCompleted={setCopiedDest}
+          />
+        )}
+
+        {/* Etter vellykket kopiering */}
+        {isRemovable && copiedDest && (
+          <div className="mt-3 flex items-center gap-2 rounded-lg border border-green-700 bg-green-900/20 px-3 py-2 text-sm">
+            <span className="text-green-400">✓</span>
+            <span className="flex-1 truncate font-mono text-green-300">{copiedDest}</span>
+            <button
+              type="button"
+              onClick={() => setCopiedDest(null)}
+              className="shrink-0 text-xs text-gray-400 hover:text-white"
+            >Kopier på nytt</button>
+          </div>
+        )}
+
+        {/* Hvilken sti som faktisk skannes */}
+        {isRemovable && copiedDest && (
+          <p className="mt-1 text-xs text-gray-500">Skanner fra: <span className="font-mono">{copiedDest}</span></p>
+        )}
       </div>
 
+      {/* Fotograf */}
       <div>
         <label className="mb-1 block text-sm font-medium text-gray-300">Fotograf</label>
         <select
@@ -236,8 +227,11 @@ export default function StepSetup({ onDone }: Props) {
         </div>
       </div>
 
+      {/* Notater */}
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-300">Notater <span className="text-gray-500 font-normal">(valgfritt)</span></label>
+        <label className="mb-1 block text-sm font-medium text-gray-300">
+          Notater <span className="text-gray-500 font-normal">(valgfritt)</span>
+        </label>
         <textarea
           value={notes}
           onChange={e => setNotes(e.target.value)}

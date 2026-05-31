@@ -4,6 +4,7 @@ import FileBrowser from '../../components/FileBrowser'
 import type { AgentCopyOperation } from '../../types/api'
 
 interface Props {
+  sourcePath: string
   onCopyCompleted: (destinationPath: string) => void
 }
 
@@ -14,11 +15,9 @@ function formatBytes(bytes: number): string {
   return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${units[i]}`
 }
 
-export default function CopySection({ onCopyCompleted }: Props) {
-  const [sourcePath, setSourcePath] = useState('')
+export default function CopySection({ sourcePath, onCopyCompleted }: Props) {
   const [parentDir, setParentDir] = useState('')
   const [dirName, setDirName] = useState('')
-  const [suggestion, setSuggestion] = useState<string | null>(null)
   const [filesFound, setFilesFound] = useState<number | null>(null)
   const [bytesTotal, setBytesTotal] = useState<number | null>(null)
   const [deviceLabel, setDeviceLabel] = useState('')
@@ -29,23 +28,27 @@ export default function CopySection({ onCopyCompleted }: Props) {
   const [erasing, setErasing] = useState(false)
   const [eraseResult, setEraseResult] = useState<{ deleted: number; errors: number } | null>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const nameInputRef = useRef<HTMLInputElement>(null)
 
+  // Hent EXIF-dato og filinfo automatisk når kilden endres
   useEffect(() => {
     if (!sourcePath) return
     setScanning(true)
-    setSuggestion(null)
     setFilesFound(null)
+    setBytesTotal(null)
+    setOperation(null)
+    setEraseResult(null)
+    setEraseChecked(false)
     suggestName(sourcePath)
       .then(r => {
-        setSuggestion(r.suggested_name)
         setFilesFound(r.files_found)
         setBytesTotal(r.bytes_total)
+        if (r.suggested_name) setDirName(r.suggested_name)
       })
       .catch(() => {})
       .finally(() => setScanning(false))
   }, [sourcePath])
 
+  // Poll under kopiering
   useEffect(() => {
     if (!operation) return
     if (['completed', 'failed', 'cancelled'].includes(operation.status)) return
@@ -64,17 +67,6 @@ export default function CopySection({ onCopyCompleted }: Props) {
     return () => { if (pollRef.current) clearInterval(pollRef.current) }
   }, [operation?.id, operation?.status])
 
-  function handleNameKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === 'Tab' && suggestion && dirName === '') {
-      e.preventDefault()
-      setDirName(suggestion)
-      setTimeout(() => {
-        const el = nameInputRef.current
-        if (el) { el.selectionStart = el.selectionEnd = el.value.length }
-      }, 0)
-    }
-  }
-
   async function handleStart() {
     if (!sourcePath || !parentDir || !dirName) return
     const destPath = parentDir.replace(/\/+$/, '') + '/' + dirName
@@ -84,11 +76,6 @@ export default function CopySection({ onCopyCompleted }: Props) {
       device_label: deviceLabel || undefined,
     })
     setOperation(op)
-  }
-
-  async function handleCancel() {
-    if (!operation) return
-    await cancelCopyOperation(operation.id)
   }
 
   async function handleErase() {
@@ -110,48 +97,25 @@ export default function CopySection({ onCopyCompleted }: Props) {
     : 0
 
   return (
-    <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-4 space-y-3">
+    <div className="mt-3 rounded-lg border border-orange-800/50 bg-orange-950/20 p-4 space-y-3">
+      <p className="text-xs font-medium text-orange-300 uppercase tracking-wide">Minnekort oppdaget — kopier til lokal katalog</p>
 
-      {/* Source */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Kilde</label>
-        <div className="flex gap-2">
-          <input
-            className="flex-1 rounded border border-gray-300 px-3 py-1.5 text-sm font-mono text-gray-800"
-            value={sourcePath}
-            onChange={e => setSourcePath(e.target.value)}
-            placeholder="/Volumes/EOS_DIGITAL/DCIM"
-            disabled={!!operation}
-          />
-          <FileBrowser
-            initialPath={sourcePath}
-            onSelect={setSourcePath}
-            trigger={
-              <button
-                type="button"
-                className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40"
-                disabled={!!operation}
-              >Velg…</button>
-            }
-          />
-        </div>
-        {scanning && <p className="mt-1 text-xs text-gray-500">Skanner kilde…</p>}
-        {filesFound !== null && !scanning && (
-          <p className="mt-1 text-xs text-gray-600">
-            {filesFound} filer · {formatBytes(bytesTotal ?? 0)}
-          </p>
-        )}
+      {/* Kildeinformasjon */}
+      <div className="text-xs text-gray-400 font-mono">
+        {scanning ? 'Skanner kilde…' : filesFound !== null
+          ? `${filesFound} filer · ${formatBytes(bytesTotal ?? 0)}`
+          : null}
       </div>
 
-      {/* Destination */}
+      {/* Destinasjon */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Destinasjon</label>
+        <label className="block text-sm font-medium text-gray-300 mb-1">Kopier til</label>
         <div className="flex gap-2 mb-1">
           <input
-            className="flex-1 rounded border border-gray-300 px-3 py-1.5 text-sm font-mono text-gray-800"
+            className="flex-1 rounded border border-gray-600 bg-gray-800 px-3 py-1.5 text-sm font-mono text-white"
             value={parentDir}
             onChange={e => setParentDir(e.target.value)}
-            placeholder="/bilder"
+            placeholder="Velg overmappe…"
             disabled={!!operation}
           />
           <FileBrowser
@@ -160,41 +124,34 @@ export default function CopySection({ onCopyCompleted }: Props) {
             trigger={
               <button
                 type="button"
-                className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+                className="rounded border border-gray-600 bg-gray-700 px-3 py-1.5 text-sm text-white hover:bg-gray-600 disabled:opacity-40"
                 disabled={!!operation}
-              >Velg…</button>
+              >Bla…</button>
             }
           />
         </div>
         <div className="flex gap-2 items-center">
-          <span className="text-sm text-gray-400 select-none">/</span>
+          <span className="text-sm text-gray-500 select-none">/</span>
           <input
-            ref={nameInputRef}
-            className="flex-1 rounded border border-gray-300 px-3 py-1.5 text-sm font-mono text-gray-800"
+            className="flex-1 rounded border border-gray-600 bg-gray-800 px-3 py-1.5 text-sm font-mono text-white"
             value={dirName}
             onChange={e => setDirName(e.target.value)}
-            onKeyDown={handleNameKeyDown}
-            placeholder={suggestion ?? 'katalognavn'}
+            placeholder="katalognavn"
             disabled={!!operation}
           />
         </div>
-        {suggestion && dirName === '' && (
-          <p className="mt-1 text-xs text-gray-500">
-            Trykk <kbd className="rounded border border-gray-300 bg-white px-1 text-xs">Tab</kbd> for å bruke forslaget «{suggestion}»
-          </p>
-        )}
         {destPath && (
           <p className="mt-1 text-xs text-gray-500 font-mono truncate">→ {destPath}</p>
         )}
       </div>
 
-      {/* Device label */}
+      {/* Enhetsnavn */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Enhetsnavn <span className="font-normal text-gray-400">(valgfritt)</span>
+        <label className="block text-sm font-medium text-gray-300 mb-1">
+          Enhetsnavn <span className="font-normal text-gray-500">(valgfritt)</span>
         </label>
         <input
-          className="w-full rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-800"
+          className="w-full rounded border border-gray-600 bg-gray-800 px-3 py-1.5 text-sm text-white"
           value={deviceLabel}
           onChange={e => setDeviceLabel(e.target.value)}
           placeholder="Sony A7IV kort 1"
@@ -202,47 +159,47 @@ export default function CopySection({ onCopyCompleted }: Props) {
         />
       </div>
 
-      {/* Progress */}
+      {/* Fremdrift */}
       {operation && (
         <div className="space-y-2">
-          <div className="h-2 w-full rounded-full bg-gray-200">
+          <div className="h-2 w-full rounded-full bg-gray-700">
             <div
               className="h-2 rounded-full bg-blue-500 transition-all"
               style={{ width: `${Math.round(progress * 100)}%` }}
             />
           </div>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-400">
             {operation.files_copied} av {operation.files_total} filer
             {' · '}{formatBytes(operation.bytes_copied)} av {formatBytes(operation.bytes_total)}
           </p>
           {operation.status === 'failed' && (
-            <p className="text-sm text-red-600">{operation.error}</p>
+            <p className="text-sm text-red-400">{operation.error}</p>
           )}
           {isDone && (
-            <p className="text-sm text-green-700">
-              ✓ {operation.files_copied} filer kopiert
+            <p className="text-sm text-green-400">
+              ✓ {operation.files_copied} filer kopiert og verifisert
               {operation.files_skipped > 0 && ` · ${operation.files_skipped} hoppet over`}
             </p>
           )}
         </div>
       )}
 
-      {/* Skips */}
+      {/* Hoppede over */}
       {isDone && operation.skips.length > 0 && (
         <div>
           <button
             type="button"
-            className="text-sm text-blue-600 underline"
+            className="text-sm text-blue-400 underline"
             onClick={() => setShowSkips(v => !v)}
           >
             {showSkips ? 'Skjul' : 'Vis'} hoppede over ({operation.skips.length})
           </button>
           {showSkips && (
-            <ul className="mt-2 max-h-32 overflow-y-auto rounded border border-gray-200 bg-white text-xs divide-y">
+            <ul className="mt-2 max-h-32 overflow-y-auto rounded border border-gray-700 bg-gray-800 text-xs divide-y divide-gray-700">
               {operation.skips.map((s, i) => (
                 <li key={i} className="px-2 py-1 flex gap-2">
-                  <span className="text-gray-400 shrink-0">{s.reason}</span>
-                  <span className="font-mono truncate">{s.source_path}</span>
+                  <span className="text-gray-500 shrink-0">{s.reason}</span>
+                  <span className="font-mono truncate text-gray-300">{s.source_path}</span>
                 </li>
               ))}
             </ul>
@@ -250,65 +207,57 @@ export default function CopySection({ onCopyCompleted }: Props) {
         </div>
       )}
 
-      {/* Erase source */}
+      {/* Slett kildefiler */}
       {isDone && !eraseResult && (
-        <div className="rounded border border-orange-200 bg-orange-50 p-3 space-y-2">
-          <label className="flex items-start gap-2 text-sm text-gray-700 cursor-pointer">
+        <div className="rounded border border-red-900/50 bg-red-950/20 p-3 space-y-2">
+          <label className="flex items-start gap-2 text-sm text-gray-300 cursor-pointer">
             <input
               type="checkbox"
               className="mt-0.5 rounded"
               checked={eraseChecked}
               onChange={e => setEraseChecked(e.target.checked)}
             />
-            <span>
-              Slett kildefilene fra <span className="font-mono">{sourcePath}</span> etter kopiering
-            </span>
+            <span>Slett originalfilene fra minnekortet</span>
           </label>
           {eraseChecked && (
             <button
               type="button"
               onClick={handleErase}
               disabled={erasing}
-              className="rounded bg-orange-600 px-3 py-1.5 text-sm text-white hover:bg-orange-700 disabled:opacity-40"
+              className="rounded bg-red-700 px-3 py-1.5 text-sm text-white hover:bg-red-600 disabled:opacity-40"
             >
-              {erasing ? 'Sletter…' : 'Slett kildefiler'}
+              {erasing ? 'Sletter…' : 'Slett fra minnekort'}
             </button>
           )}
         </div>
       )}
 
       {eraseResult && (
-        <p className="text-sm text-gray-600">
-          {eraseResult.deleted} kildefiler slettet
+        <p className="text-sm text-gray-400">
+          {eraseResult.deleted} filer slettet fra minnekortet
           {eraseResult.errors > 0 && ` · ${eraseResult.errors} feil`}
         </p>
       )}
 
-      {/* Actions */}
-      <div className="flex gap-2 justify-end">
-        {isRunning && (
-          <button
-            type="button"
-            className="rounded border border-gray-300 bg-white px-4 py-1.5 text-sm hover:bg-gray-50"
-            onClick={handleCancel}
-          >Avbryt</button>
-        )}
-        {!operation && (
-          <button
-            type="button"
-            className="rounded bg-blue-600 px-4 py-1.5 text-sm text-white hover:bg-blue-700 disabled:opacity-40"
-            onClick={handleStart}
-            disabled={!sourcePath || !parentDir || !dirName || scanning}
-          >Kopier filer →</button>
-        )}
-        {isDone && (
-          <button
-            type="button"
-            className="rounded bg-green-600 px-4 py-1.5 text-sm text-white hover:bg-green-700"
-            onClick={() => onCopyCompleted(operation!.destination_path)}
-          >Fortsett til skanning →</button>
-        )}
-      </div>
+      {/* Handlinger */}
+      {!isDone && (
+        <div className="flex justify-end">
+          {isRunning ? (
+            <button
+              type="button"
+              className="rounded border border-gray-600 bg-gray-700 px-4 py-1.5 text-sm text-white hover:bg-gray-600"
+              onClick={() => cancelCopyOperation(operation!.id)}
+            >Avbryt</button>
+          ) : (
+            <button
+              type="button"
+              className="rounded bg-blue-600 px-4 py-1.5 text-sm text-white hover:bg-blue-700 disabled:opacity-40"
+              onClick={handleStart}
+              disabled={!parentDir || !dirName || scanning || !!operation}
+            >Kopier til lokal disk →</button>
+          )}
+        </div>
+      )}
     </div>
   )
 }
