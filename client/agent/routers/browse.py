@@ -39,6 +39,20 @@ class VolumeEntry(BaseModel):
     path: str
 
 
+def _read_proc_mounts() -> dict[str, str]:
+    """Returnerer {monteringspunkt: filsystemtype} fra /proc/mounts."""
+    result: dict[str, str] = {}
+    try:
+        with open("/proc/mounts") as f:
+            for line in f:
+                parts = line.split()
+                if len(parts) >= 3:
+                    result[parts[1]] = parts[2]
+    except OSError:
+        pass
+    return result
+
+
 @router.get("/volumes", response_model=list[VolumeEntry])
 def list_volumes() -> list[VolumeEntry]:
     system = platform.system()
@@ -58,12 +72,16 @@ def list_volumes() -> list[VolumeEntry]:
 
     elif system == "Linux":
         user = os.environ.get("USER") or os.environ.get("LOGNAME") or ""
-        # Kun brukerspesifikke automount-punkter (udisks2 / systemd-automount).
-        # /media/ og /mnt/ utelates — de inneholder systemmonteringer og støy.
         candidates = [
             Path(f"/media/{user}"),
             Path(f"/run/media/{user}"),
         ] if user else [Path("/media"), Path("/mnt")]
+
+        # Filsystemtyper typisk for minnekort og USB-disker.
+        # Ekskluderer NFS, ext4, btrfs, tmpfs og andre systemmonteringer.
+        removable_fs = {"vfat", "exfat", "ntfs", "ntfs-3g", "msdos", "fuseblk", "fuse.exfat"}
+        fs_by_mountpoint = _read_proc_mounts()
+
         seen: set[str] = set()
         for base in candidates:
             if not base.exists() or not base.is_dir():
@@ -71,6 +89,9 @@ def list_volumes() -> list[VolumeEntry]:
             try:
                 for p in sorted(base.iterdir()):
                     if p.name.startswith(".") or not p.is_dir():
+                        continue
+                    fs_type = fs_by_mountpoint.get(str(p), "")
+                    if fs_type not in removable_fs:
                         continue
                     key = str(p.resolve())
                     if key not in seen:
