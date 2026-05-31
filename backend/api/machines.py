@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy.orm import Session
 
 from database.session import get_db
@@ -13,15 +13,10 @@ router = APIRouter(prefix="/machines", tags=["machines"])
 
 
 def _resolve_photographer(db: Session, photographer_id: uuid.UUID | None) -> uuid.UUID:
-    """Return photographer_id, auto-resolving if not provided.
-
-    Priority: explicit id → default photographer → first photographer → create unknown.
-    """
     if photographer_id is not None:
         if db.get(Photographer, photographer_id) is None:
             raise HTTPException(status_code=404, detail="Photographer not found")
         return photographer_id
-
     p = db.query(Photographer).filter(Photographer.is_default == True).first()  # noqa: E712
     if p is None:
         p = db.query(Photographer).order_by(Photographer.created_at).first()
@@ -33,11 +28,18 @@ def _resolve_photographer(db: Session, photographer_id: uuid.UUID | None) -> uui
 
 
 @router.post("", response_model=MachineOut, status_code=201)
-def register_machine(data: MachineCreate, db: Session = Depends(get_db)):
-    """Register a new machine. Called by the client on first setup against this backend."""
+def register_machine(
+    data: MachineCreate,
+    x_machine_id: uuid.UUID = Header(...),
+    db: Session = Depends(get_db),
+):
+    """Registrerer klientmaskinen. Kalles automatisk av frontend ved første oppstart."""
+    existing = db.get(Machine, x_machine_id)
+    if existing:
+        return existing
     photographer_id = _resolve_photographer(db, data.photographer_id)
     machine = Machine(
-        machine_id=uuid.uuid4(),
+        machine_id=x_machine_id,
         machine_name=data.machine_name,
         photographer_id=photographer_id,
         settings={},

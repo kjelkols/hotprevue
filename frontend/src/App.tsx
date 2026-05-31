@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { HashRouter, Route, Routes, Navigate } from 'react-router-dom'
 import { setBaseUrl } from './api/client'
+import { useEnsureMachine } from './hooks/useEnsureMachine'
 import AppLayout from './pages/AppLayout'
 import HomePage from './pages/HomePage'
 import BrowsePage from './pages/BrowsePage'
@@ -28,6 +29,7 @@ import useContextMenuStore from './stores/useContextMenuStore'
 setBaseUrl('')
 
 export default function App() {
+  useEnsureMachine()
   const clearPhotoSelection = useSelectionStore(s => s.clear)
   const contextMenuOpen = useContextMenuStore(s => s.open)
   const closeContextMenu = useContextMenuStore(s => s.closeContextMenu)

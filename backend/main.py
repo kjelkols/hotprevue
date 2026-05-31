@@ -1,13 +1,6 @@
-import os
 import uuid
-import threading
-import webbrowser
 from contextlib import asynccontextmanager
 from pathlib import Path
-
-if os.environ.get("HOTPREVUE_SERVER") == "local":
-    from core.local_setup import setup_local_environment
-    setup_local_environment()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -22,10 +15,6 @@ from models.settings import SystemSettings
 async def lifespan(app: FastAPI):
     _run_migrations()
     _bootstrap_settings()
-    if os.environ.get("HOTPREVUE_MACHINE_ID"):
-        _register_machine()
-    if settings.hotprevue_open_browser:
-        threading.Timer(1.0, webbrowser.open, args=["http://localhost:8000"]).start()
     yield
 
 
@@ -43,6 +32,7 @@ app.add_middleware(
     allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 
@@ -82,85 +72,29 @@ app.include_router(shortcuts.router)
 app.include_router(tags.router)
 app.include_router(searches.router)
 
-# Statiske filer monteres sist slik at API-ruter tar prioritet.
-# Prioritet: HOTPREVUE_FRONTEND_DIR env-var → frontend/ ved siden av backend/
+# Frontend serveres som statiske filer.
+# Prioritet: HOTPREVUE_FRONTEND_DIR env-var → frontend/dist/ ved siden av backend/
 def _find_frontend_dir() -> Path | None:
     if settings.hotprevue_frontend_dir:
         p = Path(settings.hotprevue_frontend_dir)
         if p.exists():
             return p
-    # Relativ til main.py (løst til absolutt sti)
     for candidate in [
+        Path(__file__).resolve().parent.parent / "frontend" / "dist",
         Path(__file__).resolve().parent.parent / "frontend",
-        Path.cwd().parent / "frontend",
     ]:
         if (candidate / "index.html").exists():
             return candidate
     return None
 
 
-@app.get("/api/debug/frontend")
-def debug_frontend():
-    """Midlertidig diagnostikkendepunkt — viser hvor backenden leter etter frontend."""
-    base = Path(__file__).resolve().parent.parent
-    cwd_base = Path.cwd().parent
-    return {
-        "hotprevue_frontend_dir": settings.hotprevue_frontend_dir,
-        "main_py": str(Path(__file__).resolve()),
-        "auto_path": str(base / "frontend"),
-        "auto_path_exists": (base / "frontend").exists(),
-        "auto_index_exists": (base / "frontend" / "index.html").exists(),
-        "cwd_path": str(cwd_base / "frontend"),
-        "cwd_index_exists": (cwd_base / "frontend" / "index.html").exists(),
-        "resolved": str(_frontend_dir) if _frontend_dir else None,
-    }
-
-
-_frontend_dir = _find_frontend_dir()
-if _frontend_dir:
-    app.mount("/", StaticFiles(directory=str(_frontend_dir), html=True), name="frontend")
-
-
 def _bootstrap_settings() -> None:
-    """Create the single SystemSettings row if it does not exist yet."""
     with SessionLocal() as db:
         if db.query(SystemSettings).first() is None:
             db.add(SystemSettings(installation_id=uuid.uuid4()))
             db.commit()
 
 
-def _register_machine() -> None:
-    """Upsert the current machine row, update last_seen_at, and seed default shortcut."""
-    from datetime import datetime, timezone
-    from models.machine import Machine
-    from models.photographer import Photographer
-    from services.shortcut_service import seed_default
-
-    machine_id = uuid.UUID(os.environ["HOTPREVUE_MACHINE_ID"])
-    with SessionLocal() as db:
-        machine = db.query(Machine).filter(Machine.machine_id == machine_id).first()
-        if machine is None:
-            photographer_id = _resolve_default_photographer(db)
-            machine = Machine(machine_id=machine_id, machine_name="", settings={}, photographer_id=photographer_id)
-            db.add(machine)
-        machine.last_seen_at = datetime.now(timezone.utc)
-        db.commit()
-        seed_default(db, machine_id, str(Path.home()))
-
-
-def _resolve_default_photographer(db) -> uuid.UUID:
-    """Return photographer_id for new machine: env var → default → first → create unknown."""
-    from models.photographer import Photographer
-
-    pid_str = os.environ.get("HOTPREVUE_PHOTOGRAPHER_ID")
-    if pid_str:
-        return uuid.UUID(pid_str)
-
-    p = db.query(Photographer).filter(Photographer.is_default == True).first()  # noqa: E712
-    if p is None:
-        p = db.query(Photographer).order_by(Photographer.created_at).first()
-    if p is None:
-        p = Photographer(name="Ukjent", is_unknown=True)
-        db.add(p)
-        db.flush()
-    return p.id
+_frontend_dir = _find_frontend_dir()
+if _frontend_dir:
+    app.mount("/", StaticFiles(directory=str(_frontend_dir), html=True), name="frontend")
