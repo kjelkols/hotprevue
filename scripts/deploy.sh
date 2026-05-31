@@ -20,20 +20,20 @@ echo "✓ git pull"
 # ── Python-avhengigheter ──────────────────────────────────────────────────────
 
 cd "$REPO_DIR/backend"
-sudo -u "$HOTPREVUE_USER" UV_CACHE_DIR="$UV_CACHE" /usr/local/bin/uv sync
+sudo -u "$HOTPREVUE_USER" env UV_CACHE_DIR="$UV_CACHE" /usr/local/bin/uv sync
 echo "✓ uv sync"
 
 # ── Databasemigrasjoner ───────────────────────────────────────────────────────
 
 DB_URL=$(grep ^DATABASE_URL "$REPO_DIR/backend/.env" | cut -d= -f2-)
-sudo -u "$HOTPREVUE_USER" UV_CACHE_DIR="$UV_CACHE" DATABASE_URL="$DB_URL" /usr/local/bin/uv run alembic upgrade head
+sudo -u "$HOTPREVUE_USER" env UV_CACHE_DIR="$UV_CACHE" DATABASE_URL="$DB_URL" /usr/local/bin/uv run alembic upgrade head
 echo "✓ alembic upgrade head"
 
 # ── Frontend ──────────────────────────────────────────────────────────────────
 
 cd "$REPO_DIR/frontend"
-sudo -u "$HOTPREVUE_USER" npm_config_cache="$NPM_CACHE" npm ci
-sudo -u "$HOTPREVUE_USER" npm_config_cache="$NPM_CACHE" npm run build:web
+sudo -u "$HOTPREVUE_USER" env npm_config_cache="$NPM_CACHE" npm ci
+sudo -u "$HOTPREVUE_USER" env npm_config_cache="$NPM_CACHE" npm run build:web
 echo "✓ Frontend bygd"
 
 # ── Restart ───────────────────────────────────────────────────────────────────
