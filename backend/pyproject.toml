@@ -21,11 +21,13 @@ dependencies = [
   "imagehash>=4.3",
   "pydantic-settings>=2.0",
   "python-multipart>=0.0.22",
-  "pgserver>=0.1",
   "platformdirs>=4.0",
 ]
 
 [project.optional-dependencies]
+embedded = [
+  "pgserver>=0.1",
+]
 dev = [
   "pytest>=8.0",
   "httpx>=0.27",
