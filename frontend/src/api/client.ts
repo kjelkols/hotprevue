@@ -8,11 +8,20 @@ export function getBaseUrl(): string {
   return baseUrl
 }
 
+function generateUUID(): string {
+  if (crypto.randomUUID) return crypto.randomUUID()
+  // Fallback for HTTP (non-secure) contexts
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = (Math.random() * 16) | 0
+    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16)
+  })
+}
+
 function getMachineId(): string {
   const key = 'hotprevue_machine_id'
   let id = localStorage.getItem(key)
   if (!id) {
-    id = crypto.randomUUID()
+    id = generateUUID()
     localStorage.setItem(key, id)
   }
   return id
