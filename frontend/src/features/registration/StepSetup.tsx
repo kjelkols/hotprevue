@@ -14,7 +14,10 @@ interface Props {
 }
 
 function defaultSessionName(): string {
-  return `Registrering ${new Date().toLocaleDateString('nb-NO', { day: 'numeric', month: 'long', year: 'numeric' })}`
+  const now = new Date()
+  const date = now.toLocaleDateString('nb-NO', { day: 'numeric', month: 'long', year: 'numeric' })
+  const time = now.toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' })
+  return `Registrering ${date} ${time}`
 }
 
 export default function StepSetup({ onDone }: Props) {
@@ -173,6 +176,7 @@ export default function StepSetup({ onDone }: Props) {
         {isRemovable && !copiedDest && (
           <CopySection
             sourcePath={dirPath}
+            sessionName={sessionName}
             onCopyCompleted={setCopiedDest}
           />
         )}

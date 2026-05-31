@@ -5,7 +5,17 @@ import type { AgentCopyOperation } from '../../types/api'
 
 interface Props {
   sourcePath: string
+  sessionName?: string
   onCopyCompleted: (destinationPath: string) => void
+}
+
+function sanitizeDirName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/æ/g, 'ae').replace(/ø/g, 'o').replace(/å/g, 'aa')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    || 'registrering'
 }
 
 function formatBytes(bytes: number): string {
@@ -15,7 +25,11 @@ function formatBytes(bytes: number): string {
   return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${units[i]}`
 }
 
-export default function CopySection({ sourcePath, onCopyCompleted }: Props) {
+export default function CopySection({ sourcePath, sessionName, onCopyCompleted }: Props) {
+  // Ref slik at useEffect for sourcePath alltid ser siste sessionName
+  // uten å bli re-trigget hver gang brukeren skriver i navnefeltet
+  const sessionNameRef = useRef(sessionName)
+  sessionNameRef.current = sessionName
   const [parentDir, setParentDir] = useState('')
   const [dirName, setDirName] = useState('')
   const [filesFound, setFilesFound] = useState<number | null>(null)
@@ -42,9 +56,15 @@ export default function CopySection({ sourcePath, onCopyCompleted }: Props) {
       .then(r => {
         setFilesFound(r.files_found)
         setBytesTotal(r.bytes_total)
-        if (r.suggested_name) setDirName(r.suggested_name)
+        if (r.suggested_name) {
+          setDirName(r.suggested_name)
+        } else if (sessionNameRef.current) {
+          setDirName(sanitizeDirName(sessionNameRef.current))
+        }
       })
-      .catch(() => {})
+      .catch(() => {
+        if (sessionNameRef.current) setDirName(sanitizeDirName(sessionNameRef.current))
+      })
       .finally(() => setScanning(false))
   }, [sourcePath])
 
