@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "backend"))
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from agent.routers import scan, process
+from agent.routers import browse, scan, process
 
 app = FastAPI(title="Hotprevue Agent", version="0.1.0")
 
@@ -24,6 +24,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(browse.router)
 app.include_router(scan.router)
 app.include_router(process.router)
 
