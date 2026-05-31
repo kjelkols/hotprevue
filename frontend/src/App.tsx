@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { HashRouter, Route, Routes, Navigate } from 'react-router-dom'
 import { setBaseUrl } from './api/client'
 import { useEnsureMachine } from './hooks/useEnsureMachine'
+import MachineSetupDialog from './features/setup/MachineSetupDialog'
 import AppLayout from './pages/AppLayout'
 import HomePage from './pages/HomePage'
 import BrowsePage from './pages/BrowsePage'
@@ -29,7 +30,7 @@ import useContextMenuStore from './stores/useContextMenuStore'
 setBaseUrl('')
 
 export default function App() {
-  useEnsureMachine()
+  const { state, onSetupComplete } = useEnsureMachine()
   const clearPhotoSelection = useSelectionStore(s => s.clear)
   const contextMenuOpen = useContextMenuStore(s => s.open)
   const closeContextMenu = useContextMenuStore(s => s.closeContextMenu)
@@ -44,6 +45,10 @@ export default function App() {
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [contextMenuOpen, closeContextMenu, clearPhotoSelection])
+
+  if (state === 'setup') {
+    return <MachineSetupDialog onComplete={onSetupComplete} />
+  }
 
   return (
     <HashRouter>
