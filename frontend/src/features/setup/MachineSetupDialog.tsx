@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { listPhotographers, createPhotographer } from '../../api/photographers'
 import { registerMachine } from '../../api/machines'
 import { createShortcut } from '../../api/shortcuts'
@@ -69,6 +69,7 @@ function PhotographerForm({
 const emptyPhotographerForm = { name: '', website: '', bio: '', notes: '' }
 
 export default function MachineSetupDialog({ onComplete }: Props) {
+  const queryClient = useQueryClient()
   const [machineName, setMachineName] = useState('')
   const [selectedId, setSelectedId] = useState('')
   const [showNewForm, setShowNewForm] = useState(false)
@@ -135,6 +136,9 @@ export default function MachineSetupDialog({ onComplete }: Props) {
         // Agenten er ikke tilgjengelig — snarvei kan legges til manuelt
       }
 
+      // Tving StepSetup til å hente ferske data etter oppsett
+      await queryClient.invalidateQueries({ queryKey: ['photographers'] })
+      await queryClient.invalidateQueries({ queryKey: ['settings'] })
       onComplete()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Noe gikk galt')

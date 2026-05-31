@@ -34,9 +34,10 @@ export default function StepSetup({ onDone }: Props) {
     queryFn: listPhotographers
   })
 
-  const { data: settingsData } = useQuery({
+  const { data: settingsData, error: settingsError } = useQuery({
     queryKey: ['settings'],
     queryFn: getSettings,
+    retry: 1,
   })
 
   useEffect(() => {
@@ -245,6 +246,12 @@ export default function StepSetup({ onDone }: Props) {
           placeholder="Fritekst om denne registreringen…"
         />
       </div>
+
+      {settingsError && (
+        <p className="text-xs text-yellow-500">
+          Kunne ikke hente maskininnstillinger: {settingsError instanceof Error ? settingsError.message : 'ukjent feil'}
+        </p>
+      )}
 
       {error && <p className="text-sm text-red-400">{error}</p>}
 
