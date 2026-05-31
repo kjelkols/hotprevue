@@ -10,13 +10,69 @@ interface Props {
   onComplete: () => void
 }
 
-type PhotographerMode = 'select' | 'create'
+const inputCls = 'w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-white text-sm outline-none focus:border-blue-500'
+
+function PhotographerForm({
+  value,
+  onChange,
+}: {
+  value: { name: string; website: string; bio: string; notes: string }
+  onChange: (v: typeof value) => void
+}) {
+  return (
+    <div className="space-y-3">
+      <div>
+        <label className="block text-xs text-gray-400 mb-1">Navn *</label>
+        <input
+          type="text"
+          value={value.name}
+          onChange={e => onChange({ ...value, name: e.target.value })}
+          className={inputCls}
+          placeholder="Ditt navn"
+          autoFocus
+        />
+      </div>
+      <div>
+        <label className="block text-xs text-gray-400 mb-1">Nettside</label>
+        <input
+          type="text"
+          value={value.website}
+          onChange={e => onChange({ ...value, website: e.target.value })}
+          className={inputCls}
+          placeholder="https://…"
+        />
+      </div>
+      <div>
+        <label className="block text-xs text-gray-400 mb-1">Bio</label>
+        <textarea
+          value={value.bio}
+          onChange={e => onChange({ ...value, bio: e.target.value })}
+          rows={2}
+          className={inputCls + ' resize-none'}
+          placeholder="Valgfritt"
+        />
+      </div>
+      <div>
+        <label className="block text-xs text-gray-400 mb-1">Notater</label>
+        <textarea
+          value={value.notes}
+          onChange={e => onChange({ ...value, notes: e.target.value })}
+          rows={2}
+          className={inputCls + ' resize-none'}
+          placeholder="Interne notater"
+        />
+      </div>
+    </div>
+  )
+}
+
+const emptyPhotographerForm = { name: '', website: '', bio: '', notes: '' }
 
 export default function MachineSetupDialog({ onComplete }: Props) {
   const [machineName, setMachineName] = useState('')
-  const [mode, setMode] = useState<PhotographerMode>('create')
   const [selectedId, setSelectedId] = useState('')
-  const [newName, setNewName] = useState('')
+  const [showNewForm, setShowNewForm] = useState(false)
+  const [newPhotographer, setNewPhotographer] = useState(emptyPhotographerForm)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
@@ -26,36 +82,43 @@ export default function MachineSetupDialog({ onComplete }: Props) {
   })
 
   useEffect(() => {
-    if (photographers.length > 0) {
-      setMode('select')
-      if (!selectedId) setSelectedId(photographers[0].id)
-    } else {
-      setMode('create')
+    if (photographers.length > 0 && !selectedId) {
+      setSelectedId(photographers[0].id)
     }
   }, [photographers])
 
+  const hasPhotographers = photographers.length > 0
+  const creatingNew = !hasPhotographers || showNewForm
+
   async function handleSubmit() {
+    setError('')
+
     if (!machineName.trim()) {
       setError('Skriv inn et navn for denne maskinen')
       return
     }
-    if (mode === 'select' && !selectedId) {
-      setError('Velg en fotograf')
+
+    if (creatingNew && !newPhotographer.name.trim()) {
+      setError('Fotografnavnet kan ikke være tomt')
       return
     }
-    if (mode === 'create' && !newName.trim()) {
-      setError('Skriv inn ditt navn')
+
+    if (!creatingNew && !selectedId) {
+      setError('Velg en fotograf')
       return
     }
 
     setBusy(true)
-    setError('')
-
     try {
       let photographerId = selectedId
 
-      if (mode === 'create') {
-        const p = await createPhotographer({ name: newName.trim() })
+      if (creatingNew) {
+        const p = await createPhotographer({
+          name: newPhotographer.name.trim(),
+          website: newPhotographer.website.trim() || null,
+          bio: newPhotographer.bio.trim() || null,
+          notes: newPhotographer.notes.trim() || null,
+        })
         photographerId = p.id
       }
 
@@ -64,12 +127,12 @@ export default function MachineSetupDialog({ onComplete }: Props) {
         photographer_id: photographerId,
       })
 
-      // Seed hjemmekatalog som standard snarvei — valgfritt, feiler stille
+      // Seed hjemmekatalog-snarvei via agenten — feiler stille
       try {
         const home = await browseDirectory('')
         await createShortcut({ name: 'Hjemmeområde', path: home.path })
       } catch {
-        // Agenten kjører ikke — OK, snarvei kan legges til manuelt
+        // Agenten er ikke tilgjengelig — snarvei kan legges til manuelt
       }
 
       onComplete()
@@ -80,8 +143,8 @@ export default function MachineSetupDialog({ onComplete }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-950 p-4">
-      <div className="w-full max-w-md rounded-2xl border border-gray-700 bg-gray-900 p-8 space-y-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-950 p-4 overflow-y-auto">
+      <div className="w-full max-w-md rounded-2xl border border-gray-700 bg-gray-900 p-8 space-y-6 my-auto">
 
         <div>
           <h1 className="text-xl font-bold text-white mb-1">Konfigurer denne maskinen</h1>
@@ -99,74 +162,65 @@ export default function MachineSetupDialog({ onComplete }: Props) {
             type="text"
             value={machineName}
             onChange={e => setMachineName(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-            className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-white outline-none focus:border-blue-500"
-            placeholder="f.eks. Beelink stue"
-            autoFocus
             disabled={busy}
+            className={inputCls}
+            placeholder="f.eks. Beelink stue"
+            autoFocus={hasPhotographers}
           />
         </div>
 
         {/* Fotograf */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-gray-300 mb-3">
             Standard fotograf
           </label>
-
-          {!isLoading && photographers.length > 0 && (
-            <div className="flex gap-2 mb-3">
-              <button
-                type="button"
-                onClick={() => setMode('select')}
-                className={`px-3 py-1 rounded-lg text-sm transition-colors ${
-                  mode === 'select'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-800 text-gray-400 hover:text-white'
-                }`}
-              >
-                Velg eksisterende
-              </button>
-              <button
-                type="button"
-                onClick={() => setMode('create')}
-                className={`px-3 py-1 rounded-lg text-sm transition-colors ${
-                  mode === 'create'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-800 text-gray-400 hover:text-white'
-                }`}
-              >
-                Opprett ny
-              </button>
-            </div>
-          )}
 
           {isLoading && (
             <p className="text-sm text-gray-500">Laster fotografer…</p>
           )}
 
-          {!isLoading && mode === 'select' && photographers.length > 0 && (
-            <select
-              value={selectedId}
-              onChange={e => setSelectedId(e.target.value)}
-              disabled={busy}
-              className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-white outline-none focus:border-blue-500"
-            >
-              {photographers.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
+          {!isLoading && !hasPhotographers && (
+            <>
+              <p className="text-sm text-gray-400 mb-3">
+                Ingen fotografer er opprettet ennå. Opprett din første:
+              </p>
+              <PhotographerForm value={newPhotographer} onChange={setNewPhotographer} />
+            </>
           )}
 
-          {!isLoading && mode === 'create' && (
-            <input
-              type="text"
-              value={newName}
-              onChange={e => setNewName(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-              disabled={busy}
-              className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-white outline-none focus:border-blue-500"
-              placeholder="Ditt navn"
-            />
+          {!isLoading && hasPhotographers && !showNewForm && (
+            <div className="space-y-2">
+              <select
+                value={selectedId}
+                onChange={e => setSelectedId(e.target.value)}
+                disabled={busy}
+                className={inputCls}
+              >
+                {photographers.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => { setShowNewForm(true); setNewPhotographer(emptyPhotographerForm) }}
+                className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+              >
+                + Ny fotograf
+              </button>
+            </div>
+          )}
+
+          {!isLoading && hasPhotographers && showNewForm && (
+            <div className="space-y-3">
+              <PhotographerForm value={newPhotographer} onChange={setNewPhotographer} />
+              <button
+                type="button"
+                onClick={() => setShowNewForm(false)}
+                className="text-sm text-gray-500 hover:text-gray-300 transition-colors"
+              >
+                ← Avbryt, velg eksisterende
+              </button>
+            </div>
           )}
         </div>
 
@@ -181,6 +235,7 @@ export default function MachineSetupDialog({ onComplete }: Props) {
         >
           {busy ? 'Setter opp…' : 'Kom i gang →'}
         </button>
+
       </div>
     </div>
   )
