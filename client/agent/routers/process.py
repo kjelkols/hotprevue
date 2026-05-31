@@ -1,7 +1,12 @@
+import base64
+import tempfile
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+
+from utils.exif import extract_exif, extract_camera_fields, extract_taken_at, extract_gps
+from utils.previews import generate_hotpreview, hotpreview_b64, generate_coldpreview
 
 router = APIRouter(prefix="/process", tags=["process"])
 
@@ -16,11 +21,51 @@ class ProcessResponse(BaseModel):
     hotpreview_b64: str
     coldpreview_b64: str
     exif: dict
+    camera_fields: dict
+    taken_at: str | None
+    gps_lat: float | None
+    gps_lng: float | None
     width: int
     height: int
 
 
 @router.post("", response_model=ProcessResponse)
 def process(req: ProcessRequest) -> ProcessResponse:
-    # TODO: implementer i neste steg
-    raise HTTPException(status_code=501, detail="Ikke implementert ennå")
+    master = req.master
+    if not Path(master).exists():
+        raise HTTPException(status_code=404, detail=f"Fil finnes ikke: {master}")
+
+    try:
+        jpeg_bytes, hothash, width, height = generate_hotpreview(master)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Hotpreview feilet: {exc}")
+
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            coldpreview_path = generate_coldpreview(master, hothash, tmp)
+            coldpreview_bytes = Path(coldpreview_path).read_bytes()
+        coldpreview_b64 = base64.b64encode(coldpreview_bytes).decode("ascii")
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Coldpreview feilet: {exc}")
+
+    try:
+        exif = extract_exif(master)
+        camera_fields = extract_camera_fields(master)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"EXIF-ekstraksjon feilet: {exc}")
+
+    taken_at_dt = extract_taken_at(exif)
+    gps_lat, gps_lng = extract_gps(exif)
+
+    return ProcessResponse(
+        hothash=hothash,
+        hotpreview_b64=hotpreview_b64(jpeg_bytes),
+        coldpreview_b64=coldpreview_b64,
+        exif=exif,
+        camera_fields=camera_fields,
+        taken_at=taken_at_dt.isoformat() if taken_at_dt else None,
+        gps_lat=gps_lat,
+        gps_lng=gps_lng,
+        width=width,
+        height=height,
+    )
