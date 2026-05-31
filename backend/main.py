@@ -20,8 +20,7 @@ from models.settings import SystemSettings
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    if os.environ.get("HOTPREVUE_SERVER") == "local":
-        _run_migrations()
+    _run_migrations()
     _bootstrap_settings()
     if os.environ.get("HOTPREVUE_MACHINE_ID"):
         _register_machine()

@@ -1,8 +1,13 @@
 .PHONY: dev-backend dev-frontend build-web test \
         download-test-images download-test-images-full download-test-images-force \
-        build-zip-windows build-zip-linux build-zip-all
+        build-zip-windows build-zip-linux build-zip-all \
+        deploy-vm
 
 VERSION := $(shell git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "dev")
+
+# VM-deploy: opprett .vm-host med hostname, eller sett VM_HOST eksplisitt
+VM_HOST ?= $(shell cat .vm-host 2>/dev/null | tr -d '[:space:]')
+VM_USER ?= kjell
 
 DIST_EXCLUDES := \
 	--exclude='.venv' --exclude='.venv-win' --exclude='dist' --exclude='build' \
@@ -37,6 +42,21 @@ download-test-images-full:
 
 download-test-images-force:
 	uv run python scripts/download-test-images.py --force
+
+# ─── VM-deploy ────────────────────────────────────────────────────────────────
+
+deploy-vm: build-web
+	@test -n "$(VM_HOST)" || (echo "Feil: VM_HOST er ikke satt. Opprett .vm-host med hostname."; exit 1)
+	@echo "→ Synkroniserer backend til $(VM_HOST)..."
+	rsync -a --delete \
+		--exclude='.venv' --exclude='__pycache__' --exclude='.pytest_cache' \
+		--exclude='tests' --exclude='.env' --exclude='*.pyc' \
+		backend/ $(VM_USER)@$(VM_HOST):/opt/hotprevue/backend/
+	@echo "→ Synkroniserer frontend..."
+	rsync -a --delete frontend/dist/ $(VM_USER)@$(VM_HOST):/opt/hotprevue/frontend/dist/
+	@echo "→ Installerer avhengigheter og restarter tjeneste..."
+	ssh $(VM_USER)@$(VM_HOST) "cd /opt/hotprevue/backend && uv sync --no-dev && sudo systemctl restart hotprevue"
+	@echo "✓ Deploy fullført → http://$(VM_HOST):8000"
 
 # ─── Distribusjon ─────────────────────────────────────────────────────────────
 
