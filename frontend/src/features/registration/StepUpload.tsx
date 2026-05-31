@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { uploadGroupByPath, completeSession } from '../../api/inputSessions'
+import { registerGroup, completeSession } from '../../api/inputSessions'
+import { processFile } from '../../api/agent'
 import type { FileGroup, ProcessResult } from '../../types/api'
 
 interface Props {
@@ -22,7 +23,7 @@ export default function StepUpload({ sessionId, unknownGroups, onDone }: Props) 
     total: unknownGroups.length,
     registered: 0,
     duplicates: 0,
-    errors: 0
+    errors: 0,
   })
   const [currentFile, setCurrentFile] = useState('')
   const [failed, setFailed] = useState(false)
@@ -36,19 +37,44 @@ export default function StepUpload({ sessionId, unknownGroups, onDone }: Props) 
 
   async function runUpload() {
     for (const group of unknownGroups) {
-      setCurrentFile(group.master_path.split(/[\\/]/).pop() ?? group.master_path)
+      const filename = group.master_path.split(/[\\/]/).pop() ?? group.master_path
+      setCurrentFile(filename)
+
       try {
-        const result = await uploadGroupByPath(
-          sessionId,
+        // Prosesser via lokal agent
+        const processed = await processFile(
           group.master_path,
-          group.master_type,
-          group.companions
+          group.companions.map(c => c.path),
         )
+
+        // Send ferdigprosessert data til backend
+        const result = await registerGroup(sessionId, {
+          hothash: processed.hothash,
+          hotpreview_b64: processed.hotpreview_b64,
+          coldpreview_b64: processed.coldpreview_b64,
+          master_path: group.master_path,
+          master_type: group.master_type,
+          master_exif: processed.exif,
+          width: processed.width,
+          height: processed.height,
+          taken_at: processed.taken_at,
+          location_lat: processed.gps_lat,
+          location_lng: processed.gps_lng,
+          camera_make: processed.camera_fields.camera_make as string ?? null,
+          camera_model: processed.camera_fields.camera_model as string ?? null,
+          lens_model: processed.camera_fields.lens_model as string ?? null,
+          iso: processed.camera_fields.iso as number ?? null,
+          shutter_speed: processed.camera_fields.shutter_speed as string ?? null,
+          aperture: processed.camera_fields.aperture as number ?? null,
+          focal_length: processed.camera_fields.focal_length as number ?? null,
+          companions: group.companions,
+        })
+
         setProgress(p => ({
           ...p,
           done: p.done + 1,
           registered: p.registered + (result.status === 'registered' ? 1 : 0),
-          duplicates: p.duplicates + (result.status === 'duplicate' || result.status === 'already_registered' ? 1 : 0)
+          duplicates: p.duplicates + (result.status === 'duplicate' ? 1 : 0),
         }))
       } catch {
         setProgress(p => ({ ...p, done: p.done + 1, errors: p.errors + 1 }))

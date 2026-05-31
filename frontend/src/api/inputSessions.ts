@@ -61,6 +61,35 @@ export function uploadGroupByPath(
   })
 }
 
+export interface GroupPayload {
+  hothash: string
+  hotpreview_b64: string
+  coldpreview_b64: string
+  master_path: string
+  master_type: string
+  master_exif?: Record<string, unknown>
+  width?: number
+  height?: number
+  taken_at?: string | null
+  location_lat?: number | null
+  location_lng?: number | null
+  camera_make?: string | null
+  camera_model?: string | null
+  lens_model?: string | null
+  iso?: number | null
+  shutter_speed?: string | null
+  aperture?: number | null
+  focal_length?: number | null
+  companions?: { path: string; type: string }[]
+}
+
+export function registerGroup(sessionId: string, payload: GroupPayload): Promise<GroupResult> {
+  return apiFetch<GroupResult>(`/input-sessions/${sessionId}/groups`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
 export function completeSession(sessionId: string): Promise<ProcessResult> {
   return apiFetch<ProcessResult>(`/input-sessions/${sessionId}/complete`, {
     method: 'POST'
