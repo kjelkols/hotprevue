@@ -26,6 +26,7 @@ export default function StepSetup({ onDone }: Props) {
   const [newPhotographerName, setNewPhotographerName] = useState('')
   const [creatingPhotographer, setCreatingPhotographer] = useState(false)
   const [copiedDest, setCopiedDest] = useState<string | null>(null)
+  const [acknowledgedCardScan, setAcknowledgedCardScan] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
@@ -63,6 +64,7 @@ export default function StepSetup({ onDone }: Props) {
   function handleDirSelect(path: string) {
     setDirPath(path)
     setCopiedDest(null)
+    setAcknowledgedCardScan(false)
   }
 
   async function handleCreatePhotographer() {
@@ -175,6 +177,24 @@ export default function StepSetup({ onDone }: Props) {
           />
         )}
 
+        {/* Advarsel ved skanning direkte fra kort */}
+        {isRemovable && !copiedDest && dirPath && (
+          <div className="mt-3 rounded-lg border border-yellow-700 bg-yellow-950/30 p-3 space-y-2">
+            <p className="text-sm text-yellow-300">
+              Bildene er ikke kopiert til lokal disk. Hvis kortet fjernes eller formateres etter registreringen, vil de registrerte stiene være ugyldige og bildene utilgjengelige.
+            </p>
+            <label className="flex items-start gap-2 text-sm text-yellow-200 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                className="mt-0.5 shrink-0"
+                checked={acknowledgedCardScan}
+                onChange={e => setAcknowledgedCardScan(e.target.checked)}
+              />
+              Jeg forstår at bildene forblir på minnekortet og ikke kopieres
+            </label>
+          </div>
+        )}
+
         {/* Etter vellykket kopiering */}
         {isRemovable && copiedDest && (
           <div className="mt-3 flex items-center gap-2 rounded-lg border border-green-700 bg-green-900/20 px-3 py-2 text-sm">
@@ -182,7 +202,7 @@ export default function StepSetup({ onDone }: Props) {
             <span className="flex-1 truncate font-mono text-green-300">{copiedDest}</span>
             <button
               type="button"
-              onClick={() => setCopiedDest(null)}
+              onClick={() => { setCopiedDest(null); setAcknowledgedCardScan(false) }}
               className="shrink-0 text-xs text-gray-400 hover:text-white"
             >Kopier på nytt</button>
           </div>
@@ -251,7 +271,7 @@ export default function StepSetup({ onDone }: Props) {
 
       <button
         onClick={handleNext}
-        disabled={busy}
+        disabled={busy || (isRemovable && !copiedDest && !acknowledgedCardScan)}
         className="w-full rounded-xl bg-blue-600 py-3 font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
       >
         {busy ? 'Skanner…' : 'Skann og fortsett →'}

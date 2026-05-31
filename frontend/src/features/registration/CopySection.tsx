@@ -207,17 +207,25 @@ export default function CopySection({ sourcePath, onCopyCompleted }: Props) {
         </div>
       )}
 
-      {/* Slett kildefiler */}
+      {/* Slett kildefiler — kun tilgjengelig etter fullført og verifisert kopiering */}
       {isDone && !eraseResult && (
         <div className="rounded border border-red-900/50 bg-red-950/20 p-3 space-y-2">
-          <label className="flex items-start gap-2 text-sm text-gray-300 cursor-pointer">
+          <p className="text-xs text-gray-400">
+            {operation!.files_copied} av {operation!.files_total} filer ble kopiert og SHA256-verifisert.
+            {operation!.files_skipped > 0 && (
+              <span className="text-yellow-400"> {operation!.files_skipped} hoppede over filer forblir urørt på kortet.</span>
+            )}
+          </p>
+          <label className="flex items-start gap-2 text-sm text-gray-300 cursor-pointer select-none">
             <input
               type="checkbox"
-              className="mt-0.5 rounded"
+              className="mt-0.5 rounded shrink-0"
               checked={eraseChecked}
               onChange={e => setEraseChecked(e.target.checked)}
             />
-            <span>Slett originalfilene fra minnekortet</span>
+            <span>
+              Slett de {operation!.files_copied} verifiserte kildefilene fra minnekortet
+            </span>
           </label>
           {eraseChecked && (
             <button
@@ -235,7 +243,7 @@ export default function CopySection({ sourcePath, onCopyCompleted }: Props) {
       {eraseResult && (
         <p className="text-sm text-gray-400">
           {eraseResult.deleted} filer slettet fra minnekortet
-          {eraseResult.errors > 0 && ` · ${eraseResult.errors} feil`}
+          {eraseResult.errors > 0 && ` · ${eraseResult.errors} feil ved sletting`}
         </p>
       )}
 
