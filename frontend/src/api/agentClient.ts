@@ -24,3 +24,14 @@ export async function agentHealth(): Promise<boolean> {
     return false
   }
 }
+
+export async function getAgentHostname(): Promise<string | null> {
+  try {
+    const res = await fetch(AGENT_URL + '/health')
+    if (!res.ok) return null
+    const data = await res.json()
+    return data.hostname ?? null
+  } catch {
+    return null
+  }
+}

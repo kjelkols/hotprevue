@@ -32,4 +32,5 @@ app.include_router(process.router)
 
 @app.get("/health")
 def health() -> dict:
-    return {"status": "ok"}
+    import socket
+    return {"status": "ok", "hostname": socket.gethostname()}

@@ -4,6 +4,7 @@ import { listPhotographers, createPhotographer } from '../../api/photographers'
 import { registerMachine } from '../../api/machines'
 import { createShortcut } from '../../api/shortcuts'
 import { browseDirectory } from '../../api/system'
+import { getAgentHostname } from '../../api/agentClient'
 import type { Photographer } from '../../types/api'
 
 interface Props {
@@ -81,6 +82,12 @@ export default function MachineSetupDialog({ onComplete }: Props) {
     queryKey: ['photographers'],
     queryFn: listPhotographers,
   })
+
+  useEffect(() => {
+    getAgentHostname().then(hostname => {
+      if (hostname) setMachineName(hostname)
+    })
+  }, [])
 
   useEffect(() => {
     if (photographers.length > 0 && !selectedId) {
