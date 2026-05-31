@@ -35,7 +35,7 @@ set -euo pipefail
 DB=$(grep ^DATABASE_URL /opt/hotprevue/backend/.env | cut -d= -f2- | sed 's|postgresql+psycopg2://|postgresql://|')
 psql "$DB" -c "DO \$\$ DECLARE r RECORD; BEGIN FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename != 'alembic_version') LOOP EXECUTE 'TRUNCATE TABLE ' || quote_ident(r.tablename) || ' CASCADE'; END LOOP; END \$\$;"
 echo "→ Restarter tjeneste..."
-sudo systemctl restart hotprevue
+sudo -n systemctl restart hotprevue
 ENDSSH
 
 echo "✓ Database tømt og tjeneste restartet."
