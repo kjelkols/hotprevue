@@ -20,11 +20,11 @@ export function createSession(data: InputSessionCreate): Promise<InputSession> {
   })
 }
 
-export function checkPaths(sessionId: string, masterPaths: string[]): Promise<CheckResponse> {
-  return apiFetch<CheckResponse>(`/input-sessions/${sessionId}/check`, {
+export function checkHothashes(sessionId: string, hothashes: string[]): Promise<CheckResponse> {
+  return apiFetch<CheckResponse>(`/input-sessions/${sessionId}/check-hothashes`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ master_paths: masterPaths })
+    body: JSON.stringify({ hothashes })
   })
 }
 

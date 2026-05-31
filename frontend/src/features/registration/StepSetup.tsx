@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { listPhotographers, createPhotographer } from '../../api/photographers'
-import { createSession, checkPaths } from '../../api/inputSessions'
-import { scanDirectory } from '../../api/agent'
+import { createSession, checkHothashes } from '../../api/inputSessions'
+import { scanDirectory, hashFile } from '../../api/agent'
 import FileBrowser from '../../components/FileBrowser'
 import { getSettings } from '../../api/settings'
 import { linkCopyToSession } from '../../api/fileCopy'
@@ -82,7 +82,7 @@ export default function StepSetup({ onDone }: Props) {
     setBusy(true)
     setError('')
     try {
-      // Scan directory
+      // Scan directory via local agent
       const scan = await scanDirectory(dirPath, recursive)
 
       // Create session
@@ -98,12 +98,19 @@ export default function StepSetup({ onDone }: Props) {
         await linkCopyToSession(copyOperationId, session.id)
       }
 
-      // Check which master paths are already known
-      const masterPaths = scan.groups.map(g => g.master_path)
-      const check = await checkPaths(session.id, masterPaths)
+      // Hash all files via agent (uses embedded thumbnail — fast)
+      const hashResults = await Promise.all(
+        scan.groups.map(g => hashFile(g.master_path).then(r => ({ group: g, hothash: r.hothash })))
+      )
+
+      // Check which hothashes backend already has
+      const hothashes = hashResults.map(r => r.hothash)
+      const check = await checkHothashes(session.id, hothashes)
 
       const unknownSet = new Set(check.unknown)
-      const unknownGroups = scan.groups.filter(g => unknownSet.has(g.master_path))
+      const unknownGroups = hashResults
+        .filter(r => unknownSet.has(r.hothash))
+        .map(r => r.group)
 
       onDone(session.id, scan, unknownGroups)
     } catch (e) {

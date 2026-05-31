@@ -11,6 +11,33 @@ from utils.previews import generate_hotpreview, hotpreview_b64, generate_coldpre
 router = APIRouter(prefix="/process", tags=["process"])
 
 
+class HashRequest(BaseModel):
+    master: str
+
+
+class HashResponse(BaseModel):
+    hothash: str
+    hotpreview_b64: str
+    width: int
+    height: int
+
+
+@router.post("/hash", response_model=HashResponse)
+def hash_file(req: HashRequest) -> HashResponse:
+    if not Path(req.master).exists():
+        raise HTTPException(status_code=404, detail=f"Fil finnes ikke: {req.master}")
+    try:
+        jpeg_bytes, hothash, width, height = generate_hotpreview(req.master)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Hotpreview feilet: {exc}")
+    return HashResponse(
+        hothash=hothash,
+        hotpreview_b64=hotpreview_b64(jpeg_bytes),
+        width=width,
+        height=height,
+    )
+
+
 class ProcessRequest(BaseModel):
     master: str
     companions: list[str] = []
