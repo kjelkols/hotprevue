@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { suggestName, startCopy, getCopyOperation, cancelCopyOperation, getCopySkips } from '../../api/fileCopy'
+import { suggestName, startCopy, getCopyOperation, cancelCopyOperation, eraseCopySource } from '../../api/fileCopy'
 import FileBrowser from '../../components/FileBrowser'
-import type { FileCopyOperation, FileCopySkip } from '../../types/api'
+import type { AgentCopyOperation } from '../../types/api'
 
 interface Props {
-  onCopyCompleted: (destinationPath: string, operationId: string) => void
+  onCopyCompleted: (destinationPath: string) => void
 }
 
 function formatBytes(bytes: number): string {
@@ -22,14 +22,15 @@ export default function CopySection({ onCopyCompleted }: Props) {
   const [filesFound, setFilesFound] = useState<number | null>(null)
   const [bytesTotal, setBytesTotal] = useState<number | null>(null)
   const [deviceLabel, setDeviceLabel] = useState('')
-  const [operation, setOperation] = useState<FileCopyOperation | null>(null)
-  const [skips, setSkips] = useState<FileCopySkip[]>([])
+  const [operation, setOperation] = useState<AgentCopyOperation | null>(null)
   const [showSkips, setShowSkips] = useState(false)
   const [scanning, setScanning] = useState(false)
+  const [eraseChecked, setEraseChecked] = useState(false)
+  const [erasing, setErasing] = useState(false)
+  const [eraseResult, setEraseResult] = useState<{ deleted: number; errors: number } | null>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const nameInputRef = useRef<HTMLInputElement>(null)
 
-  // Fetch suggestion when source is set
   useEffect(() => {
     if (!sourcePath) return
     setScanning(true)
@@ -45,7 +46,6 @@ export default function CopySection({ onCopyCompleted }: Props) {
       .finally(() => setScanning(false))
   }, [sourcePath])
 
-  // Poll during copy
   useEffect(() => {
     if (!operation) return
     if (['completed', 'failed', 'cancelled'].includes(operation.status)) return
@@ -56,11 +56,7 @@ export default function CopySection({ onCopyCompleted }: Props) {
       if (['completed', 'failed', 'cancelled'].includes(updated.status)) {
         clearInterval(pollRef.current!)
         if (updated.status === 'completed') {
-          onCopyCompleted(updated.destination_path, updated.id)
-          if (updated.files_skipped > 0) {
-            const s = await getCopySkips(updated.id)
-            setSkips(s)
-          }
+          onCopyCompleted(updated.destination_path)
         }
       }
     }, 800)
@@ -93,6 +89,17 @@ export default function CopySection({ onCopyCompleted }: Props) {
   async function handleCancel() {
     if (!operation) return
     await cancelCopyOperation(operation.id)
+  }
+
+  async function handleErase() {
+    if (!operation) return
+    setErasing(true)
+    try {
+      const result = await eraseCopySource(operation.id)
+      setEraseResult(result)
+    } finally {
+      setErasing(false)
+    }
   }
 
   const destPath = parentDir && dirName ? parentDir.replace(/\/+$/, '') + '/' + dirName : ''
@@ -221,19 +228,19 @@ export default function CopySection({ onCopyCompleted }: Props) {
       )}
 
       {/* Skips */}
-      {skips.length > 0 && (
+      {isDone && operation.skips.length > 0 && (
         <div>
           <button
             type="button"
             className="text-sm text-blue-600 underline"
             onClick={() => setShowSkips(v => !v)}
           >
-            {showSkips ? 'Skjul' : 'Vis'} hoppede over ({skips.length})
+            {showSkips ? 'Skjul' : 'Vis'} hoppede over ({operation.skips.length})
           </button>
           {showSkips && (
             <ul className="mt-2 max-h-32 overflow-y-auto rounded border border-gray-200 bg-white text-xs divide-y">
-              {skips.map(s => (
-                <li key={s.id} className="px-2 py-1 flex gap-2">
+              {operation.skips.map((s, i) => (
+                <li key={i} className="px-2 py-1 flex gap-2">
                   <span className="text-gray-400 shrink-0">{s.reason}</span>
                   <span className="font-mono truncate">{s.source_path}</span>
                 </li>
@@ -241,6 +248,40 @@ export default function CopySection({ onCopyCompleted }: Props) {
             </ul>
           )}
         </div>
+      )}
+
+      {/* Erase source */}
+      {isDone && !eraseResult && (
+        <div className="rounded border border-orange-200 bg-orange-50 p-3 space-y-2">
+          <label className="flex items-start gap-2 text-sm text-gray-700 cursor-pointer">
+            <input
+              type="checkbox"
+              className="mt-0.5 rounded"
+              checked={eraseChecked}
+              onChange={e => setEraseChecked(e.target.checked)}
+            />
+            <span>
+              Slett kildefilene fra <span className="font-mono">{sourcePath}</span> etter kopiering
+            </span>
+          </label>
+          {eraseChecked && (
+            <button
+              type="button"
+              onClick={handleErase}
+              disabled={erasing}
+              className="rounded bg-orange-600 px-3 py-1.5 text-sm text-white hover:bg-orange-700 disabled:opacity-40"
+            >
+              {erasing ? 'Sletter…' : 'Slett kildefiler'}
+            </button>
+          )}
+        </div>
+      )}
+
+      {eraseResult && (
+        <p className="text-sm text-gray-600">
+          {eraseResult.deleted} kildefiler slettet
+          {eraseResult.errors > 0 && ` · ${eraseResult.errors} feil`}
+        </p>
       )}
 
       {/* Actions */}
@@ -264,7 +305,7 @@ export default function CopySection({ onCopyCompleted }: Props) {
           <button
             type="button"
             className="rounded bg-green-600 px-4 py-1.5 text-sm text-white hover:bg-green-700"
-            onClick={() => onCopyCompleted(operation!.destination_path, operation!.id)}
+            onClick={() => onCopyCompleted(operation!.destination_path)}
           >Fortsett til skanning →</button>
         )}
       </div>

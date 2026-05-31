@@ -5,7 +5,6 @@ import { createSession, checkHothashes } from '../../api/inputSessions'
 import { scanDirectory, hashFile } from '../../api/agent'
 import FileBrowser from '../../components/FileBrowser'
 import { getSettings } from '../../api/settings'
-import { linkCopyToSession } from '../../api/fileCopy'
 import CopySection from './CopySection'
 import type { FileGroup, ScanResult } from '../../types/api'
 
@@ -26,7 +25,7 @@ export default function StepSetup({ onDone }: Props) {
   const [newPhotographerName, setNewPhotographerName] = useState('')
   const [creatingPhotographer, setCreatingPhotographer] = useState(false)
   const [sourceMode, setSourceMode] = useState<'manual' | 'copy'>('manual')
-  const [copyOperationId, setCopyOperationId] = useState<string | null>(null)
+  const [copyDone, setCopyDone] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
@@ -49,7 +48,7 @@ export default function StepSetup({ onDone }: Props) {
   function handleModeChange(mode: 'manual' | 'copy') {
     setSourceMode(mode)
     if (mode === 'manual') {
-      setCopyOperationId(null)
+      setCopyDone(false)
       setDirPath('')
     }
   }
@@ -94,10 +93,6 @@ export default function StepSetup({ onDone }: Props) {
         notes: notes.trim() || null,
       })
 
-      if (copyOperationId) {
-        await linkCopyToSession(copyOperationId, session.id)
-      }
-
       // Hash all files via agent (uses embedded thumbnail — fast)
       const hashResults = await Promise.all(
         scan.groups.map(g => hashFile(g.master_path).then(r => ({ group: g, hothash: r.hothash })))
@@ -140,7 +135,7 @@ export default function StepSetup({ onDone }: Props) {
           <button
             type="button"
             onClick={() => handleModeChange('manual')}
-            disabled={!!copyOperationId}
+            disabled={copyDone}
             className={`flex-1 px-3 py-1.5 transition-colors disabled:opacity-50 ${
               sourceMode === 'manual' ? 'bg-gray-700 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'
             }`}
@@ -148,7 +143,7 @@ export default function StepSetup({ onDone }: Props) {
           <button
             type="button"
             onClick={() => handleModeChange('copy')}
-            disabled={!!copyOperationId}
+            disabled={copyDone}
             className={`flex-1 border-l border-gray-700 px-3 py-1.5 transition-colors disabled:opacity-50 ${
               sourceMode === 'copy' ? 'bg-gray-700 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'
             }`}
@@ -176,22 +171,22 @@ export default function StepSetup({ onDone }: Props) {
           </div>
         )}
 
-        {sourceMode === 'copy' && !copyOperationId && (
+        {sourceMode === 'copy' && !copyDone && (
           <CopySection
-            onCopyCompleted={(destPath, opId) => {
+            onCopyCompleted={destPath => {
               setDirPath(destPath)
-              setCopyOperationId(opId)
+              setCopyDone(true)
             }}
           />
         )}
 
-        {sourceMode === 'copy' && copyOperationId && (
+        {sourceMode === 'copy' && copyDone && (
           <div className="flex items-center gap-2 rounded-lg border border-green-700 bg-green-900/20 px-3 py-2 text-sm">
             <span className="text-green-400">✓</span>
             <span className="flex-1 truncate font-mono text-green-300">{dirPath}</span>
             <button
               type="button"
-              onClick={() => { setCopyOperationId(null); setDirPath('') }}
+              onClick={() => { setCopyDone(false); setDirPath('') }}
               className="shrink-0 text-xs text-gray-400 hover:text-white"
             >Nullstill</button>
           </div>

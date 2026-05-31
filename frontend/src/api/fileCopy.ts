@@ -1,35 +1,28 @@
-import { apiFetch } from './client'
-import type { FileCopyOperation, FileCopySkip, SuggestNameResult } from '../types/api'
+import { agentFetch } from './agentClient'
+import type { AgentCopyOperation, SuggestNameResult } from '../types/api'
 
 export function suggestName(sourcePath: string): Promise<SuggestNameResult> {
-  return apiFetch(`/file-copy-operations/suggest-name?source_path=${encodeURIComponent(sourcePath)}`)
+  return agentFetch(`/copy/suggest-name?source=${encodeURIComponent(sourcePath)}`)
 }
 
 export function startCopy(data: {
   source_path: string
   destination_path: string
   device_label?: string
-  notes?: string
-}): Promise<FileCopyOperation> {
-  return apiFetch('/file-copy-operations', { method: 'POST', body: JSON.stringify(data) })
+  verify?: boolean
+  include_videos?: boolean
+}): Promise<AgentCopyOperation> {
+  return agentFetch('/copy', { method: 'POST', body: JSON.stringify(data) })
 }
 
-export function getCopyOperation(id: string): Promise<FileCopyOperation> {
-  return apiFetch(`/file-copy-operations/${id}`)
-}
-
-export function getCopySkips(id: string): Promise<FileCopySkip[]> {
-  return apiFetch(`/file-copy-operations/${id}/skips`)
+export function getCopyOperation(id: string): Promise<AgentCopyOperation> {
+  return agentFetch(`/copy/${id}`)
 }
 
 export function cancelCopyOperation(id: string): Promise<void> {
-  return apiFetch(`/file-copy-operations/${id}`, { method: 'DELETE' })
+  return agentFetch(`/copy/${id}`, { method: 'DELETE' })
 }
 
-export function listCopyOperations(): Promise<FileCopyOperation[]> {
-  return apiFetch('/file-copy-operations')
-}
-
-export function linkCopyToSession(operationId: string, sessionId: string): Promise<FileCopyOperation> {
-  return apiFetch(`/file-copy-operations/${operationId}/link-session?session_id=${sessionId}`, { method: 'PATCH' })
+export function eraseCopySource(id: string): Promise<{ deleted: number; errors: number }> {
+  return agentFetch(`/copy/${id}/erase-source`, { method: 'POST' })
 }

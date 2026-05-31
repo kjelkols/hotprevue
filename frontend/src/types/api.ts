@@ -260,32 +260,27 @@ export interface CollectionItem {
 
 // ─── File copy ────────────────────────────────────────────────────────────────
 
-export interface FileCopyOperation {
+export interface AgentCopySkip {
+  source_path: string
+  reason: 'already_exists' | 'hash_mismatch' | 'read_error' | 'write_error'
+}
+
+export interface AgentCopyOperation {
   id: string
   source_path: string
   destination_path: string
   device_label: string | null
-  notes: string | null
   status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled'
   files_total: number
   files_copied: number
   files_skipped: number
   bytes_total: number
   bytes_copied: number
-  verify_after_copy: boolean
-  include_videos: boolean
+  verify: boolean
   started_at: string
   completed_at: string | null
   error: string | null
-  input_session_id: string | null
-}
-
-export interface FileCopySkip {
-  id: string
-  operation_id: string
-  source_path: string
-  reason: 'already_exists' | 'hash_mismatch' | 'read_error' | 'write_error'
-  skipped_at: string
+  skips: AgentCopySkip[]
 }
 
 export interface SuggestNameResult {
