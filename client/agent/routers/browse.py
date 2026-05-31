@@ -1,3 +1,5 @@
+import os
+import platform
 from pathlib import Path
 
 from fastapi import APIRouter, Query
@@ -30,6 +32,61 @@ class BrowseResult(BaseModel):
     parent: str | None
     dirs: list[BrowseDir]
     files: list[BrowseFile]
+
+
+class VolumeEntry(BaseModel):
+    name: str
+    path: str
+
+
+@router.get("/volumes", response_model=list[VolumeEntry])
+def list_volumes() -> list[VolumeEntry]:
+    system = platform.system()
+    volumes: list[VolumeEntry] = []
+
+    if system == "Darwin":
+        base = Path("/Volumes")
+        if base.exists():
+            for p in sorted(base.iterdir()):
+                if p.name.startswith(".") or not p.is_dir():
+                    continue
+                try:
+                    if str(p.resolve()) != "/":
+                        volumes.append(VolumeEntry(name=p.name, path=str(p)))
+                except OSError:
+                    pass
+
+    elif system == "Linux":
+        user = os.environ.get("USER") or os.environ.get("LOGNAME") or ""
+        candidates = [
+            Path(f"/media/{user}"),
+            Path(f"/run/media/{user}"),
+            Path("/media"),
+            Path("/mnt"),
+        ]
+        seen: set[str] = set()
+        for base in candidates:
+            if not base.exists() or not base.is_dir():
+                continue
+            try:
+                for p in sorted(base.iterdir()):
+                    if p.name.startswith(".") or not p.is_dir():
+                        continue
+                    key = str(p.resolve())
+                    if key not in seen:
+                        seen.add(key)
+                        volumes.append(VolumeEntry(name=p.name, path=str(p)))
+            except PermissionError:
+                pass
+
+    elif system == "Windows":
+        import string
+        for letter in string.ascii_uppercase[2:]:  # skip A: and B:
+            drive = Path(f"{letter}:/")
+            if drive.exists():
+                volumes.append(VolumeEntry(name=f"{letter}:", path=str(drive)))
+
+    return volumes
 
 
 @router.get("", response_model=BrowseResult)

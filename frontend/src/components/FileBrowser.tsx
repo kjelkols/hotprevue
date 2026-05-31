@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import * as Dialog from '@radix-ui/react-dialog'
-import { browseDirectory } from '../api/system'
+import { browseDirectory, listVolumes } from '../api/system'
 import { listShortcuts } from '../api/shortcuts'
 
 interface Props {
@@ -18,6 +18,13 @@ export default function FileBrowser({ initialPath, onSelect, trigger }: Props) {
     queryKey: ['shortcuts'],
     queryFn: listShortcuts,
     enabled: open,
+  })
+
+  const { data: volumes = [] } = useQuery({
+    queryKey: ['volumes'],
+    queryFn: listVolumes,
+    enabled: open,
+    staleTime: 10_000,
   })
 
   function handleOpenChange(next: boolean) {
@@ -63,8 +70,8 @@ export default function FileBrowser({ initialPath, onSelect, trigger }: Props) {
             <p className="flex-1 text-xs text-gray-500 font-mono truncate" title={data?.path}>{data?.path ?? '…'}</p>
           </div>
 
-          {/* Snarveier */}
-          {shortcuts.length > 0 && (
+          {/* Snarveier og volumer */}
+          {(shortcuts.length > 0 || volumes.length > 0) && (
             <div className="shrink-0 flex gap-1.5 flex-wrap px-3 py-2 border-b border-gray-800">
               {shortcuts.map(s => (
                 <button
@@ -78,6 +85,20 @@ export default function FileBrowser({ initialPath, onSelect, trigger }: Props) {
                   }`}
                 >
                   {s.name}
+                </button>
+              ))}
+              {volumes.map(v => (
+                <button
+                  key={v.path}
+                  onClick={() => setPath(v.path)}
+                  title={v.path}
+                  className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                    data?.path === v.path
+                      ? 'bg-orange-600 text-white'
+                      : 'bg-gray-800 text-orange-300 hover:bg-gray-700 hover:text-orange-200'
+                  }`}
+                >
+                  ⏏ {v.name}
                 </button>
               ))}
             </div>
