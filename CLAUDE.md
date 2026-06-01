@@ -43,6 +43,125 @@ Two separate components with clearly defined responsibilities:
 - No `await` anywhere in backend code
 - Tests: `TestClient`, never `AsyncClient` or `pytest-asyncio`
 
+## Frontend — nåværende arkitektur (oppdatert)
+
+### Katalogkart
+
+```
+src/
+  api/           Thin fetch-wrappers, én fil per ressurs (photos.ts, events.ts, …)
+  stores/        Zustand — kun global UI-tilstand (se tabell under)
+  hooks/         usePhotoSource.ts — universell bildehenting
+  features/      Domenemapper:
+    assignment/    EventPickerModal, CollectionPickerModal, TagPickerModal, AssignButton
+    browse/        PhotoGrid, PhotoThumbnail, PhotoTimeline
+    collection/    CollectionGrid, CollectionItemCell, TextCard
+    search/        SearchCriteriaBuilder, TimelineDayNode, …
+    selection/     SelectionTray, SelectionModal, SelectionThumbnail
+    registration/  RegistrationFlow og steg
+    present/       SlidePresenter og visninger
+  components/    Generelle UI-komponenter: TopNav, ViewToggle, ContextMenuOverlay
+  pages/         Route-komponenter (tynne, delegerer til features/)
+  types/api.ts   Alle TypeScript-typer — énkildes sannhet
+```
+
+### Zustand-stores
+
+| Fil | Tilstand | Nøkkelmetoder |
+|-----|----------|---------------|
+| `useSelectionStore` | `selected: Set<string>` (hothashes) | `toggle(h)`, `clear()` |
+| `useContextMenuStore` | `open`, `position`, `items` | `openContextMenu({items, position})`, `closeContextMenu()` |
+| `useAssignmentStore` | `modal: 'event'\|'collection'\|'tag'\|null` | `open(modal)`, `close()` |
+| `useSessionStore` | Aktiv sesjon (registreringsflyt) | — |
+| `useViewStore` | Grid-størrelse og visningsvalg | — |
+| `useLocationEditorStore` | Kart-editorstate | — |
+
+### Globale overlays (montert i App.tsx, utenfor Routes)
+
+```tsx
+<ContextMenuOverlay />   // renderer useContextMenuStore.items
+<SelectionTray />        // vises når selected.size > 0
+<EventPickerModal />     // åpner når modal === 'event'
+<CollectionPickerModal />
+<TagPickerModal />
+```
+
+Escape-tast: lukker kontekstmeny først, deretter tømmer utvalg.
+
+### Kontekstmeny-mønster
+
+```ts
+const { openContextMenu } = useContextMenuStore()
+openContextMenu({
+  position: { x: e.clientX, y: e.clientY },
+  items: [
+    { id: 'foo', label: 'Handling', action: () => … },
+    { type: 'separator' },
+    { id: 'bar', label: 'Standard', action: () => …, isDefault: true },
+  ],
+})
+```
+
+### Tildelingsflyt (ADR-014)
+
+Ingen global navigasjonstilstand. `useNavigationStore` og `SourceTargetPanel` er slettet.
+
+1. Velg bilder (checkboxes i PhotoGrid, lagres i `useSelectionStore`)
+2. Høyreklikk → batch-kontekstmeny **eller** SelectionTray → AssignButton ("Registrer på")
+3. PickerModal åpner (via `useAssignmentStore.open(modal)`)
+4. Modal henter liste, bruker velger mål, kaller batch-API
+
+Batch-API i `api/photos.ts`: `assignEvent`, `batchTagsAdd`, `batchRating`, `batchPhotographer`, `batchDelete`.
+Collection-batch: `addCollectionItemsBatch` i `api/collections.ts`.
+
+### To verdener
+
+| BrowseView | CollectionView |
+|------------|----------------|
+| Uordnet | Ordnet |
+| Avkryssingstilstand (SelectionStore) | Ingen avkryssing |
+| Metadata-operatorer | Presentasjonsoperatorer (rekkefølge, tekstkort) |
+| Kilde for tildeling | **Aldri kilde** — sluttprodukt |
+| `PhotoGrid` / `PhotoTimeline` | `CollectionGrid` |
+
+### Ruter (HashRouter — se App.tsx)
+
+```
+/                       HomePage
+/browse                 BrowsePage  (?session_id= / ?event_id= / ?tag=)
+/photos/:hothash        PhotoDetailPage
+/collections            CollectionsListPage
+/collections/:id        CollectionPage
+/collections/:id/present  CollectionPresentPage   (ingen AppLayout)
+/sessions               SessionsListPage
+/events / /events/:id   EventsListPage / EventPage
+/tags                   TagsPage
+/searches               SavedSearchesPage
+/searches/new / /:id    SearchPage
+/settings               SettingsPage
+/sted                   LocationEditorPage
+/fotografer             PhotographersPage
+/register               RegisterPage  (ingen AppLayout)
+```
+
+### usePhotoSource
+
+Universell datahook. Brukes av PhotoGrid, PhotoTimeline og SearchPage.
+
+```ts
+usePhotoSource({ sessionId?, eventId?, tag?, logic?, criteria?, enabled? })
+// → { photos, isLoading, isError, hasMore, loadMore, isFetchingMore, infiniteScroll }
+```
+
+### Deploy
+
+```bash
+bash scripts/dev.sh                     # lokal Vite-dev mot VM (hot reload)
+bash scripts/deploy-frontend-local.sh   # bygg lokalt, rsync dist/ til server
+```
+
+---
+
 ## Frontend Coding Rules
 
 These rules apply to all frontend code and exist to prevent AI formatting errors:
