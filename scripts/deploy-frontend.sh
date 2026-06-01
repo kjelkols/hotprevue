@@ -15,7 +15,8 @@ echo "✓ git pull"
 
 cd "$REPO_DIR/frontend"
 rm -rf node_modules
-sudo -u "$HOTPREVUE_USER" env npm_config_cache="$NPM_CACHE" npm ci --prefer-offline
+sudo -u "$HOTPREVUE_USER" env npm_config_cache="$NPM_CACHE" npm cache clean --force
+sudo -u "$HOTPREVUE_USER" env npm_config_cache="$NPM_CACHE" npm ci
 sudo -u "$HOTPREVUE_USER" env npm_config_cache="$NPM_CACHE" npm run build:web
 echo "✓ Frontend bygd"
 
