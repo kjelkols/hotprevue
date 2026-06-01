@@ -4,6 +4,8 @@ export default function AssignButton() {
   const open = useAssignmentStore(s => s.open)
 
   return (
+    <div className="flex items-center gap-2">
+      <span className="text-xs text-gray-500 shrink-0">Registrer på</span>
     <div className="flex rounded-lg overflow-hidden border border-gray-600">
       <button
         type="button"
@@ -28,6 +30,7 @@ export default function AssignButton() {
       >
         Tag
       </button>
+    </div>
     </div>
   )
 }

@@ -45,7 +45,7 @@ export default function EventPickerModal() {
       <div className="w-80 rounded-xl border border-gray-700 bg-gray-900 shadow-xl" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-gray-800">
           <p className="text-sm font-medium text-gray-300 mb-3">
-            Sett event for {selected.size} {selected.size === 1 ? 'bilde' : 'bilder'}
+            Registrer {selected.size} {selected.size === 1 ? 'bilde' : 'bilder'} på event
           </p>
           <input
             autoFocus
@@ -85,7 +85,7 @@ export default function EventPickerModal() {
             disabled={!selectedId || mutation.isPending}
             className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-500 disabled:opacity-40 transition-colors"
           >
-            {mutation.isPending ? 'Flytter…' : 'Sett event →'}
+            {mutation.isPending ? 'Registrerer…' : 'Registrer →'}
           </button>
         </div>
       </div>
