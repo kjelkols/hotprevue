@@ -2,11 +2,14 @@ import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { listPhotographers, createPhotographer } from '../../api/photographers'
 import { createSession, checkHothashes } from '../../api/inputSessions'
+import { createEvent } from '../../api/events'
 import { scanDirectory, hashFile } from '../../api/agent'
 import FileBrowser from '../../components/FileBrowser'
 import { getSettings } from '../../api/settings'
 import { listVolumes } from '../../api/system'
 import CopySection from './CopySection'
+import EventSection from './EventSection'
+import { makeSlot, type EventSlot } from './registrationTypes'
 import type { FileGroup, ScanResult } from '../../types/api'
 
 interface Props {
@@ -28,6 +31,7 @@ export default function StepSetup({ onDone }: Props) {
   const [notes, setNotes] = useState('')
   const [newPhotographerName, setNewPhotographerName] = useState('')
   const [creatingPhotographer, setCreatingPhotographer] = useState(false)
+  const [eventSlots, setEventSlots] = useState<EventSlot[]>([makeSlot()])
   const [copiedDest, setCopiedDest] = useState<string | null>(null)
   const [acknowledgedCardScan, setAcknowledgedCardScan] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -96,10 +100,21 @@ export default function StepSetup({ onDone }: Props) {
     try {
       const scan = await scanDirectory(effectivePath, recursive)
 
+      // Løs opp event-ID: opprett nytt event om nødvendig
+      let defaultEventId: string | null = null
+      const slot = eventSlots[0]
+      if (slot.eventId) {
+        defaultEventId = slot.eventId
+      } else if (slot.eventName.trim()) {
+        const event = await createEvent({ name: slot.eventName.trim() })
+        defaultEventId = event.id
+      }
+
       const session = await createSession({
         name: sessionName.trim(),
         source_path: effectivePath,
         default_photographer_id: photographerId,
+        default_event_id: defaultEventId,
         recursive,
         notes: notes.trim() || null,
       })
@@ -177,6 +192,7 @@ export default function StepSetup({ onDone }: Props) {
           <CopySection
             sourcePath={dirPath}
             sessionName={sessionName}
+            eventName={eventSlots[0]?.eventName}
             onCopyCompleted={setCopiedDest}
           />
         )}
@@ -217,6 +233,9 @@ export default function StepSetup({ onDone }: Props) {
           <p className="mt-1 text-xs text-gray-500">Skanner fra: <span className="font-mono">{copiedDest}</span></p>
         )}
       </div>
+
+      {/* Event */}
+      <EventSection slots={eventSlots} onChange={setEventSlots} />
 
       {/* Fotograf */}
       <div>

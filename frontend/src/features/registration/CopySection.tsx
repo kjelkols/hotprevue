@@ -6,6 +6,7 @@ import type { AgentCopyOperation } from '../../types/api'
 interface Props {
   sourcePath: string
   sessionName?: string
+  eventName?: string
   onCopyCompleted: (destinationPath: string) => void
 }
 
@@ -25,13 +26,15 @@ function formatBytes(bytes: number): string {
   return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${units[i]}`
 }
 
-export default function CopySection({ sourcePath, sessionName, onCopyCompleted }: Props) {
-  // Ref slik at useEffect for sourcePath alltid ser siste sessionName
-  // uten å bli re-trigget hver gang brukeren skriver i navnefeltet
+export default function CopySection({ sourcePath, sessionName, eventName, onCopyCompleted }: Props) {
+  // Refs slik at useEffect alltid ser siste verdier uten å bli re-trigget
   const sessionNameRef = useRef(sessionName)
   sessionNameRef.current = sessionName
+  const eventNameRef = useRef(eventName)
+  eventNameRef.current = eventName
   const [parentDir, setParentDir] = useState('')
   const [dirName, setDirName] = useState('')
+  const [dirNameEdited, setDirNameEdited] = useState(false)
   const [filesFound, setFilesFound] = useState<number | null>(null)
   const [bytesTotal, setBytesTotal] = useState<number | null>(null)
   const [deviceLabel, setDeviceLabel] = useState('')
@@ -43,6 +46,12 @@ export default function CopySection({ sourcePath, sessionName, onCopyCompleted }
   const [eraseResult, setEraseResult] = useState<{ deleted: number; errors: number } | null>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
+  // Oppdater dirName fra eventName når brukeren ikke har redigert det manuelt
+  useEffect(() => {
+    if (!eventName || dirNameEdited) return
+    setDirName(sanitizeDirName(eventName))
+  }, [eventName, dirNameEdited])
+
   // Hent EXIF-dato og filinfo automatisk når kilden endres
   useEffect(() => {
     if (!sourcePath) return
@@ -52,11 +61,15 @@ export default function CopySection({ sourcePath, sessionName, onCopyCompleted }
     setOperation(null)
     setEraseResult(null)
     setEraseChecked(false)
+    setDirNameEdited(false)
     suggestName(sourcePath)
       .then(r => {
         setFilesFound(r.files_found)
         setBytesTotal(r.bytes_total)
-        if (r.suggested_name) {
+        // Prioritet: eventName > API-forslag > sesjonsnavnet
+        if (eventNameRef.current) {
+          setDirName(sanitizeDirName(eventNameRef.current))
+        } else if (r.suggested_name) {
           setDirName(r.suggested_name)
         } else if (sessionNameRef.current) {
           setDirName(sanitizeDirName(sessionNameRef.current))
@@ -155,7 +168,7 @@ export default function CopySection({ sourcePath, sessionName, onCopyCompleted }
           <input
             className="flex-1 rounded border border-gray-600 bg-gray-800 px-3 py-1.5 text-sm font-mono text-white"
             value={dirName}
-            onChange={e => setDirName(e.target.value)}
+            onChange={e => { setDirName(e.target.value); setDirNameEdited(true) }}
             placeholder="katalognavn"
             disabled={!!operation}
           />
