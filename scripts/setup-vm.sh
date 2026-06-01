@@ -1,22 +1,17 @@
 #!/bin/bash
-# Engangsoppsett av Hotprevue-backend på Ubuntu Server VM.
+# Engangsoppsett av Hotprevue på Ubuntu Server VM.
 # Kjøres som root: sudo bash scripts/setup-vm.sh
 set -euo pipefail
 
 REPO_DIR="/opt/hotprevue"
 DATA_DIR="/var/lib/hotprevue"
-HOTPREVUE_USER="hotprevue"
+DEPLOY_USER="kjell"
 DB_NAME="hotprevue"
-DB_USER="hotprevue"
 
 echo "=== Hotprevue VM-oppsett ==="
 
-# ── System-pakker ─────────────────────────────────────────────────────────────
+# ── Tailscale ─────────────────────────────────────────────────────────────────
 
-apt-get update -q
-apt-get install -y -q curl git postgresql
-
-# Tailscale
 if ! command -v tailscale &>/dev/null; then
     curl -fsSL https://tailscale.com/install.sh | sh
     echo "✓ Tailscale installert"
@@ -24,54 +19,51 @@ else
     echo "  Tailscale finnes allerede"
 fi
 
-# Node.js 22 via NodeSource
+# ── System-pakker ─────────────────────────────────────────────────────────────
+
+apt-get update -q
+apt-get install -y -q curl git postgresql
+
 if ! command -v node &>/dev/null; then
     curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
     apt-get install -y -q nodejs
 fi
 
-# uv
 if ! command -v uv &>/dev/null; then
     curl -LsSf https://astral.sh/uv/install.sh | UV_INSTALL_DIR=/usr/local/bin sh
 fi
 
 echo "✓ Pakker installert"
 
-# ── Systembruker ──────────────────────────────────────────────────────────────
-
-if ! id "$HOTPREVUE_USER" &>/dev/null; then
-    useradd --system --no-create-home --shell /bin/false "$HOTPREVUE_USER"
-    echo "✓ Bruker '$HOTPREVUE_USER' opprettet"
-fi
-
 # ── PostgreSQL ────────────────────────────────────────────────────────────────
 
 systemctl enable postgresql
 systemctl start postgresql
 
-# Opprett DB-bruker hvis den ikke finnes
-if ! su -c "psql -tAc \"SELECT 1 FROM pg_roles WHERE rolname='$DB_USER'\"" postgres | grep -q 1; then
-    su -c "psql -c \"CREATE USER $DB_USER\"" postgres
-    echo "✓ PostgreSQL-bruker '$DB_USER' opprettet"
+if ! su -c "psql -tAc \"SELECT 1 FROM pg_roles WHERE rolname='$DEPLOY_USER'\"" postgres | grep -q 1; then
+    su -c "createuser $DEPLOY_USER" postgres
+    echo "✓ PostgreSQL-bruker '$DEPLOY_USER' opprettet"
 else
-    echo "✓ PostgreSQL-bruker '$DB_USER' eksisterer"
+    echo "  PostgreSQL-bruker '$DEPLOY_USER' finnes allerede"
 fi
 
 if ! su -c "psql -lqt | cut -d\| -f1 | grep -qw $DB_NAME" postgres; then
-    su -c "createdb -O $DB_USER $DB_NAME" postgres
+    su -c "createdb -O $DEPLOY_USER $DB_NAME" postgres
     echo "✓ Database '$DB_NAME' opprettet"
+else
+    echo "  Database '$DB_NAME' finnes allerede"
 fi
 
 # ── Datakatalog ───────────────────────────────────────────────────────────────
 
 mkdir -p "$DATA_DIR/coldpreviews"
-chown -R "$HOTPREVUE_USER:$HOTPREVUE_USER" "$DATA_DIR"
+chown -R "$DEPLOY_USER:$DEPLOY_USER" "$DATA_DIR"
 echo "✓ Datakatalog: $DATA_DIR"
 
-# ── Repo-tillatelser ──────────────────────────────────────────────────────────
+# ── Eierskap og git-konfig ────────────────────────────────────────────────────
 
 git config --global --add safe.directory "$REPO_DIR" 2>/dev/null || true
-chown -R "$HOTPREVUE_USER:$HOTPREVUE_USER" "$REPO_DIR"
+chown -R "$DEPLOY_USER:$DEPLOY_USER" "$REPO_DIR"
 
 # ── .env ──────────────────────────────────────────────────────────────────────
 
@@ -83,16 +75,15 @@ COLDPREVIEW_DIR=$DATA_DIR/coldpreviews
 HOTPREVUE_FRONTEND_DIR=$REPO_DIR/frontend/dist
 HOTPREVUE_OPEN_BROWSER=false
 EOF
-    echo "✓ .env opprettet: $ENV_FILE"
+    echo "✓ .env opprettet"
 else
-    echo "! .env finnes allerede — ikke overskrevet"
-    echo "  Husk å sjekke at DATABASE_URL er korrekt"
+    echo "  .env finnes allerede — ikke overskrevet"
 fi
 
 # ── Python-avhengigheter ──────────────────────────────────────────────────────
 
 cd "$REPO_DIR/backend"
-sudo -u "$HOTPREVUE_USER" UV_CACHE_DIR="$DATA_DIR/.cache/uv" /usr/local/bin/uv sync
+sudo -u "$DEPLOY_USER" uv sync
 echo "✓ Python-avhengigheter installert"
 
 # ── Frontend ──────────────────────────────────────────────────────────────────
@@ -100,7 +91,7 @@ echo "✓ Python-avhengigheter installert"
 cd "$REPO_DIR/frontend"
 npm ci --silent
 npm run build:web
-chown -R kjell:kjell "$REPO_DIR/frontend"
+chown -R "$DEPLOY_USER:$DEPLOY_USER" "$REPO_DIR/frontend"
 echo "✓ Frontend bygd"
 
 # ── systemd ───────────────────────────────────────────────────────────────────
@@ -111,10 +102,10 @@ systemctl enable hotprevue
 systemctl start hotprevue
 echo "✓ systemd-tjeneste aktivert og startet"
 
-# ── Sudoers — deploy trenger å restarte tjenesten uten passord ───────────────
+# ── Sudoers ───────────────────────────────────────────────────────────────────
 
-echo "kjell ALL=(ALL) NOPASSWD: /bin/systemctl restart hotprevue" \
-  > /etc/sudoers.d/hotprevue
+echo "$DEPLOY_USER ALL=(ALL) NOPASSWD: /bin/systemctl restart hotprevue" \
+    > /etc/sudoers.d/hotprevue
 echo "✓ Sudoers-regel lagt til"
 
 # ── Ferdig ────────────────────────────────────────────────────────────────────
@@ -125,5 +116,5 @@ echo "Backend:   http://$(hostname -I | awk '{print $1}'):8000"
 echo "Status:    sudo systemctl status hotprevue"
 echo "Logger:    sudo journalctl -u hotprevue -f"
 echo ""
-echo "Koble til Tailscale-nettverket:"
+echo "Koble til Tailscale:"
 echo "  sudo tailscale up"
