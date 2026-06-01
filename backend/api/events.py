@@ -33,6 +33,12 @@ def patch_event(event_id: uuid.UUID, data: EventPatch, db: Session = Depends(get
     return event_service._to_event_out(event, event_service._photo_counts(db))
 
 
+@router.post("/{event_id}/auto-date", response_model=EventOut)
+def auto_date_event(event_id: uuid.UUID, db: Session = Depends(get_db)):
+    event = event_service.auto_date(db, event_id)
+    return event_service._to_event_out(event, event_service._photo_counts(db))
+
+
 @router.delete("/{event_id}", status_code=204)
 def delete_event(event_id: uuid.UUID, db: Session = Depends(get_db)):
     event_service.delete(db, event_id)

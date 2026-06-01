@@ -1,4 +1,5 @@
 import uuid
+from datetime import timezone
 
 from fastapi import HTTPException
 from sqlalchemy import func
@@ -43,6 +44,25 @@ def delete(db: Session, event_id: uuid.UUID) -> None:
     event = get_or_404(db, event_id)
     db.delete(event)
     db.commit()
+
+
+def auto_date(db: Session, event_id: uuid.UUID) -> Event:
+    event = get_or_404(db, event_id)
+    row = (
+        db.query(func.min(Photo.taken_at), func.max(Photo.taken_at))
+        .filter(Photo.event_id == event_id)
+        .filter(Photo.taken_at.isnot(None))
+        .filter(Photo.deleted_at.is_(None))
+        .one()
+    )
+    min_dt, max_dt = row
+    if min_dt is None:
+        raise HTTPException(status_code=422, detail="Ingen bilder med EXIF-dato")
+    event.start_date = min_dt.astimezone(timezone.utc).date()
+    event.end_date = max_dt.astimezone(timezone.utc).date()
+    db.commit()
+    db.refresh(event)
+    return event
 
 
 # ---------------------------------------------------------------------------

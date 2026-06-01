@@ -29,6 +29,10 @@ export function patchEvent(id: string, data: Partial<{
   return apiFetch<EventNode>(`/events/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
 }
 
+export function autoDateEvent(id: string): Promise<EventNode> {
+  return apiFetch<EventNode>(`/events/${id}/auto-date`, { method: 'POST' })
+}
+
 export function deleteEvent(id: string): Promise<void> {
   return apiFetch<void>(`/events/${id}`, { method: 'DELETE' })
 }

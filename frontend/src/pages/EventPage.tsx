@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getEvent, patchEvent, deleteEvent } from '../api/events'
+import { getEvent, patchEvent, deleteEvent, autoDateEvent } from '../api/events'
 import PhotoGrid from '../features/browse/PhotoGrid'
 import PhotoTimeline from '../features/browse/PhotoTimeline'
 import ViewToggle from '../components/ViewToggle'
@@ -18,6 +18,7 @@ export default function EventPage() {
   const [editEndDate, setEditEndDate] = useState('')
   const [editLocation, setEditLocation] = useState('')
   const [view, setView] = useState<'grid' | 'timeline'>('grid')
+  const [autoDateMsg, setAutoDateMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
   const photoSource = usePhotoSource({ eventId: id })
 
@@ -40,6 +41,25 @@ export default function EventPage() {
       setEditing(false)
     },
   })
+
+  const autoDateMutation = useMutation({
+    mutationFn: () => autoDateEvent(id!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['event', id] })
+      queryClient.invalidateQueries({ queryKey: ['events'] })
+      setAutoDateMsg({ ok: true, text: 'Datoer oppdatert' })
+    },
+    onError: (err: Error) => {
+      const text = err.message.includes('422') ? 'Ingen EXIF-datoer' : 'Noe gikk galt'
+      setAutoDateMsg({ ok: false, text })
+    },
+  })
+
+  useEffect(() => {
+    if (!autoDateMsg) return
+    const t = setTimeout(() => setAutoDateMsg(null), 3000)
+    return () => clearTimeout(t)
+  }, [autoDateMsg])
 
   const deleteMutation = useMutation({
     mutationFn: () => deleteEvent(id!),
@@ -130,6 +150,21 @@ export default function EventPage() {
             </div>
             <span className="text-sm text-gray-500 shrink-0">{event.photo_count} bilder</span>
             <ViewToggle view={view} onChange={setView} />
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => autoDateMutation.mutate()}
+                disabled={autoDateMutation.isPending}
+                className="rounded-lg bg-gray-800 px-3 py-1.5 text-sm text-gray-400 hover:bg-gray-700 hover:text-gray-200 disabled:opacity-40 transition-colors"
+                title="Sett start- og sluttdato fra bildenes EXIF-dato"
+              >
+                {autoDateMutation.isPending ? '…' : '⊙ Datoer fra bilder'}
+              </button>
+              {autoDateMsg && (
+                <span className={`text-xs ${autoDateMsg.ok ? 'text-green-400' : 'text-amber-400'}`}>
+                  {autoDateMsg.text}
+                </span>
+              )}
+            </div>
             <button
               onClick={startEdit}
               className="rounded-lg bg-gray-800 px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-700 transition-colors shrink-0"
