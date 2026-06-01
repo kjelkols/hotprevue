@@ -74,6 +74,7 @@ echo "✓ Datakatalog: $DATA_DIR"
 
 # ── Repo-tillatelser ──────────────────────────────────────────────────────────
 
+git config --global --add safe.directory "$REPO_DIR" 2>/dev/null || true
 chown -R "$HOTPREVUE_USER:$HOTPREVUE_USER" "$REPO_DIR"
 
 # ── .env ──────────────────────────────────────────────────────────────────────
