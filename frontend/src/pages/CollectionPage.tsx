@@ -5,32 +5,17 @@ import { getCollection, deleteCollection } from '../api/collections'
 import { getBaseUrl } from '../api/client'
 import CollectionGrid from '../features/collection/CollectionGrid'
 import TextCardCreateDialog from '../features/collection/TextCardCreateDialog'
-import useNavigationStore from '../stores/useNavigationStore'
-
 export default function CollectionPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [textCardOpen, setTextCardOpen] = useState(false)
 
-  const setTarget = useNavigationStore(s => s.setTarget)
-  const isTarget = useNavigationStore(s => s.target?.id === id)
-
   const { data: collection, isLoading, isError } = useQuery({
     queryKey: ['collection', id],
     queryFn: () => getCollection(id!),
     enabled: !!id,
   })
-
-  function toggleTarget() {
-    if (!collection) return
-    setTarget(isTarget ? null : {
-      id: id!,
-      type: 'collection',
-      label: collection.name,
-      url: `/collections/${id}`,
-    })
-  }
 
   const deleteMutation = useMutation({
     mutationFn: () => deleteCollection(id!),
@@ -63,16 +48,6 @@ export default function CollectionPage() {
         <span className="text-sm text-gray-500 shrink-0">
           {collection.item_count} element{collection.item_count !== 1 ? 'er' : ''}
         </span>
-        <button
-          onClick={toggleTarget}
-          className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors shrink-0 ${
-            isTarget
-              ? 'bg-amber-700 text-white hover:bg-amber-600'
-              : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-          }`}
-        >
-          {isTarget ? 'Mål ✓' : 'Sett som mål'}
-        </button>
         <button
           onClick={() => navigate(`/collections/${id}/present`)}
           className="rounded-lg bg-gray-800 px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-700 transition-colors shrink-0"

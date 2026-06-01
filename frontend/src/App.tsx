@@ -22,6 +22,9 @@ import LocationEditorPage from './pages/LocationEditorPage'
 import PhotographersPage from './pages/PhotographersPage'
 import ContextMenuOverlay from './components/ui/ContextMenuOverlay'
 import SelectionTray from './features/selection/SelectionTray'
+import EventPickerModal from './features/assignment/EventPickerModal'
+import CollectionPickerModal from './features/assignment/CollectionPickerModal'
+import TagPickerModal from './features/assignment/TagPickerModal'
 import useSelectionStore from './stores/useSelectionStore'
 import useContextMenuStore from './stores/useContextMenuStore'
 
@@ -76,6 +79,9 @@ export default function App() {
       </Routes>
       <ContextMenuOverlay />
       <SelectionTray />
+      <EventPickerModal />
+      <CollectionPickerModal />
+      <TagPickerModal />
     </HashRouter>
   )
 }

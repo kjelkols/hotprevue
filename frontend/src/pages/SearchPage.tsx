@@ -7,7 +7,6 @@ import PhotoGrid from '../features/browse/PhotoGrid'
 import PhotoTimeline from '../features/browse/PhotoTimeline'
 import ViewToggle from '../components/ViewToggle'
 import { usePhotoSource } from '../hooks/usePhotoSource'
-import useNavigationStore from '../stores/useNavigationStore'
 import type { SearchCriterion } from '../types/api'
 
 type Applied = { logic: 'AND' | 'OR'; criteria: SearchCriterion[] } | null
@@ -17,8 +16,6 @@ export default function SearchPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const qc = useQueryClient()
-  const addSource = useNavigationStore(s => s.addSource)
-  const sources = useNavigationStore(s => s.sources)
 
   const [name, setName] = useState('')
   const [logic, setLogic] = useState<'AND' | 'OR'>('AND')
@@ -60,13 +57,6 @@ export default function SearchPage() {
     },
   })
 
-  const isSource = !!id && sources.some(s => s.id === id)
-
-  function handleSetSource() {
-    if (!id) return
-    addSource({ id, type: 'search', label: name || 'Søk', url: `/searches/${id}` })
-  }
-
   return (
     <div className="min-h-full bg-gray-950 text-white">
       <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-800">
@@ -83,18 +73,6 @@ export default function SearchPage() {
           className="flex-1 bg-transparent text-xl font-semibold outline-none placeholder-gray-600 min-w-0"
         />
         {applied && <ViewToggle view={view} onChange={setView} />}
-        {id && (
-          <button
-            onClick={handleSetSource}
-            className={`rounded-lg px-3 py-1.5 text-sm transition-colors shrink-0 ${
-              isSource
-                ? 'bg-gray-600 text-white hover:bg-gray-500'
-                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-            }`}
-          >
-            {isSource ? 'Kilde ✓' : 'Sett som kilde'}
-          </button>
-        )}
         <button
           onClick={() => saveMutation.mutate()}
           disabled={saveMutation.isPending || !name.trim()}

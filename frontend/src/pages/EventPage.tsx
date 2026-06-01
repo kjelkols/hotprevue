@@ -1,8 +1,7 @@
 import { useState } from 'react'
-import { useParams, useNavigate, useLocation } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getEvent, patchEvent, deleteEvent } from '../api/events'
-import useNavigationStore from '../stores/useNavigationStore'
 import PhotoGrid from '../features/browse/PhotoGrid'
 import PhotoTimeline from '../features/browse/PhotoTimeline'
 import ViewToggle from '../components/ViewToggle'
@@ -11,16 +10,10 @@ import { usePhotoSource } from '../hooks/usePhotoSource'
 export default function EventPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const location = useLocation()
   const queryClient = useQueryClient()
   const [editing, setEditing] = useState(false)
   const [editName, setEditName] = useState('')
   const [view, setView] = useState<'grid' | 'timeline'>('grid')
-
-  const addSource = useNavigationStore(s => s.addSource)
-  const setTarget = useNavigationStore(s => s.setTarget)
-  const isSource = useNavigationStore(s => s.sources.some(src => src.id === id))
-  const isTarget = useNavigationStore(s => s.target?.id === id)
 
   const photoSource = usePhotoSource({ eventId: id })
 
@@ -65,16 +58,6 @@ export default function EventPage() {
     renameMutation.mutate()
   }
 
-  function handleAddSource() {
-    if (!event) return
-    addSource({ id: id!, type: 'event', label: event.name, url: location.pathname })
-  }
-
-  function handleSetTarget() {
-    if (!event) return
-    setTarget({ id: id!, type: 'event', label: event.name, url: location.pathname })
-  }
-
   if (isLoading) return <div className="flex h-screen items-center justify-center bg-gray-950 text-gray-400">Laster…</div>
   if (isError || !event) return <div className="flex h-screen items-center justify-center bg-gray-950 text-red-400">Kunne ikke hente event.</div>
 
@@ -111,30 +94,6 @@ export default function EventPage() {
             </div>
             <span className="text-sm text-gray-500 shrink-0">{event.photo_count} bilder</span>
             <ViewToggle view={view} onChange={setView} />
-            <button
-              onClick={handleAddSource}
-              disabled={isTarget}
-              title={isTarget ? 'Kan ikke være kilde når den er satt som mål' : undefined}
-              className={`rounded-lg px-3 py-1.5 text-sm transition-colors shrink-0 ${
-                isSource
-                  ? 'bg-gray-600 text-white hover:bg-gray-500'
-                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700 disabled:opacity-40'
-              }`}
-            >
-              {isSource ? 'Kilde ✓' : 'Sett som kilde'}
-            </button>
-            <button
-              onClick={handleSetTarget}
-              disabled={isSource}
-              title={isSource ? 'Kan ikke være mål når den er satt som kilde' : undefined}
-              className={`rounded-lg px-3 py-1.5 text-sm transition-colors shrink-0 ${
-                isTarget
-                  ? 'bg-amber-700 text-white hover:bg-amber-600'
-                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700 disabled:opacity-40'
-              }`}
-            >
-              {isTarget ? 'Mål ✓' : 'Sett som mål'}
-            </button>
             <button
               onClick={startEdit}
               className="rounded-lg bg-gray-800 px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-700 transition-colors shrink-0"

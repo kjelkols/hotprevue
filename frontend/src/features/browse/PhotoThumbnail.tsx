@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import type { PhotoListItem } from '../../types/api'
 import useSelectionStore from '../../stores/useSelectionStore'
 import useContextMenuStore from '../../stores/useContextMenuStore'
+import useAssignmentStore from '../../stores/useAssignmentStore'
 import ThumbnailShell from '../../components/ui/ThumbnailShell'
 
 function formatDate(taken_at: string | null): string {
@@ -26,6 +27,7 @@ export default function PhotoThumbnail({ photo, orderedHashes }: Props) {
   const isSelected = useSelectionStore(s => s.selected.has(photo.hothash))
   const selectedCount = useSelectionStore(s => s.selected.size)
   const openContextMenu = useContextMenuStore(s => s.openContextMenu)
+  const openAssignment = useAssignmentStore(s => s.open)
 
   function handleClick(e: React.MouseEvent) {
     e.preventDefault()
@@ -40,17 +42,30 @@ export default function PhotoThumbnail({ photo, orderedHashes }: Props) {
 
   function handleContextMenu(e: React.MouseEvent) {
     e.preventDefault()
-    if (isSelected && selectedCount > 1) return
+
+    if (isSelected && selectedCount > 1) {
+      openContextMenu({
+        position: { x: e.clientX, y: e.clientY },
+        items: [
+          { id: 'event',      label: `Sett event… (${selectedCount})`,        action: () => openAssignment('event') },
+          { id: 'collection', label: `Legg til i samling… (${selectedCount})`, action: () => openAssignment('collection') },
+          { id: 'tag',        label: `Legg til tag… (${selectedCount})`,       action: () => openAssignment('tag') },
+          { type: 'separator' },
+          { id: 'open', label: 'Åpne dette bildet', action: () => navigate(`/photos/${photo.hothash}`) },
+        ],
+      })
+      return
+    }
+
     if (!isSelected) selectOnly(photo.hothash)
     openContextMenu({
       position: { x: e.clientX, y: e.clientY },
       items: [
-        {
-          id: 'open',
-          label: 'Åpne',
-          isDefault: true,
-          action: () => navigate(`/photos/${photo.hothash}`),
-        },
+        { id: 'open',       label: 'Åpne',                isDefault: true, action: () => navigate(`/photos/${photo.hothash}`) },
+        { type: 'separator' },
+        { id: 'event',      label: 'Sett event…',         action: () => openAssignment('event') },
+        { id: 'collection', label: 'Legg til i samling…', action: () => openAssignment('collection') },
+        { id: 'tag',        label: 'Legg til tag…',       action: () => openAssignment('tag') },
       ],
     })
   }

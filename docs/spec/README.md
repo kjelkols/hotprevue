@@ -13,6 +13,13 @@ Denne katalogen inneholder den autoritative kravspesifikasjonen for Hotprevue. F
 | `previews.md` | Hotpreview og coldpreview — generering, lagring og synkronisering |
 | `file-handling.md` | Originalfiler, ImageFiles, filstivalidering og synkstrategi |
 | `frontend.md` | Ruter, visninger og UX-krav |
+| `photo-assignment.md` | Tilordning av bilder til event, samling og tag — picker-modaler og batch-kontekstmeny |
+| `context-menu.md` | Kontekstmeny-arkitektur og batch-handlinger |
+| `selection-tray.md` | SelectionTray og SelectionModal |
+| `grid-architecture.md` | PhotoGrid og CollectionGrid |
+| `insertion-point.md` | Innsettingspunkt i CollectionView |
+| `photo-detail-view.md` | Detaljvisning for ett bilde |
+| `collection-presentation.md` | Kolleksjonspresentasjon og lysbildefremvisning |
 
 ## Bruk
 

@@ -2,24 +2,42 @@
 
 ## Konsept
 
-SelectionTray er et persistent bunnpanel som vises i alle views når ett eller flere bilder er valgt (`selected.size > 0`). Utvalget er globalt og lever i `useSelectionStore` (Zustand) — det overlever navigasjon mellom sider.
+SelectionTray er et persistent bunnpanel som vises i BrowseView-kontekster når ett eller flere bilder er valgt (`selected.size > 0`). Utvalget lever i `useSelectionStore` (Zustand).
 
 Tray-et er *ikke* et flytende vindu. Det er en fast bunnlinje som skyver innhold oppover.
+
+**SelectionTray er ikke tilgjengelig i CollectionView.** CollectionView bruker InsertionPoint og sin egen kontekstmeny for elementoperasjoner. Det finnes ingen avkryssingstilstand i CollectionView.
 
 ---
 
 ## Bunnlinje — struktur
 
 ```
-[N bilder valgt]  [Vis utvalg ↑]  ···  [Legg til i kolleksjon]  [Slett]  [✕ Tøm]
+[N bilder valgt]  [Vis utvalg ↑]  ···  [Legg til i…]  [✕ Tøm]
 ```
 
 - **N bilder valgt** — tekst, alltid synlig
 - **Vis utvalg ↑** — åpner SelectionModal
-- **Handlingsknapper** — batch-operasjoner (kontekstsensitive)
+- **Legg til i…** — åpner popover med valg: Event / Samling / Tag
 - **✕ Tøm** — tømmer utvalget (`clear()`)
 
 Bunnlinjen er alltid montert i `App.tsx`, utenfor `<Routes>`. Den rendrer `null` når `selected.size === 0`.
+
+Tray-et har ingen avhengighet til NavigationStore eller noen global mål-tilstand. Handlinger utløser alltid en picker-modal.
+
+---
+
+## Handlinger
+
+| Handling | Beskrivelse |
+|---|---|
+| Vis utvalg | Åpner SelectionModal |
+| Legg til i… → Event | Åpner EventPickerModal |
+| Legg til i… → Samling | Åpner CollectionPickerModal |
+| Legg til i… → Tag | Åpner TagPickerModal |
+| Tøm | Tøm utvalg uten handling |
+
+Se `photo-assignment.md` for fullstendig spec for picker-modalene.
 
 ---
 
@@ -38,28 +56,18 @@ Radix Dialog som åpnes fra "Vis utvalg"-knappen.
 - Modal fetcher `GET /photos` med alle hothashes som query-param ved åpning
 - React Query cacher responsen
 
-**Styrker:**
-- Brukeren kan kuratere utvalget — fjerne enkeltbilder — før batch-operasjon
-- Ingen permanente konsekvenser: lukk modal = ingenting endres
-- Naturlig arbeidsflyt: velg grovt i BrowseView → åpne modal → finjuster → handling
-- Triviell å bygge: `useSelectionStore` + Radix Dialog + mini-grid
+---
 
-**Svakheter:**
-- Modal + bunnlinje = to trinn for å se og handle. Akseptabelt — de har ulik hensikt
-- Hotpreview-data mangler i store (kun hothashes lagres). Løses ved lazy fetch ved modal-åpning
-- Utvalg forsvinner ved sideoppdatering. Akseptabelt for v1
+## Tastatur
+
+- `Escape` — lukker modal (hvis åpen), ellers tømmer utvalg (håndteres i `App.tsx`)
+- Modal fanges av Radix Dialog (focus trap, Escape lukker)
 
 ---
 
-## Backend-endring
+## Visuell plassering
 
-`GET /photos` trenger `hothash`-array-filter for at modalen kan hente previews:
-
-```
-GET /photos?hothash=abc123&hothash=def456&...
-```
-
-Implementeres som `hothash: list[str] | None = Query(None)` i FastAPI.
+Bunnlinjen er `position: fixed; bottom: 0; left: 0; right: 0` med `z-index` over innhold. Sideinnhold trenger `padding-bottom` tilsvarende bunnlinjens høyde når den er synlig.
 
 ---
 
@@ -67,42 +75,11 @@ Implementeres som `hothash: list[str] | None = Query(None)` i FastAPI.
 
 ```
 src/features/selection/
-  SelectionTray.tsx       — bunnlinje (~60 linjer)
-  SelectionModal.tsx      — Radix Dialog + grid (~80 linjer)
-  SelectionThumbnail.tsx  — enkelt thumbnail i modal-grid (med remove-overlay)
+  SelectionTray.tsx       — bunnlinje
+  SelectionModal.tsx      — Radix Dialog + grid
+src/features/assignment/
+  AssignButton.tsx        — "Legg til i…"-knapp med popover
+  EventPickerModal.tsx
+  CollectionPickerModal.tsx
+  TagPickerModal.tsx
 ```
-
-Montert i `App.tsx`:
-```tsx
-<HashRouter>
-  <Routes>...</Routes>
-  <ContextMenuOverlay />
-  <SelectionTray />   ← ny
-</HashRouter>
-```
-
----
-
-## Handlinger (fase 1)
-
-| Handling | Beskrivelse |
-|---|---|
-| Vis utvalg | Åpner SelectionModal |
-| Legg til i kolleksjon | Åpner kolleksjonvelger (fremtidig: CollectionPickerModal) |
-| Slett | Soft-delete alle valgte (batch/delete) + tøm utvalg |
-| Tøm | Tøm utvalg uten handling |
-
-`Legg til i kolleksjon` implementeres som en enkel liste over eksisterende kolleksjoner i en Radix Popover eller Dialog. Implementeres etter SelectionTray er ferdig.
-
----
-
-## Tastatur
-
-- `Escape` — lukker modal (hvis åpen), ellers tømmer utvalg (håndteres i App.tsx)
-- Modal fanges av Radix Dialog (focus trap, Escape lukker)
-
----
-
-## Visuell plassering
-
-Bunnlinjen er `position: fixed; bottom: 0; left: 0; right: 0` med `z-index` over innhold. Sideinnhold trenger `padding-bottom` tilsvarende bunnlinjens høyde når den er synlig. Alternativt: bunnlinjen er i normal flow og hele App har `flex flex-col h-screen`.

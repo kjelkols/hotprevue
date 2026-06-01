@@ -1,14 +1,12 @@
 import { useState } from 'react'
-import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import PhotoGrid from '../features/browse/PhotoGrid'
 import PhotoTimeline from '../features/browse/PhotoTimeline'
 import ViewToggle from '../components/ViewToggle'
 import { usePhotoSource } from '../hooks/usePhotoSource'
-import useNavigationStore from '../stores/useNavigationStore'
 
 export default function BrowsePage() {
   const navigate = useNavigate()
-  const location = useLocation()
   const [searchParams] = useSearchParams()
   const sessionId = searchParams.get('session_id') ?? undefined
   const eventId = searchParams.get('event_id') ?? undefined
@@ -17,36 +15,6 @@ export default function BrowsePage() {
 
   const photoSource = usePhotoSource({ sessionId, eventId, tag })
   const [view, setView] = useState<'grid' | 'timeline'>('grid')
-
-  const addSource = useNavigationStore(s => s.addSource)
-  const setTarget = useNavigationStore(s => s.setTarget)
-  const sources = useNavigationStore(s => s.sources)
-  const navTarget = useNavigationStore(s => s.target)
-
-  const sourceId = tag ?? sessionId ?? eventId
-  const sourceType = tag ? 'tag' : sessionId ? 'session' : 'event'
-  const isSource = sourceId ? sources.some(s => s.id === sourceId) : false
-  const isTarget = sourceId ? navTarget?.id === sourceId : false
-
-  function handleAddSource() {
-    if (!sourceId) return
-    addSource({
-      id: sourceId,
-      type: sourceType as 'session' | 'event' | 'tag',
-      label: title,
-      url: location.pathname + location.search,
-    })
-  }
-
-  function handleSetTarget() {
-    if (!sourceId || sourceType === 'session') return
-    setTarget({
-      id: sourceId,
-      type: sourceType as 'event' | 'tag',
-      label: title,
-      url: location.pathname + location.search,
-    })
-  }
 
   return (
     <div className="min-h-full bg-gray-950 text-white">
@@ -59,32 +27,6 @@ export default function BrowsePage() {
         </button>
         <h1 className="text-xl font-semibold flex-1 truncate">{title}</h1>
         <ViewToggle view={view} onChange={setView} />
-        {sourceId && (
-          <button
-            onClick={handleAddSource}
-            disabled={isTarget}
-            className={`rounded-lg px-3 py-1.5 text-sm transition-colors shrink-0 ${
-              isSource
-                ? 'bg-gray-600 text-white hover:bg-gray-500'
-                : 'bg-gray-800 text-gray-300 hover:bg-gray-700 disabled:opacity-40'
-            }`}
-          >
-            {isSource ? 'Kilde ✓' : 'Sett som kilde'}
-          </button>
-        )}
-        {sourceId && sourceType !== 'session' && (
-          <button
-            onClick={handleSetTarget}
-            disabled={isSource}
-            className={`rounded-lg px-3 py-1.5 text-sm transition-colors shrink-0 ${
-              isTarget
-                ? 'bg-amber-700 text-white hover:bg-amber-600'
-                : 'bg-gray-800 text-gray-300 hover:bg-gray-700 disabled:opacity-40'
-            }`}
-          >
-            {isTarget ? 'Mål ✓' : 'Sett som mål'}
-          </button>
-        )}
       </div>
 
       <div className="p-4">

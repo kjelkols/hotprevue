@@ -1,5 +1,9 @@
 # 005 — Kilde/mål-navigasjon
 
+## Status
+
+Erstattet av ADR-014.
+
 ## Kontekst
 
 Arbeidsflyt i Hotprevue innebærer ofte å hente bilder fra flere steder (sesjoner, events) og samle dem i ett mål (kolleksjon eller event). Behovet er:

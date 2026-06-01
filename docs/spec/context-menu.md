@@ -87,29 +87,77 @@ interface ContextMenuStore {
 
 ---
 
-## Seleksjonstilstand og høyreklikk-matrise
+## To separate kontekstsystemer
+
+Kontekstmenyens innhold avhenger av hvilken visningskontekst brukeren er i. BrowseView og CollectionView har hvert sitt lukkede sett av handlinger — de deler arkitektur, men ikke innhold.
+
+---
+
+## BrowseView — høyreklikk-matrise
 
 | Seleksjonsstilstand | Høyreklikk på | Effekt på seleksjon | Menyinnhold |
 |---|---|---|---|
 | Ingenting valgt | Photo | Sett seleksjon til dette bildet | Enkeltbilde-meny |
 | 1+ valgt | Photo **utenfor** seleksjon | Sett seleksjon til dette bildet | Enkeltbilde-meny |
-| 1+ valgt | Photo **innenfor** seleksjon | Uendret | *(tom — fremtidig: batch-meny)* |
+| 1+ valgt | Photo **innenfor** seleksjon | Uendret | Batch-meny |
 | Hva som helst | Bakgrunn (tomt område) | Uendret | *(fremtidig: sortering, visningsvalg)* |
 
-**Merk:** Høyreklikk på et bilde utenfor seleksjon endrer alltid seleksjon til kun det bildet. Brukeren skal aldri oppleve at handlingene i menyen gjelder et annet bilde enn det som ble høyreklikket.
+**Merk:** Høyreklikk på et bilde utenfor seleksjon endrer alltid seleksjon til kun det bildet.
 
----
-
-## Enkeltbilde-meny (første versjon)
-
-Vises når ett enkelt bilde er kontekst:
+### Enkeltbilde-meny (BrowseView)
 
 | Valg | Default | Handling |
 |---|---|---|
-| Åpne | ✓ | Naviger til `/photos/:hothash` — PhotoDetailView |
-| *(flere valg kommer)* | | |
+| Åpne | ✓ | Naviger til `/photos/:hothash` |
+| Sett event… | | EventPickerModal for dette bildet |
+| Legg til i samling… | | CollectionPickerModal for dette bildet |
+| Legg til tag… | | TagPickerModal for dette bildet |
+| Slett | | Soft delete med bekreftelse |
 
-Default-valget er uthevet visuelt og trigges ved Enter. På sikt: Kopier filsti, Åpne original i eksternt program, Legg til i kollektion, Slett, osv.
+### Batch-meny (BrowseView — utvalg)
+
+Vises ved høyreklikk innenfor utvalg. Se `photo-assignment.md` for fullstendig spec.
+
+| Valg | Handling |
+|---|---|
+| Sett event… | EventPickerModal |
+| Legg til i samling… | CollectionPickerModal |
+| Legg til tag… | TagPickerModal |
+| Sett fotograf… | PhotographerPickerModal |
+| Vurder → | Undermeny: ★ / ★★ / ★★★ / ★★★★ / ★★★★★ / Fjern |
+| Slett | Bekreftelsesdialog → soft-delete |
+
+---
+
+## CollectionView — høyreklikk-matrise
+
+CollectionView har ingen avkryssingstilstand. Høyreklikk gjelder alltid det ene elementet som klikkes.
+
+| Høyreklikk på | Menyinnhold |
+|---|---|
+| Foto-element | CollectionItem-meny |
+| Tekstkort | Tekstkort-meny |
+| Bakgrunn | *(fremtidig)* |
+
+### CollectionItem-meny (foto-element)
+
+| Valg | Default | Handling |
+|---|---|---|
+| Åpne | ✓ | Naviger til `/photos/:hothash` |
+| Sett caption… | | Inline tekstfelt for caption |
+| Sett notes… | | Inline tekstfelt for forelesningsnotater |
+| Flytt til begynnelse | | Setter position = 0 |
+| Flytt til slutt | | Setter position = siste |
+| Fjern fra samling | | Sletter CollectionItem — photo berøres ikke |
+
+### Tekstkort-meny
+
+| Valg | Default | Handling |
+|---|---|---|
+| Rediger | ✓ | Åpner Markdown-editor |
+| Fjern fra samling | | Sletter CollectionItem og text_item |
+
+**CollectionView kan ikke trigge metadata-operasjoner** (sett event, legg til tag osv.). Disse operasjonene er BrowseView-eksklusive og gjenspeiler at collection er et presentasjonsprodukt, ikke et organisasjonsverktøy.
 
 ---
 
@@ -171,13 +219,27 @@ Utløses av "Åpne" i kontekstmenyen (default-valg). Kan også nås via direkte 
 
 ---
 
+## Batch-meny (utvalg)
+
+Vises når ett eller flere bilder er valgt og brukeren høyreklikker innenfor utvalget.
+
+| Valg | Handling |
+|---|---|
+| Sett event… | Åpner EventPickerModal |
+| Legg til i samling… | Åpner CollectionPickerModal |
+| Legg til tag… | Åpner TagPickerModal |
+| Sett fotograf… | Åpner PhotographerPickerModal |
+| Vurder → | Undermeny: ★ / ★★ / ★★★ / ★★★★ / ★★★★★ / Fjern vurdering |
+| Slett | Bekreftelsesdialog → soft-delete |
+
+Se `photo-assignment.md` for fullstendig spec for picker-modalene.
+
+---
+
 ## Fremtidige kontekster
 
-Systemet er designet for å utvides. Planlagte kontekster:
-
-| Kontekst | Trigger | Fremtidige menyvalg |
+| Kontekst | Trigger | Menyvalg |
 |---|---|---|
-| Batch (selection) | Høyreklikk innenfor seleksjon | Tagg, Vurder, Sett event, Sett fotograf, Slett, Lag kollektion |
 | Event-liste | Høyreklikk på event | Rediger, Slett, Åpne |
 | Collection-element | Høyreklikk i CollectionView | Flytt, Fjern, Legg til caption |
 | Bakgrunn i BrowseView | Høyreklikk på tomt område | Sorter etter, Velg alle |

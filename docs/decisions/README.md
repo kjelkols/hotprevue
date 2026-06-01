@@ -37,7 +37,7 @@ Hva innebærer denne beslutningen fremover?
 | 002 | Backend leser originalfiler direkte | Erstattet av ADR-008 |
 | 003 | Lokal backend som systemproxy | Erstattet av ADR-008 |
 | 004 | Perceptuell hashing | Godkjent |
-| 005 | Source/target-navigasjon | Godkjent |
+| 005 | Source/target-navigasjon | Erstattet av ADR-014 |
 | 006 | Tidslinje-arkitektur | Godkjent |
 | 007 | Tkinter-installer og generert startskript | Godkjent |
 | 008 | Klient-server-arkitektur: klienten prosesserer filer, backend lagrer | Godkjent |
@@ -46,3 +46,4 @@ Hva innebærer denne beslutningen fremover?
 | 011 | Maskin-fotograf-kobling og maskin-felt på photo | Godkjent |
 | 012 | Identitetsvalg i nett-sesjon | Godkjent |
 | 013 | Migrasjon fra lokal til sentral database | Godkjent |
+| 014 | Bildekategorisering via picker-modaler | Godkjent |

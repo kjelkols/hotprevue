@@ -49,3 +49,31 @@ export function assignEvent(hothashes: string[], eventId: string | null): Promis
     body: JSON.stringify({ hothashes, event_id: eventId }),
   })
 }
+
+export function batchTagsAdd(hothashes: string[], tags: string[]): Promise<{ updated: number }> {
+  return apiFetch<{ updated: number }>('/photos/batch/tags/add', {
+    method: 'POST',
+    body: JSON.stringify({ hothashes, tags }),
+  })
+}
+
+export function batchRating(hothashes: string[], rating: number | null): Promise<{ updated: number }> {
+  return apiFetch<{ updated: number }>('/photos/batch/rating', {
+    method: 'POST',
+    body: JSON.stringify({ hothashes, rating }),
+  })
+}
+
+export function batchPhotographer(hothashes: string[], photographerId: string): Promise<{ updated: number }> {
+  return apiFetch<{ updated: number }>('/photos/batch/photographer', {
+    method: 'POST',
+    body: JSON.stringify({ hothashes, photographer_id: photographerId }),
+  })
+}
+
+export function batchDelete(hothashes: string[]): Promise<{ updated: number }> {
+  return apiFetch<{ updated: number }>('/photos/batch/delete', {
+    method: 'POST',
+    body: JSON.stringify({ hothashes }),
+  })
+}

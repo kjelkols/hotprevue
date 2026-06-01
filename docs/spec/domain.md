@@ -175,6 +175,26 @@ Photos slettes ikke direkte fra databasen. `DELETE /photos/{hothash}` setter `de
 
 **Re-registrering:** Hvis en fil med samme hothash som et mykt slettet Photo skannes på nytt, gjenopprettes Photo stille (`deleted_at = null`) uten duplikatvarsel.
 
+## To verdener: organisering og presentasjon
+
+Hotprevue skiller mellom to fundamentalt ulike kontekster. Å forstå dette skillet er avgjørende for å forstå systemets logikk.
+
+| | Organisering (BrowseView) | Presentasjon (CollectionView) |
+|---|---|---|
+| **Formål** | Sortere, kategorisere, rydde metadata | Kuratere og fremføre et ferdig produkt |
+| **Innhold** | Spørringsresultat — bestemmes av filtre | Eksplisitt utvalgt og ordnet av brukeren |
+| **Rekkefølge** | Automatisk (dato, rating o.l.) | Manuell — brukerdefinert og meningsfull |
+| **Elementtype** | Photos uten presentasjonsattributter | CollectionItems: foto eller tekstkort |
+| **Ekstra attributter** | Ingen per element | caption, notes, posisjon |
+| **Operasjoner** | Sett event, legg til tag, sett fotograf, vurder, slett | Reorder, sett caption, legg til tekstkort, fjern fra samling |
+| **Avkryssingstilstand** | Ja — for batch-operasjoner | Nei — InsertionPoint brukes i stedet |
+| **Kan være kilde** | Ja | **Aldri** |
+| **Kan være destinasjon** | Nei (events og tags er destinasjoner) | Ja — bilder settes inn fra BrowseView |
+
+**Collection er et sluttprodukt**, ikke et arbeidsverktøy for metadata-organisering. Den bygges *av* organiserte bilder, og er destinasjonen for kuratering — aldri kilden.
+
+---
+
 ## BrowseView (Utvalg)
 
 En spørringsbasert, ikke-sekvensiell liste av Photos — resultatet av en filtrering, et søk eller en kontekstside (event, fotograf, osv.). BrowseView er den mest vanlige visningsformen i systemet.
@@ -193,19 +213,18 @@ BrowseView er en gjenbrukbar komponent som brukes overalt der et spørringsresul
 
 ## CollectionView (Kolleksjonsvisning)
 
-Visning av en Collection — en kuratert, ordnet sekvens av CollectionItems. CollectionView og BrowseView ser visuelt like ut, men har ulike regler og muligheter.
+Visning av en Collection — et kuratert, ordnet presentasjonsmedium. CollectionView og BrowseView ser visuelt like ut, men representerer fundamentalt forskjellige kontekster (se tabellen over).
 
 **Kjennetegn:**
 - Innholdet er eksplisitt kuratert av brukeren
-- Rekkefølgen er brukerdefinert og kan endres ved å flytte elementer
-- Hvert element kan ha caption
-- Tekstkort (tittel + tekst) kan blandes inn mellom bilder
+- Rekkefølgen er brukerdefinert og semantisk meningsfull (presentasjonsrekkefølge)
+- Hvert foto-element kan ha caption og forelesningsnotater
+- Tekstkort (Markdown) kan blandes inn mellom bilder
 - Har en posisjonsmarkør (InsertionPoint) som viser hvor nye elementer settes inn
-- Batch-operasjoner på bildemetadata er ikke tilgjengelig i CollectionView
+- Batch-operasjoner på bildemetadata (sett event, legg til tag, osv.) er **ikke** tilgjengelig i CollectionView
+- CollectionView er **aldri** en kilde for assignment-operasjoner
 
-**Innsetting fra Lysbord:** Brukeren setter InsertionPoint i CollectionView, velger bilder i BrowseView via avkryssingstilstand, og setter dem inn via Lysbord. To flyter støttes:
-- *Markør-først:* InsertionPoint settes, deretter velges bilder og «Sett inn her» aktiveres
-- *Velg-og-plasser:* Bilder velges, Lysbord åpnes, kolleksjon og posisjon velges i dialog
+**Innsetting fra BrowseView:** Brukeren velger bilder i BrowseView via avkryssingstilstand og setter dem inn i en collection via CollectionPickerModal. InsertionPoint angir posisjon hvis brukeren er inne i CollectionView når innsettingen skjer.
 
 ---
 
