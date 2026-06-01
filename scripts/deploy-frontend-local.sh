@@ -1,5 +1,5 @@
 #!/bin/bash
-# Bygg frontend lokalt og rsync dist/ til serveren.
+# Bygg frontend lokalt og kopier dist/ til serveren via scp.
 # Mye raskere enn å bygge på serveren — npm ci kjøres ikke der.
 #
 # Bruk: bash scripts/deploy-frontend-local.sh [user@host]
@@ -22,7 +22,8 @@ npm run build:web
 echo "✓ Bygg ferdig"
 
 echo "Kopierer til $REMOTE:$REMOTE_DIST …"
-rsync -az --delete dist/ "$REMOTE:$REMOTE_DIST/"
+ssh "$REMOTE" "rm -rf $REMOTE_DIST && mkdir -p $REMOTE_DIST"
+scp -r dist/* "$REMOTE:$REMOTE_DIST/"
 echo "✓ Filer kopiert"
 
 ssh "$REMOTE" "sudo systemctl restart hotprevue"
