@@ -3,6 +3,7 @@ import type { PhotoListItem } from '../../types/api'
 import useSelectionStore from '../../stores/useSelectionStore'
 import useContextMenuStore from '../../stores/useContextMenuStore'
 import useAssignmentStore from '../../stores/useAssignmentStore'
+import usePhotoNavStore from '../../stores/usePhotoNavStore'
 import ThumbnailShell from '../../components/ui/ThumbnailShell'
 
 function formatDate(taken_at: string | null): string {
@@ -28,6 +29,7 @@ export default function PhotoThumbnail({ photo, orderedHashes }: Props) {
   const selectedCount = useSelectionStore(s => s.selected.size)
   const openContextMenu = useContextMenuStore(s => s.openContextMenu)
   const openAssignment = useAssignmentStore(s => s.open)
+  const setHothashes = usePhotoNavStore(s => s.setHothashes)
 
   function handleClick(e: React.MouseEvent) {
     e.preventDefault()
@@ -37,6 +39,7 @@ export default function PhotoThumbnail({ photo, orderedHashes }: Props) {
   }
 
   function handleDoubleClick() {
+    setHothashes(orderedHashes)
     navigate(`/photos/${photo.hothash}`)
   }
 

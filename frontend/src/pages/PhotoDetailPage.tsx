@@ -1,19 +1,35 @@
+import { useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { getPhoto } from '../api/photos'
 import { getBaseUrl } from '../api/client'
 import PhotoMetaPanel from '../features/photos/PhotoMetaPanel'
 import ZoomableImage from '../components/ZoomableImage'
+import usePhotoNavStore from '../stores/usePhotoNavStore'
 
 export default function PhotoDetailPage() {
   const { hothash } = useParams<{ hothash: string }>()
   const navigate = useNavigate()
+
+  const hothashes = usePhotoNavStore(s => s.hothashes)
+  const currentIndex = hothash ? hothashes.indexOf(hothash) : -1
+  const prevHash = currentIndex > 0 ? hothashes[currentIndex - 1] : null
+  const nextHash = currentIndex >= 0 && currentIndex < hothashes.length - 1 ? hothashes[currentIndex + 1] : null
 
   const { data: photo, isLoading, isError } = useQuery({
     queryKey: ['photo', hothash],
     queryFn: () => getPhoto(hothash!),
     enabled: !!hothash,
   })
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'ArrowLeft' && prevHash) navigate(`/photos/${prevHash}`)
+      if (e.key === 'ArrowRight' && nextHash) navigate(`/photos/${nextHash}`)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [prevHash, nextHash, navigate])
 
   if (isLoading) {
     return (
@@ -42,6 +58,30 @@ export default function PhotoDetailPage() {
         >
           ← Tilbake
         </button>
+
+        {currentIndex >= 0 && (
+          <div className="flex items-center gap-2 ml-auto">
+            <button
+              onClick={() => prevHash && navigate(`/photos/${prevHash}`)}
+              disabled={!prevHash}
+              className="px-3 py-1 rounded text-sm bg-gray-800 hover:bg-gray-700 disabled:opacity-30 disabled:cursor-default transition-colors"
+              title="Forrige (←)"
+            >
+              ‹ Forrige
+            </button>
+            <span className="text-xs text-gray-500">
+              {currentIndex + 1} / {hothashes.length}
+            </span>
+            <button
+              onClick={() => nextHash && navigate(`/photos/${nextHash}`)}
+              disabled={!nextHash}
+              className="px-3 py-1 rounded text-sm bg-gray-800 hover:bg-gray-700 disabled:opacity-30 disabled:cursor-default transition-colors"
+              title="Neste (→)"
+            >
+              Neste ›
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-1 min-h-0">
