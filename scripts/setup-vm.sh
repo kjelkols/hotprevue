@@ -104,6 +104,7 @@ echo "✓ Python-avhengigheter installert"
 cd "$REPO_DIR/frontend"
 npm ci --silent
 npm run build:web
+chown -R kjell:kjell "$REPO_DIR/frontend"
 echo "✓ Frontend bygd"
 
 # ── systemd ───────────────────────────────────────────────────────────────────
@@ -113,6 +114,12 @@ systemctl daemon-reload
 systemctl enable hotprevue
 systemctl start hotprevue
 echo "✓ systemd-tjeneste aktivert og startet"
+
+# ── Sudoers — deploy trenger å restarte tjenesten uten passord ───────────────
+
+echo "kjell ALL=(ALL) NOPASSWD: /bin/systemctl restart hotprevue" \
+  > /etc/sudoers.d/hotprevue
+echo "✓ Sudoers-regel lagt til"
 
 # ── Ferdig ────────────────────────────────────────────────────────────────────
 
