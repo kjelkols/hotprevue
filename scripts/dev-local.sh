@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# dev-local.sh — start backend og frontend lokalt for rask utvikling.
-# Backend: uvicorn med --reload på port 8000
+# dev-local.sh — start backend, agent og frontend lokalt for rask utvikling.
+# Backend: uvicorn --reload på port 8000
+# Agent:   uvicorn --reload på port 8002
 # Frontend: Vite dev-server på port 5173
 #
 # Engangsoppsett (kjøres én gang):
@@ -11,8 +12,9 @@
 
 set -euo pipefail
 
-REPO_DIR="$(dirname "$0")/.."
+REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 BACKEND_DIR="$REPO_DIR/backend"
+AGENT_DIR="$REPO_DIR/client"
 FRONTEND_DIR="$REPO_DIR/frontend"
 DB_URL="postgresql+psycopg2:///hotprevue"
 
@@ -36,25 +38,45 @@ if [ ! -d "$FRONTEND_DIR/node_modules" ]; then
   cd "$FRONTEND_DIR" && npm ci --silent
 fi
 
-# ── Start backend i bakgrunnen ────────────────────────────────────────────────
+# ── Cleanup ───────────────────────────────────────────────────────────────────
+
+PIDS=()
+
+cleanup() {
+  echo ""
+  echo "→ Stopper prosesser…"
+  for pid in "${PIDS[@]}"; do
+    kill "$pid" 2>/dev/null || true
+  done
+}
+trap cleanup EXIT INT TERM
+
+# ── Start backend ─────────────────────────────────────────────────────────────
 
 echo "→ Starter backend på http://localhost:8000"
 cd "$BACKEND_DIR"
 DATABASE_URL="$DB_URL" uv run uvicorn main:app --reload --port 8000 &
-BACKEND_PID=$!
+PIDS+=($!)
 
-cleanup() {
-  echo ""
-  echo "→ Stopper backend…"
-  kill "$BACKEND_PID" 2>/dev/null || true
-}
-trap cleanup EXIT INT TERM
-
-# Vent til backend svarer
 for i in $(seq 1 20); do
   sleep 0.5
   if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
     echo "✓ Backend klar"
+    break
+  fi
+done
+
+# ── Start agent ───────────────────────────────────────────────────────────────
+
+echo "→ Starter agent på http://localhost:8002"
+cd "$AGENT_DIR"
+uv run uvicorn agent.main:app --reload --port 8002 &
+PIDS+=($!)
+
+for i in $(seq 1 20); do
+  sleep 0.5
+  if curl -sf http://localhost:8002/health > /dev/null 2>&1; then
+    echo "✓ Agent klar"
     break
   fi
 done
