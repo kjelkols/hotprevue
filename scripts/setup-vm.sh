@@ -16,6 +16,14 @@ echo "=== Hotprevue VM-oppsett ==="
 apt-get update -q
 apt-get install -y -q curl git postgresql
 
+# Tailscale
+if ! command -v tailscale &>/dev/null; then
+    curl -fsSL https://tailscale.com/install.sh | sh
+    echo "✓ Tailscale installert"
+else
+    echo "  Tailscale finnes allerede"
+fi
+
 # Node.js 22 via NodeSource
 if ! command -v node &>/dev/null; then
     curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
@@ -112,3 +120,6 @@ echo "=== Oppsett fullført ==="
 echo "Backend:   http://$(hostname -I | awk '{print $1}'):8000"
 echo "Status:    sudo systemctl status hotprevue"
 echo "Logger:    sudo journalctl -u hotprevue -f"
+echo ""
+echo "Koble til Tailscale-nettverket:"
+echo "  sudo tailscale up"
