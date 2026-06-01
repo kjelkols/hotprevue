@@ -1,132 +1,121 @@
 # Deployment — Hotprevue
 
-## Oversikt
+## Konsept
 
-En release består av to ting som skjer automatisk etter hverandre:
+Alt skjer fra lokal maskin til server — serveren trenger ikke git.
 
-1. **Zip-filene bygges** og lastes opp til GitHub Releases (Windows + Linux)
-2. **Nettsiden oppdateres** med riktig versjonsnummer og nedlastingslenke
-
-Alt dette skjer i GitHub Actions — du trenger ikke gjøre noe annet enn å
-sette en Git-tag og pushe den.
+```
+Lokal maskin
+  ↓ dev-local.sh     — utvikling og testing
+  ↓ pytest           — tester kjøres lokalt
+  ↓ deploy.sh        — bygg, send, migrer, restart
+Produksjonsserver
+```
 
 ---
 
-## Slik releaser du
+## Lokal utvikling
+
+Start alle tre prosesser i egne terminaler:
 
 ```bash
-git tag v0.2.0
-git push origin v0.2.0
+bash scripts/dev-local.sh
 ```
 
-Det er alt. Resten skjer automatisk på GitHub.
-
-Følg med under: `github.com/kjelkols/hotprevue → Actions`
-
----
-
-## Hva skjer steg for steg
-
-### 1. Du pusher en tag (`v*`)
-
-GitHub ser taggen og starter workflow-en `build-release.yml`.
-
-### 2. Frontend bygges (i GitHub Actions)
-
-GitHub Actions kjører `npm ci && npm run build:web` i `frontend/`-mappen.
-Resultatet er statiske filer i `frontend/dist/`.
-
-### 3. uv-binærer lastes ned
-
-`uv` (Python-pakkehåndtereren) lastes ned fra astral-sh sine offisielle releases
-for hver plattform. Det er uv som gjør at brukeren slipper å installere Python selv.
-
-- Windows: `uv.exe` (x86_64)
-- Linux: `uv` (x86_64)
-
-### 4. Zip-pakkene settes sammen
-
-**Windows** `Hotprevue-0.2.0-windows.zip`:
-```
-├── backend/          ← Python-kildekode (uten .venv, tester osv.)
-├── frontend/         ← Ferdigbygde statiske filer
-├── admin/            ← Admin-konsoll
-├── install.bat       ← Kjøres første gang for å sette opp appen
-├── Hotprevue.bat     ← Legacy-startskript (erstattes av hotprevue.bat etter installasjon)
-├── hotprevue-admin.bat
-└── uv.exe
-```
-
-**Linux** `Hotprevue-0.2.0-linux.zip`:
-```
-├── backend/
-├── frontend/
-├── admin/
-├── install.sh        ← Kjøres første gang
-├── hotprevue.sh      ← Startskript
-├── hotprevue-admin.sh
-└── uv                ← Kjørbar (chmod +x satt i zip)
-```
-
-`hotprevue.bat` (Windows) er **ikke** med i zip-en — den genereres av `install.bat`
-på brukerens maskin med brukerens valgte konfigurasjon.
-
-### 5. GitHub Release opprettes
-
-En ny release publiseres automatisk under
-`github.com/kjelkols/hotprevue/releases` med begge zip-filene som vedlegg.
-GitHub genererer automatiske release notes basert på commits siden forrige tag.
-
-### 6. Nettsiden oppdateres
-
-Når releasen er publisert, starter workflow-en `pages.yml` automatisk.
-Den setter inn riktig versjonsnummer og nedlastingslenke i `website/index.html`
-og publiserer siden til GitHub Pages.
-
----
-
-## Versjonsnummeret
-
-Versjonsnummeret hentes fra taggen. Tag `v0.2.0` gir `Hotprevue-0.2.0-windows.zip`
-og `Hotprevue-0.2.0-linux.zip`.
-
-Det finnes ikke ett sentralt sted i kildekoden der versjonen er definert —
-taggen **er** versjonen.
-
----
-
-## Manuell bygging fra Ubuntu-server (alternativt)
-
-Hvis du ikke vil vente på GitHub Actions, kan du bygge zip-filene selv:
+Stopp alle prosesser:
 
 ```bash
-make build-zip-all       # Bygger begge plattformer
-make build-zip-windows   # Kun Windows
-make build-zip-linux     # Kun Linux
+bash scripts/dev-stop.sh
 ```
 
-Versjonsnummer hentes automatisk fra siste git-tag.
+Prosessene som kjøres:
+
+| Terminal   | Kommando                        | Port |
+|------------|---------------------------------|------|
+| Backend    | uvicorn main:app --reload       | 8000 |
+| Agent      | uvicorn agent.main:app --reload | 8002 |
+| Frontend   | vite dev                        | 5173 |
+
+Dataene lagres i `~/.local/share/hotprevue/` (coldpreviews + database `hotprevue`).
 
 ---
 
-## Manuell kjøring av nettsiden
+## Server-oppsett (én gang)
 
-Hvis du vil oppdatere nettsiden uten å lage en ny release:
+Kjøres én gang når en ny produksjonsserver skal settes opp:
 
-1. Gå til `github.com/kjelkols/hotprevue → Actions → Deploy Pages`
-2. Klikk **Run workflow**
-3. Skriv inn taggen du vil peke til (f.eks. `v0.2.0`)
+```bash
+scp scripts/setup-server.sh kjell@server:~/
+ssh kjell@server sudo bash ~/setup-server.sh
+```
+
+### Hva skriptet gjør
+
+| Hva | Hvor |
+|-----|------|
+| Installerer `uv` | `/usr/local/bin/uv` |
+| Installerer PostgreSQL | system |
+| Oppretter PostgreSQL-bruker `kjell` | peer auth, ingen passord |
+| Oppretter database `hotprevue` | PostgreSQL |
+| Oppretter applikasjonskatalog | `/opt/hotprevue/backend/`, `/opt/hotprevue/frontend/dist/` |
+| Oppretter datakatalog | `/var/lib/hotprevue/coldpreviews/` |
+| Oppretter `.env` | `/opt/hotprevue/backend/.env` |
+| Registrerer systemd-tjeneste | `/etc/systemd/system/hotprevue.service` |
+| Legger til sudoers-regel | `/etc/sudoers.d/hotprevue` |
+
+Etter oppsett er serveren klar, men tom. Kjør `deploy.sh` for å sende koden.
 
 ---
 
-## Filer involvert
+## Deploy
 
-| Fil | Formål |
-|---|---|
-| `.github/workflows/build-release.yml` | Bygger zip-pakker og lager GitHub Release |
-| `.github/workflows/pages.yml` | Publiserer nettsiden til GitHub Pages |
-| `Makefile` | Lokale build-mål (`build-zip-windows`, `build-zip-linux`) |
-| `hotprevue.sh` | Linux-startskript (pakkes i linux-zip) |
-| `hotprevue-admin.sh` | Linux admin-startskript |
-| `install.sh` | Linux-installasjonsscript |
-| `website/index.html` | Nettside med nedlastingslenke (versjon injiseres av workflow) |
+```bash
+bash scripts/deploy.sh kjell@server
+```
+
+### Hva skriptet gjør
+
+1. **Kjører backend-tester** — avbryter hvis noe feiler
+2. **Bygger frontend** lokalt med byggnummer
+3. **Sender backend** — Python-kildekode via tar over SSH (uten `.venv`, `__pycache__` osv.)
+4. **Sender frontend** — bygd `dist/` via tar over SSH
+5. **På server:** `uv sync`, `alembic upgrade head`, `systemctl restart hotprevue`
+
+---
+
+## Filstruktur på server
+
+```
+/opt/hotprevue/
+├── backend/                ← Python-kildekode (sendt av deploy.sh)
+│   ├── .env                ← Miljøvariabler (opprettet av setup-server.sh, aldri overskrevet)
+│   └── .venv/              ← Virtuelt miljø (opprettet av uv sync)
+└── frontend/
+    └── dist/               ← Bygd frontend (sendt av deploy.sh)
+
+/var/lib/hotprevue/
+└── coldpreviews/           ← Lagrede forhåndsvisninger
+```
+
+---
+
+## Miljøvariabler på server
+
+`/opt/hotprevue/backend/.env`:
+
+```
+DATABASE_URL=postgresql+psycopg2:///hotprevue
+COLDPREVIEW_DIR=/var/lib/hotprevue/coldpreviews
+HOTPREVUE_FRONTEND_DIR=/opt/hotprevue/frontend/dist
+HOTPREVUE_OPEN_BROWSER=false
+```
+
+---
+
+## Nyttige kommandoer på server
+
+```bash
+sudo systemctl status hotprevue
+sudo journalctl -u hotprevue -f
+sudo systemctl restart hotprevue
+```
