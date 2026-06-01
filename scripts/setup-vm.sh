@@ -95,14 +95,14 @@ fi
 # ── Python-avhengigheter ──────────────────────────────────────────────────────
 
 cd "$REPO_DIR/backend"
-sudo -u "$HOTPREVUE_USER" /usr/local/bin/uv sync
+sudo -u "$HOTPREVUE_USER" UV_CACHE_DIR="$DATA_DIR/.cache/uv" /usr/local/bin/uv sync
 echo "✓ Python-avhengigheter installert"
 
 # ── Frontend ──────────────────────────────────────────────────────────────────
 
 cd "$REPO_DIR/frontend"
-sudo -u "$HOTPREVUE_USER" npm ci --silent
-sudo -u "$HOTPREVUE_USER" npm run build:web
+npm ci --silent
+npm run build:web
 echo "✓ Frontend bygd"
 
 # ── systemd ───────────────────────────────────────────────────────────────────
