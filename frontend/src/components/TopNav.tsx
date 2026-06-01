@@ -16,6 +16,9 @@ export default function TopNav() {
       <Link to="/" className="flex items-center gap-2 px-2 mr-2 shrink-0 hover:opacity-80 transition-opacity">
         <img src="/hotprevue-32.png" alt="" className="w-6 h-6 invert" />
         <span className="text-sm font-semibold text-white">Hotprevue</span>
+        {import.meta.env.VITE_BUILD_NUMBER && (
+          <span className="text-xs text-gray-500 font-mono">#{import.meta.env.VITE_BUILD_NUMBER}</span>
+        )}
       </Link>
       {NAV.map(({ to, label, end }) => (
         <NavLink

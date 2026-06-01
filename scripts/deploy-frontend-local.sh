@@ -17,13 +17,14 @@ if [ ! -d node_modules ]; then
   npm ci
 fi
 
-echo "Bygger…"
-npm run build:web
+BUILD_NUMBER=$(git rev-list --count HEAD 2>/dev/null || echo 0)
+echo "Bygger… (build #$BUILD_NUMBER)"
+VITE_BUILD_NUMBER=$BUILD_NUMBER VITE_IS_TEST=true npm run build:web
 echo "✓ Bygg ferdig"
 
 echo "Kopierer til $REMOTE:$REMOTE_DIST …"
 ssh "$REMOTE" "rm -rf $REMOTE_DIST && mkdir -p $REMOTE_DIST"
-scp -r dist/* "$REMOTE:$REMOTE_DIST/"
+tar -C dist -czf - . | ssh "$REMOTE" "tar -C $REMOTE_DIST -xzf -"
 echo "✓ Filer kopiert"
 
 ssh "$REMOTE" "sudo systemctl restart hotprevue"

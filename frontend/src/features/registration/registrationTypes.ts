@@ -13,9 +13,14 @@ export function deriveFolderName(name: string): string {
     .replace(/^-+|-+$/g, '')
 }
 
+function randomId(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID()
+  return Date.now().toString(36) + Math.random().toString(36).slice(2)
+}
+
 export function makeSlot(overrides: Partial<EventSlot> = {}): EventSlot {
   return {
-    localId: crypto.randomUUID(),
+    localId: randomId(),
     eventName: '',
     folderName: '',
     eventId: null,

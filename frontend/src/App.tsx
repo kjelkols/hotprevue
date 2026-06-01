@@ -55,6 +55,11 @@ export default function App() {
 
   return (
     <HashRouter>
+      {import.meta.env.VITE_IS_TEST === 'true' && (
+        <div className="fixed bottom-0 left-0 right-0 z-[9999] bg-yellow-500 py-0.5 text-center text-xs font-bold text-black tracking-widest uppercase pointer-events-none select-none">
+          Testinstans
+        </div>
+      )}
       <Routes>
         <Route path="/collections/:id/present" element={<CollectionPresentPage />} />
         <Route path="/register" element={<RegisterPage />} />
