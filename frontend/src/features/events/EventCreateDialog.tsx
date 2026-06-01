@@ -11,14 +11,16 @@ interface Props {
 export default function EventCreateDialog({ open, onOpenChange }: Props) {
   const queryClient = useQueryClient()
   const [name, setName] = useState('')
-  const [date, setDate] = useState('')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
   const [location, setLocation] = useState('')
   const [description, setDescription] = useState('')
 
   const mutation = useMutation({
     mutationFn: () => createEvent({
       name,
-      date: date || null,
+      start_date: startDate || null,
+      end_date: endDate || null,
       location: location || null,
       description: description || null,
     }),
@@ -26,7 +28,8 @@ export default function EventCreateDialog({ open, onOpenChange }: Props) {
       queryClient.invalidateQueries({ queryKey: ['events'] })
       onOpenChange(false)
       setName('')
-      setDate('')
+      setStartDate('')
+      setEndDate('')
       setLocation('')
       setDescription('')
     },
@@ -57,23 +60,33 @@ export default function EventCreateDialog({ open, onOpenChange }: Props) {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Dato</label>
+                <label className="block text-sm text-gray-400 mb-1">Startdato</label>
                 <input
                   type="date"
-                  value={date}
-                  onChange={e => setDate(e.target.value)}
+                  value={startDate}
+                  onChange={e => setStartDate(e.target.value)}
                   className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-gray-500"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Sted</label>
+                <label className="block text-sm text-gray-400 mb-1">Sluttdato</label>
                 <input
-                  value={location}
-                  onChange={e => setLocation(e.target.value)}
+                  type="date"
+                  value={endDate}
+                  min={startDate || undefined}
+                  onChange={e => setEndDate(e.target.value)}
                   className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-gray-500"
-                  placeholder="Valgfritt"
                 />
               </div>
+            </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Sted</label>
+              <input
+                value={location}
+                onChange={e => setLocation(e.target.value)}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-gray-500"
+                placeholder="Valgfritt"
+              />
             </div>
             <div>
               <label className="block text-sm text-gray-400 mb-1">Beskrivelse</label>

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { listEvents } from '../api/events'
 import EventCreateDialog from '../features/events/EventCreateDialog'
+import { formatEventDate } from '../lib/formatDate'
 
 export default function EventsListPage() {
   const navigate = useNavigate()
@@ -41,9 +42,9 @@ export default function EventsListPage() {
                   <span className="font-medium truncate">{event.name}</span>
                   <span className="text-sm text-gray-400 shrink-0">{event.photo_count} bilder</span>
                 </div>
-                {(event.date || event.location) && (
+                {(event.start_date || event.location) && (
                   <p className="text-xs text-gray-500 mt-0.5">
-                    {[event.date, event.location].filter(Boolean).join(' · ')}
+                    {[formatEventDate(event.start_date, event.end_date), event.location].filter(Boolean).join(' · ')}
                   </p>
                 )}
               </button>

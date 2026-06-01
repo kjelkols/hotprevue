@@ -6,6 +6,7 @@ import PhotoGrid from '../features/browse/PhotoGrid'
 import PhotoTimeline from '../features/browse/PhotoTimeline'
 import ViewToggle from '../components/ViewToggle'
 import { usePhotoSource } from '../hooks/usePhotoSource'
+import { formatEventDate } from '../lib/formatDate'
 
 export default function EventPage() {
   const { id } = useParams<{ id: string }>()
@@ -13,6 +14,9 @@ export default function EventPage() {
   const queryClient = useQueryClient()
   const [editing, setEditing] = useState(false)
   const [editName, setEditName] = useState('')
+  const [editStartDate, setEditStartDate] = useState('')
+  const [editEndDate, setEditEndDate] = useState('')
+  const [editLocation, setEditLocation] = useState('')
   const [view, setView] = useState<'grid' | 'timeline'>('grid')
 
   const photoSource = usePhotoSource({ eventId: id })
@@ -24,7 +28,12 @@ export default function EventPage() {
   })
 
   const renameMutation = useMutation({
-    mutationFn: () => patchEvent(id!, { name: editName }),
+    mutationFn: () => patchEvent(id!, {
+      name: editName,
+      start_date: editStartDate || null,
+      end_date: editEndDate || null,
+      location: editLocation || null,
+    }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['event', id] })
       queryClient.invalidateQueries({ queryKey: ['events'] })
@@ -49,6 +58,9 @@ export default function EventPage() {
 
   function startEdit() {
     setEditName(event?.name ?? '')
+    setEditStartDate(event?.start_date ?? '')
+    setEditEndDate(event?.end_date ?? '')
+    setEditLocation(event?.location ?? '')
     setEditing(true)
   }
 
@@ -68,27 +80,51 @@ export default function EventPage() {
           ← Tilbake
         </button>
         {editing ? (
-          <form onSubmit={handleRename} className="flex-1 flex gap-2">
-            <input
-              autoFocus
-              value={editName}
-              onChange={e => setEditName(e.target.value)}
-              className="flex-1 bg-gray-800 border border-gray-600 rounded-lg px-3 py-1 text-white text-sm focus:outline-none"
-            />
-            <button type="submit" disabled={renameMutation.isPending} className="rounded-lg bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-500 disabled:opacity-50">
-              Lagre
-            </button>
-            <button type="button" onClick={() => setEditing(false)} className="rounded-lg bg-gray-800 px-3 py-1 text-sm text-gray-300 hover:bg-gray-700">
-              Avbryt
-            </button>
+          <form onSubmit={handleRename} className="flex-1 flex flex-col gap-2">
+            <div className="flex gap-2">
+              <input
+                autoFocus
+                value={editName}
+                onChange={e => setEditName(e.target.value)}
+                className="flex-1 bg-gray-800 border border-gray-600 rounded-lg px-3 py-1 text-white text-sm focus:outline-none"
+                placeholder="Navn"
+              />
+              <button type="submit" disabled={renameMutation.isPending} className="rounded-lg bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-500 disabled:opacity-50 shrink-0">
+                Lagre
+              </button>
+              <button type="button" onClick={() => setEditing(false)} className="rounded-lg bg-gray-800 px-3 py-1 text-sm text-gray-300 hover:bg-gray-700 shrink-0">
+                Avbryt
+              </button>
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="date"
+                value={editStartDate}
+                onChange={e => setEditStartDate(e.target.value)}
+                className="bg-gray-800 border border-gray-600 rounded-lg px-3 py-1 text-white text-sm focus:outline-none"
+              />
+              <input
+                type="date"
+                value={editEndDate}
+                min={editStartDate || undefined}
+                onChange={e => setEditEndDate(e.target.value)}
+                className="bg-gray-800 border border-gray-600 rounded-lg px-3 py-1 text-white text-sm focus:outline-none"
+              />
+              <input
+                value={editLocation}
+                onChange={e => setEditLocation(e.target.value)}
+                placeholder="Sted"
+                className="flex-1 bg-gray-800 border border-gray-600 rounded-lg px-3 py-1 text-white text-sm focus:outline-none"
+              />
+            </div>
           </form>
         ) : (
           <>
             <div className="flex-1 min-w-0">
               <h1 className="text-xl font-semibold truncate">{event.name}</h1>
-              {(event.date || event.location) && (
+              {(event.start_date || event.location) && (
                 <p className="text-sm text-gray-400 truncate">
-                  {[event.date, event.location].filter(Boolean).join(' · ')}
+                  {[formatEventDate(event.start_date, event.end_date), event.location].filter(Boolean).join(' · ')}
                 </p>
               )}
             </div>

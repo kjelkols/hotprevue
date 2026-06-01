@@ -12,7 +12,8 @@ export function getEvent(id: string): Promise<EventNode> {
 export function createEvent(data: {
   name: string
   description?: string | null
-  date?: string | null
+  start_date?: string | null
+  end_date?: string | null
   location?: string | null
 }): Promise<EventNode> {
   return apiFetch<EventNode>('/events', { method: 'POST', body: JSON.stringify(data) })
@@ -21,7 +22,8 @@ export function createEvent(data: {
 export function patchEvent(id: string, data: Partial<{
   name: string
   description: string | null
-  date: string | null
+  start_date: string | null
+  end_date: string | null
   location: string | null
 }>): Promise<EventNode> {
   return apiFetch<EventNode>(`/events/${id}`, { method: 'PATCH', body: JSON.stringify(data) })

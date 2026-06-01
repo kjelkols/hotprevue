@@ -4,6 +4,7 @@ import { listEvents } from '../../api/events'
 import { assignEvent } from '../../api/photos'
 import useSelectionStore from '../../stores/useSelectionStore'
 import useAssignmentStore from '../../stores/useAssignmentStore'
+import { formatEventDate } from '../../lib/formatDate'
 
 export default function EventPickerModal() {
   const [filter, setFilter] = useState('')
@@ -70,7 +71,12 @@ export default function EventPickerModal() {
                     : 'text-gray-200 hover:bg-gray-800'
                 }`}
               >
-                {e.name}
+                <span>{e.name}</span>
+                {e.start_date && (
+                  <span className={`ml-2 text-xs ${selectedId === e.id ? 'text-blue-200' : 'text-gray-500'}`}>
+                    {formatEventDate(e.start_date, e.end_date)}
+                  </span>
+                )}
               </button>
             </li>
           ))}

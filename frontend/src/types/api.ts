@@ -51,7 +51,8 @@ export interface EventNode {
   id: string
   name: string
   description: string | null
-  date: string | null
+  start_date: string | null
+  end_date: string | null
   location: string | null
   cover_hothash: string | null
   created_at: string
