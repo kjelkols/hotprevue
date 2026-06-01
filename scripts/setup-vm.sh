@@ -46,19 +46,15 @@ fi
 
 # ── PostgreSQL ────────────────────────────────────────────────────────────────
 
-DB_PASSWORD=$(openssl rand -base64 24 | tr -d '/+=' | head -c 32)
-
 systemctl enable postgresql
 systemctl start postgresql
 
 # Opprett DB-bruker hvis den ikke finnes
 if ! su -c "psql -tAc \"SELECT 1 FROM pg_roles WHERE rolname='$DB_USER'\"" postgres | grep -q 1; then
-    su -c "psql -c \"CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWORD'\"" postgres
+    su -c "psql -c \"CREATE USER $DB_USER\"" postgres
     echo "✓ PostgreSQL-bruker '$DB_USER' opprettet"
 else
-    # Oppdater passordet hvis brukeren allerede finnes (idempotent)
-    su -c "psql -c \"ALTER USER $DB_USER WITH PASSWORD '$DB_PASSWORD'\"" postgres
-    echo "✓ PostgreSQL-bruker '$DB_USER' eksisterer — passord oppdatert"
+    echo "✓ PostgreSQL-bruker '$DB_USER' eksisterer"
 fi
 
 if ! su -c "psql -lqt | cut -d\| -f1 | grep -qw $DB_NAME" postgres; then
@@ -82,7 +78,7 @@ chown -R "$HOTPREVUE_USER:$HOTPREVUE_USER" "$REPO_DIR"
 ENV_FILE="$REPO_DIR/backend/.env"
 if [ ! -f "$ENV_FILE" ]; then
     cat > "$ENV_FILE" <<EOF
-DATABASE_URL=postgresql+psycopg2://$DB_USER:$DB_PASSWORD@localhost:5432/$DB_NAME
+DATABASE_URL=postgresql+psycopg2:///$DB_NAME
 COLDPREVIEW_DIR=$DATA_DIR/coldpreviews
 HOTPREVUE_FRONTEND_DIR=$REPO_DIR/frontend/dist
 HOTPREVUE_OPEN_BROWSER=false
