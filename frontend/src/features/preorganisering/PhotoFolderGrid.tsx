@@ -4,17 +4,26 @@ import { startPrescan, getPrescanStatus, getPrescanFiles } from '../../api/presc
 import { moveGroup, makeDir } from '../../api/fileops'
 import usePreorganiserStore from '../../stores/usePreorganiserStore'
 import FileGroupTile from './FileGroupTile'
+import DateGroupHeader from './DateGroupHeader'
 import PrescanStatusBar from './PrescanStatusBar'
 import TimeRangePicker from './TimeRangePicker'
 import PreviewLightbox from './PreviewLightbox'
 import FileBrowser from '../../components/FileBrowser'
 import type { PrescanFileEntry, PrescanJobStatus } from '../../types/api'
 
+interface DateGroup {
+  date: string
+  label: string
+  files: PrescanFileEntry[]
+}
+
 export default function PhotoFolderGrid() {
   const currentDir = usePreorganiserStore(s => s.currentDir)
   const selected = usePreorganiserStore(s => s.selected)
   const clear = usePreorganiserStore(s => s.clear)
   const selectAll = usePreorganiserStore(s => s.selectAll)
+  const dateGrouping = usePreorganiserStore(s => s.dateGrouping)
+  const toggleDateGrouping = usePreorganiserStore(s => s.toggleDateGrouping)
 
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const [scanJob, setScanJob] = useState<PrescanJobStatus | null>(null)
@@ -52,6 +61,22 @@ export default function PhotoFolderGrid() {
     const day = file.taken_at.slice(0, 10)
     selectAll(files.filter(f => f.taken_at?.slice(0, 10) === day).map(f => f.file_path))
   }
+
+  const dateGroups: DateGroup[] = (() => {
+    const map = new Map<string, PrescanFileEntry[]>()
+    for (const f of sortedFiles) {
+      const key = f.taken_at?.slice(0, 10) ?? 'ukjent'
+      if (!map.has(key)) map.set(key, [])
+      map.get(key)!.push(f)
+    }
+    return Array.from(map.entries()).map(([date, groupFiles]) => ({
+      date,
+      label: date === 'ukjent'
+        ? 'Ukjent dato'
+        : new Date(date).toLocaleDateString('nb-NO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
+      files: groupFiles,
+    }))
+  })()
 
   // Start prescan og poll til ferdig
   useEffect(() => {
@@ -178,6 +203,17 @@ export default function PhotoFolderGrid() {
           </button>
 
           <button
+            onClick={toggleDateGrouping}
+            className={[
+              'rounded px-2 py-1 text-xs hover:bg-gray-800',
+              dateGrouping ? 'text-white' : 'text-gray-400',
+            ].join(' ')}
+            title="Gruppér på dato"
+          >
+            Datogrupper
+          </button>
+
+          <button
             onClick={() => setShowNewFolder(v => !v)}
             className="rounded px-2 py-1 text-xs text-gray-400 hover:bg-gray-800"
           >
@@ -230,6 +266,33 @@ export default function PhotoFolderGrid() {
       >
         {files.length === 0 && scanJob?.status === 'completed' ? (
           <p className="text-gray-600">Ingen bilder i denne katalogen</p>
+        ) : dateGrouping ? (
+          <div onClick={e => { if (e.target === e.currentTarget) clear() }}>
+            {dateGroups.map(group => (
+              <div key={group.date}>
+                <DateGroupHeader
+                  date={group.date}
+                  label={group.label}
+                  files={group.files}
+                  allFiles={sortedFiles}
+                />
+                <div className="flex flex-wrap gap-1 pb-2">
+                  {group.files.map(f => {
+                    const i = orderedPaths.indexOf(f.file_path)
+                    return (
+                      <FileGroupTile
+                        key={f.file_path}
+                        file={f}
+                        orderedPaths={orderedPaths}
+                        onSelectSameDate={() => handleSelectSameDate(f)}
+                        onDoubleClick={() => setLightboxIndex(i)}
+                      />
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
           <div
             className="flex flex-wrap gap-1"
