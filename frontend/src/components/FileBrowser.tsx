@@ -10,10 +10,11 @@ interface Props {
   onSelect: (path: string) => void
   trigger: React.ReactNode
   allowNewFolder?: boolean
+  newFolderParent?: string       // hvis satt, lages ny mappe alltid her (uavhengig av navigasjon)
   onFolderCreated?: (parentPath: string) => void
 }
 
-export default function FileBrowser({ initialPath, onSelect, trigger, allowNewFolder = false, onFolderCreated }: Props) {
+export default function FileBrowser({ initialPath, onSelect, trigger, allowNewFolder = false, newFolderParent, onFolderCreated }: Props) {
   const [open, setOpen] = useState(false)
   const [path, setPath] = useState('')
   const [newFolderName, setNewFolderName] = useState('')
@@ -45,12 +46,13 @@ export default function FileBrowser({ initialPath, onSelect, trigger, allowNewFo
 
   async function handleCreateFolder() {
     if (!newFolderName.trim() || !data) return
-    const newPath = data.path.replace(/\/+$/, '') + '/' + newFolderName.trim()
+    const parent = (newFolderParent ?? data.path).replace(/\/+$/, '')
+    const newPath = parent + '/' + newFolderName.trim()
     setCreatingFolder(true)
     try {
       await makeDir(newPath)
-      queryClient.invalidateQueries({ queryKey: ['browse', data.path] })
-      onFolderCreated?.(data.path)
+      queryClient.invalidateQueries({ queryKey: ['browse', parent] })
+      onFolderCreated?.(parent)
       onSelect(newPath)
       setOpen(false)
     } catch {
@@ -191,7 +193,7 @@ export default function FileBrowser({ initialPath, onSelect, trigger, allowNewFo
                   onClick={() => setShowNewFolder(true)}
                   className="text-sm text-gray-400 hover:text-white"
                 >
-                  + Ny mappe her
+                  {newFolderParent ? `+ Ny mappe i ${newFolderParent.split('/').pop()}` : '+ Ny mappe her'}
                 </button>
               )}
             </div>

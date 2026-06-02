@@ -174,6 +174,7 @@ export default function PhotoFolderGrid() {
                 onSelect={handleMoveSelected}
                 initialPath={currentDir}
                 allowNewFolder
+                newFolderParent={currentDir}
                 onFolderCreated={parentPath => queryClient.invalidateQueries({ queryKey: ['browse', parentPath] })}
                 trigger={
                   <button
