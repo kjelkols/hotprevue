@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import type { PrescanFileEntry } from '../../types/api'
 import usePreorganiserStore from '../../stores/usePreorganiserStore'
 import useContextMenuStore from '../../stores/useContextMenuStore'
+import PreviewLightbox from './PreviewLightbox'
 
 interface Props {
   file: PrescanFileEntry
@@ -20,6 +22,8 @@ export default function FileGroupTile({ file, orderedPaths, onSelectSameDate }: 
   const toggleOne = usePreorganiserStore(s => s.toggleOne)
   const selectRange = usePreorganiserStore(s => s.selectRange)
   const openContextMenu = useContextMenuStore(s => s.openContextMenu)
+
+  const [lightboxOpen, setLightboxOpen] = useState(false)
 
   const isSelected = selected.has(file.file_path)
   const selectedCount = selected.size
@@ -69,6 +73,7 @@ export default function FileGroupTile({ file, orderedPaths, onSelectSameDate }: 
           isSelected ? 'ring-2 ring-blue-400' : 'hover:ring-2 hover:ring-blue-400/60',
         ].join(' ')}
         onClick={handleClick}
+        onDoubleClick={() => setLightboxOpen(true)}
         onContextMenu={handleContextMenu}
       >
         {hasPreview ? (
@@ -115,6 +120,10 @@ export default function FileGroupTile({ file, orderedPaths, onSelectSameDate }: 
           <p className="uppercase text-gray-600">{file.master_type}{file.companions.length > 0 ? ` +${file.companions.length}` : ''}</p>
         </div>
       </div>
+
+      {lightboxOpen && (
+        <PreviewLightbox path={file.file_path} onClose={() => setLightboxOpen(false)} />
+      )}
     </div>
   )
 }

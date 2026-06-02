@@ -1,4 +1,4 @@
-const AGENT_URL = (import.meta.env.VITE_AGENT_URL as string | undefined)?.replace(/\/$/, '')
+export const AGENT_URL = (import.meta.env.VITE_AGENT_URL as string | undefined)?.replace(/\/$/, '')
   ?? 'http://localhost:8002'
 
 export async function agentFetch<T>(path: string, init?: RequestInit): Promise<T> {

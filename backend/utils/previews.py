@@ -90,6 +90,31 @@ def compute_perceptual_hashes(jpeg_bytes: bytes) -> tuple[int, int]:
     return dct, diff
 
 
+def generate_preview(file_path: str, maxpx: int = 1200) -> bytes:
+    """Generate a scaled JPEG preview maintaining aspect ratio — no cropping.
+
+    For RAW files uses the embedded JPEG thumbnail (fast) with full-decode fallback.
+    Applies EXIF orientation for JPEG/TIFF files.
+    """
+    from PIL import ImageOps
+
+    if _is_raw(file_path):
+        img, _, _ = _raw_open_for_thumb(file_path)
+    else:
+        with Image.open(file_path) as f:
+            img = ImageOps.exif_transpose(f)
+            img = _to_rgb(img).copy()
+
+    w, h = img.size
+    if max(w, h) > maxpx:
+        scale = maxpx / max(w, h)
+        img = img.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
+
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=90, optimize=True)
+    return buf.getvalue()
+
+
 def generate_coldpreview(
     file_path: str,
     hothash: str,

@@ -1,12 +1,14 @@
 import base64
+import hashlib
 import tempfile
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import Response
 from pydantic import BaseModel
 
 from utils.exif import extract_exif, extract_camera_fields, extract_taken_at, extract_gps
-from utils.previews import generate_hotpreview, hotpreview_b64, generate_coldpreview
+from utils.previews import generate_hotpreview, hotpreview_b64, generate_coldpreview, generate_preview
 
 router = APIRouter(prefix="/process", tags=["process"])
 
@@ -95,4 +97,30 @@ def process(req: ProcessRequest) -> ProcessResponse:
         gps_lng=gps_lng,
         width=width,
         height=height,
+    )
+
+
+@router.get("/preview")
+def preview_image(
+    path: str = Query(...),
+    maxpx: int = Query(default=1600, ge=100, le=8000),
+) -> Response:
+    """Serve a scaled JPEG preview directly from the original file. No storage."""
+    p = Path(path)
+    if not p.exists():
+        raise HTTPException(status_code=404, detail=f"Fil finnes ikke: {path}")
+    try:
+        jpeg_bytes = generate_preview(path, maxpx)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Forhåndsvisning feilet: {exc}")
+
+    stat = p.stat()
+    etag = hashlib.md5(f"{path}{stat.st_mtime}".encode()).hexdigest()
+    return Response(
+        content=jpeg_bytes,
+        media_type="image/jpeg",
+        headers={
+            "ETag": f'"{etag}"',
+            "Cache-Control": "private, max-age=3600",
+        },
     )
