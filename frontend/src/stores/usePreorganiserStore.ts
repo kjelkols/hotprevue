@@ -30,11 +30,14 @@ const usePreorganiserStore = create<PreorganiserStore>()(set => ({
   }),
 
   // Enkelt klikk: velg kun denne datoen
-  selectDate: (date, paths) => set(() => ({
-    selected: new Set(paths),
-    anchor: null,
-    dateAnchor: date,
-  })),
+  selectDate: (date, paths) => set(s => {
+    const allSelected = paths.every(p => s.selected.has(p))
+    return {
+      selected: allSelected ? new Set() : new Set(paths),
+      anchor: null,
+      dateAnchor: date,
+    }
+  }),
 
   // Ctrl+klikk: legg til / fjern hele datoen
   toggleDate: (date, paths) => set(s => {
