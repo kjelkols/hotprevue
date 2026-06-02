@@ -7,6 +7,14 @@ Brukes som grunnlag for release-dokumentasjon.
 
 ## [Ikke utgitt] — Preorganisering
 
+### Feilrettinger
+
+- **Ny mappe lages alltid under gjeldende katalog** — «Flytt x bilder til…»-knappen
+  i verktøylinjen og «→ mappe»-knappen på datogruppen er nå likeverdige: ny mappe
+  opprettes alltid under katalogen som vises i Preorganisering, uavhengig av hva
+  brukeren blar til inne i FileBrowser-dialogen. Knappen viser nå
+  «+ Ny mappe i ‹mappenavn›» slik at destinasjonen er tydelig.
+
 ### Ny funksjonalitet
 
 #### Preorganisering-fane
