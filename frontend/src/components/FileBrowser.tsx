@@ -10,11 +10,12 @@ interface Props {
   onSelect: (path: string) => void
   trigger: React.ReactNode
   allowNewFolder?: boolean
-  newFolderParent?: string       // hvis satt, lages ny mappe alltid her (uavhengig av navigasjon)
+  newFolderParent?: string
   onFolderCreated?: (parentPath: string) => void
+  directoriesOnly?: boolean      // skjul individuelle filer — kun mapper vises
 }
 
-export default function FileBrowser({ initialPath, onSelect, trigger, allowNewFolder = false, newFolderParent, onFolderCreated }: Props) {
+export default function FileBrowser({ initialPath, onSelect, trigger, allowNewFolder = false, newFolderParent, onFolderCreated, directoriesOnly = false }: Props) {
   const [open, setOpen] = useState(false)
   const [path, setPath] = useState('')
   const [newFolderName, setNewFolderName] = useState('')
@@ -78,7 +79,7 @@ export default function FileBrowser({ initialPath, onSelect, trigger, allowNewFo
     setOpen(false)
   }
 
-  const isEmpty = data && !isLoading && data.dirs.length === 0 && data.files.length === 0
+  const isEmpty = data && !isLoading && data.dirs.length === 0 && (directoriesOnly || data.files.length === 0)
 
   return (
     <Dialog.Root open={open} onOpenChange={handleOpenChange}>
@@ -148,7 +149,7 @@ export default function FileBrowser({ initialPath, onSelect, trigger, allowNewFo
               </button>
             ))}
 
-            {data?.files.map(f => (
+            {!directoriesOnly && data?.files.map(f => (
               <div key={f.path} className="px-3 py-1.5 flex items-center gap-3 text-sm text-gray-500">
                 <span className="shrink-0 text-xs font-bold text-gray-700 w-12">{f.type}</span>
                 <span className="truncate">{f.name}</span>

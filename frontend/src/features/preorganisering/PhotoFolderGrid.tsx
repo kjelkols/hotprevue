@@ -175,6 +175,7 @@ export default function PhotoFolderGrid() {
                 initialPath={currentDir}
                 allowNewFolder
                 newFolderParent={currentDir}
+                directoriesOnly
                 onFolderCreated={parentPath => queryClient.invalidateQueries({ queryKey: ['browse', parentPath] })}
                 trigger={
                   <button
