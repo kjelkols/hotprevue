@@ -9,7 +9,7 @@ import MoveToNewFolderInline from './MoveToNewFolderInline'
 import PrescanStatusBar from './PrescanStatusBar'
 import TimeRangePicker from './TimeRangePicker'
 import PreviewLightbox from './PreviewLightbox'
-import FileBrowser from '../../components/FileBrowser'
+import DestinationPicker from '../../components/DestinationPicker'
 import type { PrescanFileEntry, PrescanJobStatus } from '../../types/api'
 
 interface DateGroup {
@@ -170,12 +170,10 @@ export default function PhotoFolderGrid() {
               >
                 Avbryt valg
               </button>
-              <FileBrowser
+              <DestinationPicker
                 onSelect={handleMoveSelected}
                 initialPath={currentDir}
-                allowNewFolder
                 newFolderParent={currentDir}
-                directoriesOnly
                 onFolderCreated={parentPath => queryClient.invalidateQueries({ queryKey: ['browse', parentPath] })}
                 trigger={
                   <button

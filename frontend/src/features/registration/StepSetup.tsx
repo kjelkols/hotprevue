@@ -4,7 +4,7 @@ import { listPhotographers, createPhotographer } from '../../api/photographers'
 import { createSession, checkHothashes } from '../../api/inputSessions'
 import { createEvent } from '../../api/events'
 import { scanDirectory, hashFile } from '../../api/agent'
-import FileBrowser from '../../components/FileBrowser'
+import DirectoryPicker from '../../components/DirectoryPicker'
 import { getSettings } from '../../api/settings'
 import { listVolumes } from '../../api/system'
 import EventSection from './EventSection'
@@ -159,7 +159,7 @@ export default function StepSetup({ onDone }: Props) {
             className="flex-1 rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-white outline-none focus:border-blue-500"
             placeholder="Velg eller lim inn sti…"
           />
-          <FileBrowser
+          <DirectoryPicker
             initialPath={dirPath}
             onSelect={handleDirSelect}
             trigger={

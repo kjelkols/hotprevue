@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { suggestName, startCopy, getCopyOperation, cancelCopyOperation, eraseCopySource } from '../../api/fileCopy'
-import FileBrowser from '../../components/FileBrowser'
+import DirectoryPicker from '../../components/DirectoryPicker'
 import type { AgentCopyOperation } from '../../types/api'
 
 interface Props {
@@ -151,7 +151,7 @@ export default function CopySection({ sourcePath, sessionName, eventName, onCopy
             placeholder="Velg overmappe…"
             disabled={!!operation}
           />
-          <FileBrowser
+          <DirectoryPicker
             initialPath={parentDir}
             onSelect={setParentDir}
             trigger={

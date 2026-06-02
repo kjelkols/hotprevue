@@ -7,6 +7,18 @@ Brukes som grunnlag for release-dokumentasjon.
 
 ## [Ikke utgitt] — Preorganisering
 
+### Arkitektur
+
+- **Separert browse-logikk fra UI-inngangspunkter** (ADR-015): `FileBrowser`
+  er erstattet av to semantisk tydelige komponenter og én delt hook:
+  - `hooks/useBrowse` — path-state, browse-query, volumes og shortcuts på ett sted
+  - `DirectoryPicker` — modal for kildevelg (viser mapper + filer, ingen ny mappe).
+    Brukes i StepSetup, CopySection og Snarveier.
+  - `DestinationPicker` — modal for destinasjonsvelg (kun mapper, ny mappe alltid
+    under gjeldende katalog). Brukes i Preorganisering.
+  - Se `docs/decisions/015-folder-browser-architecture.md` for plan for
+    fremtidig overgang til full lagdeling (Alternativ C med `FolderList`-primitiv).
+
 ### Feilrettinger
 
 - **Ny mappe lages alltid under gjeldende katalog** — «Flytt x bilder til…»-knappen

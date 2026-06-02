@@ -4,7 +4,7 @@ import * as Tabs from '@radix-ui/react-tabs'
 import { getSettings, patchGlobalSettings, patchMachineSettings } from '../api/settings'
 import { listPhotographers } from '../api/photographers'
 import { listShortcuts, createShortcut, patchShortcut, deleteShortcut, moveShortcutUp, moveShortcutDown } from '../api/shortcuts'
-import FileBrowser from '../components/FileBrowser'
+import DirectoryPicker from '../components/DirectoryPicker'
 
 
 // ─── Tab: Denne maskinen ──────────────────────────────────────────────────────
@@ -365,7 +365,7 @@ function ShortcutsTab() {
               placeholder="/home/bruker/Bilder"
               className="flex-1 rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white font-mono outline-none focus:border-blue-500"
             />
-            <FileBrowser
+            <DirectoryPicker
               initialPath={newPath}
               onSelect={p => handleNewPath(p)}
               trigger={
