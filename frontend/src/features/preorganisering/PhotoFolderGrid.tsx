@@ -281,9 +281,17 @@ export default function PhotoFolderGrid() {
                 />
                 {activeMoveDate === group.date && (
                   <MoveToNewFolderInline
-                    files={group.files}
+                    files={selected.size > 0
+                      ? sortedFiles.filter(f => selected.has(f.file_path))
+                      : group.files}
+                    suggestedDate={group.date}
                     currentDir={currentDir}
-                    onMoved={() => { setActiveMoveDate(null); refetchFiles(); queryClient.invalidateQueries({ queryKey: ['browse', currentDir] }) }}
+                    onMoved={() => {
+                      setActiveMoveDate(null)
+                      clear()
+                      refetchFiles()
+                      queryClient.invalidateQueries({ queryKey: ['browse', currentDir] })
+                    }}
                     onCancel={() => setActiveMoveDate(null)}
                   />
                 )}

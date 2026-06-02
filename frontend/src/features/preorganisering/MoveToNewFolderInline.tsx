@@ -5,21 +5,19 @@ import type { PrescanFileEntry } from '../../types/api'
 
 interface Props {
   files: PrescanFileEntry[]
+  suggestedDate?: string   // YYYY-MM-DD fra klikket datogruppe
   currentDir: string
   onMoved: () => void
   onCancel: () => void
 }
 
-function suggestName(files: PrescanFileEntry[]): string {
-  const first = files
-    .map(f => f.taken_at?.slice(0, 10))
-    .filter(Boolean)
-    .sort()[0]
-  return first ? first.replace(/-/g, '_') : 'ny-mappe'
+function suggestName(date: string | undefined, files: PrescanFileEntry[]): string {
+  const src = date ?? files.map(f => f.taken_at?.slice(0, 10)).filter(Boolean).sort()[0]
+  return src && src !== 'ukjent' ? src.replace(/-/g, '_') : 'ny-mappe'
 }
 
-export default function MoveToNewFolderInline({ files, currentDir, onMoved, onCancel }: Props) {
-  const [name, setName] = useState(() => suggestName(files))
+export default function MoveToNewFolderInline({ files, suggestedDate, currentDir, onMoved, onCancel }: Props) {
+  const [name, setName] = useState(() => suggestName(suggestedDate, files))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
