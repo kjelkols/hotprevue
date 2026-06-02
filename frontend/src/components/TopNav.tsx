@@ -1,6 +1,7 @@
 import { NavLink, Link } from 'react-router-dom'
 
 const NAV = [
+  { to: '/preorganisering', label: 'Preorganisering', end: false },
   { to: '/events',      label: 'Events',         end: false },
   { to: '/collections', label: 'Kolleksjoner',   end: false },
   { to: '/sessions',    label: 'Sesjoner',       end: false },

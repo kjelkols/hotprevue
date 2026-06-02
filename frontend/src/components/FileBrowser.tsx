@@ -1,18 +1,25 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import * as Dialog from '@radix-ui/react-dialog'
 import { browseDirectory, listVolumes } from '../api/system'
 import { listShortcuts } from '../api/shortcuts'
+import { makeDir } from '../api/fileops'
 
 interface Props {
   initialPath?: string
   onSelect: (path: string) => void
   trigger: React.ReactNode
+  allowNewFolder?: boolean
+  onFolderCreated?: (parentPath: string) => void
 }
 
-export default function FileBrowser({ initialPath, onSelect, trigger }: Props) {
+export default function FileBrowser({ initialPath, onSelect, trigger, allowNewFolder = false, onFolderCreated }: Props) {
   const [open, setOpen] = useState(false)
   const [path, setPath] = useState('')
+  const [newFolderName, setNewFolderName] = useState('')
+  const [showNewFolder, setShowNewFolder] = useState(false)
+  const [creatingFolder, setCreatingFolder] = useState(false)
+  const queryClient = useQueryClient()
 
   const { data: shortcuts = [] } = useQuery({
     queryKey: ['shortcuts'],
@@ -29,10 +36,30 @@ export default function FileBrowser({ initialPath, onSelect, trigger }: Props) {
 
   function handleOpenChange(next: boolean) {
     if (next) {
-      // Start at initialPath if set, otherwise first shortcut, otherwise home (backend decides)
       setPath(initialPath ?? '')
+      setNewFolderName('')
+      setShowNewFolder(false)
     }
     setOpen(next)
+  }
+
+  async function handleCreateFolder() {
+    if (!newFolderName.trim() || !data) return
+    const newPath = data.path.replace(/\/+$/, '') + '/' + newFolderName.trim()
+    setCreatingFolder(true)
+    try {
+      await makeDir(newPath)
+      queryClient.invalidateQueries({ queryKey: ['browse', data.path] })
+      onFolderCreated?.(data.path)
+      onSelect(newPath)
+      setOpen(false)
+    } catch {
+      // feil — ikke lukk dialogen
+    } finally {
+      setCreatingFolder(false)
+      setNewFolderName('')
+      setShowNewFolder(false)
+    }
   }
 
   // Once shortcuts load: if path is still empty, jump to the first shortcut
@@ -130,6 +157,45 @@ export default function FileBrowser({ initialPath, onSelect, trigger }: Props) {
               <p className="py-8 text-center text-sm text-gray-600">Tom katalog</p>
             )}
           </div>
+
+          {/* Ny mappe */}
+          {allowNewFolder && (
+            <div className="shrink-0 border-t border-gray-800 px-4 py-2">
+              {showNewFolder ? (
+                <div className="flex gap-2">
+                  <input
+                    autoFocus
+                    type="text"
+                    value={newFolderName}
+                    onChange={e => setNewFolderName(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleCreateFolder(); if (e.key === 'Escape') setShowNewFolder(false) }}
+                    placeholder="Mappenavn…"
+                    className="flex-1 rounded border border-gray-700 bg-gray-800 px-3 py-1.5 text-sm text-white outline-none focus:border-blue-500"
+                  />
+                  <button
+                    onClick={handleCreateFolder}
+                    disabled={!newFolderName.trim() || creatingFolder}
+                    className="rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-500 disabled:opacity-40"
+                  >
+                    {creatingFolder ? '…' : 'Lag og velg'}
+                  </button>
+                  <button
+                    onClick={() => setShowNewFolder(false)}
+                    className="rounded px-2 py-1.5 text-sm text-gray-400 hover:text-white"
+                  >
+                    Avbryt
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowNewFolder(true)}
+                  className="text-sm text-gray-400 hover:text-white"
+                >
+                  + Ny mappe her
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Bunn */}
           <div className="shrink-0 flex items-center justify-between gap-2 px-4 py-3 border-t border-gray-800">

@@ -344,3 +344,38 @@ export interface Shortcut {
   created_at: string
 }
 
+// ─── Preorganisering / Prescan ────────────────────────────────────────────────
+
+export interface PrescanJobStatus {
+  id: string
+  dir: string
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled'
+  done: number
+  total: number
+  error: string | null
+}
+
+export interface PrescanFileEntry {
+  file_path: string
+  master_type: string
+  hothash: string | null
+  hotpreview_b64: string | null
+  taken_at: string | null
+  camera_make: string | null
+  camera_model: string | null
+  gps_lat: number | null
+  gps_lng: number | null
+  width: number | null
+  height: number | null
+  companions: string[]
+}
+
+export interface MoveResult {
+  moved: string[]
+  destination_dir: string
+}
+
+export interface MkdirResult {
+  path: string
+}
+

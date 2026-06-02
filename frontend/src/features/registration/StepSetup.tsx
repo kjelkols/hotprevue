@@ -7,7 +7,6 @@ import { scanDirectory, hashFile } from '../../api/agent'
 import FileBrowser from '../../components/FileBrowser'
 import { getSettings } from '../../api/settings'
 import { listVolumes } from '../../api/system'
-import CopySection from './CopySection'
 import EventSection from './EventSection'
 import { makeSlot, type EventSlot } from './registrationTypes'
 import type { FileGroup, ScanResult } from '../../types/api'
@@ -32,8 +31,6 @@ export default function StepSetup({ onDone }: Props) {
   const [newPhotographerName, setNewPhotographerName] = useState('')
   const [creatingPhotographer, setCreatingPhotographer] = useState(false)
   const [eventSlots, setEventSlots] = useState<EventSlot[]>([makeSlot()])
-  const [copiedDest, setCopiedDest] = useState<string | null>(null)
-  const [acknowledgedCardScan, setAcknowledgedCardScan] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
@@ -60,18 +57,14 @@ export default function StepSetup({ onDone }: Props) {
     }
   }, [settingsData])
 
-  // Minnekort oppdaget hvis valgt sti er under et kjent volum
   const isRemovable = dirPath !== '' && volumes.some(
     v => dirPath === v.path || dirPath.startsWith(v.path + '/')
   )
 
-  // Den faktiske stien som skal skannes
-  const effectivePath = copiedDest ?? dirPath
+  const effectivePath = dirPath
 
   function handleDirSelect(path: string) {
     setDirPath(path)
-    setCopiedDest(null)
-    setAcknowledgedCardScan(false)
   }
 
   async function handleCreatePhotographer() {
@@ -187,50 +180,12 @@ export default function StepSetup({ onDone }: Props) {
           Inkluder undermapper
         </label>
 
-        {/* Minnekort — kopieringssteg */}
-        {isRemovable && !copiedDest && (
-          <CopySection
-            sourcePath={dirPath}
-            sessionName={sessionName}
-            eventName={eventSlots[0]?.eventName}
-            onCopyCompleted={setCopiedDest}
-          />
-        )}
-
-        {/* Advarsel ved skanning direkte fra kort */}
-        {isRemovable && !copiedDest && dirPath && (
-          <div className="mt-3 rounded-lg border border-yellow-700 bg-yellow-950/30 p-3 space-y-2">
-            <p className="text-sm text-yellow-300">
-              Bildene er ikke kopiert til lokal disk. Hvis kortet fjernes eller formateres etter registreringen, vil de registrerte stiene være ugyldige og bildene utilgjengelige.
-            </p>
-            <label className="flex items-start gap-2 text-sm text-yellow-200 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                className="mt-0.5 shrink-0"
-                checked={acknowledgedCardScan}
-                onChange={e => setAcknowledgedCardScan(e.target.checked)}
-              />
-              Jeg forstår at bildene forblir på minnekortet og ikke kopieres
-            </label>
+        {isRemovable && (
+          <div className="mt-3 rounded-lg border border-yellow-800/60 bg-yellow-950/20 px-3 py-2 text-sm text-yellow-300">
+            Dette ser ut som et minnekort. Kopier bildene til disk i{' '}
+            <a href="#/preorganisering" className="underline hover:text-yellow-200">Preorganisering</a>
+            {' '}før du registrerer, slik at stiene forblir gyldige.
           </div>
-        )}
-
-        {/* Etter vellykket kopiering */}
-        {isRemovable && copiedDest && (
-          <div className="mt-3 flex items-center gap-2 rounded-lg border border-green-700 bg-green-900/20 px-3 py-2 text-sm">
-            <span className="text-green-400">✓</span>
-            <span className="flex-1 truncate font-mono text-green-300">{copiedDest}</span>
-            <button
-              type="button"
-              onClick={() => { setCopiedDest(null); setAcknowledgedCardScan(false) }}
-              className="shrink-0 text-xs text-gray-400 hover:text-white"
-            >Kopier på nytt</button>
-          </div>
-        )}
-
-        {/* Hvilken sti som faktisk skannes */}
-        {isRemovable && copiedDest && (
-          <p className="mt-1 text-xs text-gray-500">Skanner fra: <span className="font-mono">{copiedDest}</span></p>
         )}
       </div>
 
@@ -294,7 +249,7 @@ export default function StepSetup({ onDone }: Props) {
 
       <button
         onClick={handleNext}
-        disabled={busy || (isRemovable && !copiedDest && !acknowledgedCardScan)}
+        disabled={busy}
         className="w-full rounded-xl bg-blue-600 py-3 font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
       >
         {busy ? 'Skanner…' : 'Skann og fortsett →'}
