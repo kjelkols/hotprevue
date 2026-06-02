@@ -12,7 +12,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from utils.registration import scan_directory
-from agent.routers.prescan import update_cache_path
+from agent.routers.prescan import update_cache_path, remove_from_cache
 
 router = APIRouter(prefix="/files", tags=["files"])
 
@@ -25,6 +25,10 @@ class MoveRequest(BaseModel):
 class MoveResult(BaseModel):
     moved: list[str]
     destination_dir: str
+
+
+class DeleteResult(BaseModel):
+    deleted: list[str]
 
 
 class MkdirRequest(BaseModel):
@@ -66,6 +70,28 @@ def move_group(req: MoveRequest) -> MoveResult:
             raise HTTPException(status_code=500, detail=f"Kunne ikke flytte {src.name}: {e}")
 
     return MoveResult(moved=moved, destination_dir=str(dest_dir))
+
+
+@router.delete("/group", response_model=DeleteResult)
+def delete_group(path: str) -> DeleteResult:
+    master = Path(path)
+    if not master.exists():
+        raise HTTPException(status_code=404, detail=f"Fil finnes ikke: {path}")
+
+    groups, _ = scan_directory(str(master.parent), recursive=False)
+    group = next((g for g in groups if g.master == master), None)
+    all_files: list[Path] = [master] + (group.companions if group else [])
+
+    deleted: list[str] = []
+    for f in all_files:
+        try:
+            f.unlink()
+            remove_from_cache(str(f))
+            deleted.append(str(f))
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Kunne ikke slette {f.name}: {e}")
+
+    return DeleteResult(deleted=deleted)
 
 
 @router.post("/mkdir", response_model=MkdirResult)

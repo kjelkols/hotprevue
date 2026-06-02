@@ -6,6 +6,7 @@ import usePreorganiserStore from '../../stores/usePreorganiserStore'
 import FileGroupTile from './FileGroupTile'
 import PrescanStatusBar from './PrescanStatusBar'
 import TimeRangePicker from './TimeRangePicker'
+import PreviewLightbox from './PreviewLightbox'
 import FileBrowser from '../../components/FileBrowser'
 import type { PrescanFileEntry, PrescanJobStatus } from '../../types/api'
 
@@ -15,6 +16,7 @@ export default function PhotoFolderGrid() {
   const clear = usePreorganiserStore(s => s.clear)
   const selectAll = usePreorganiserStore(s => s.selectAll)
 
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const [scanJob, setScanJob] = useState<PrescanJobStatus | null>(null)
   const [showTimeRange, setShowTimeRange] = useState(false)
   const [moving, setMoving] = useState(false)
@@ -89,6 +91,14 @@ export default function PhotoFolderGrid() {
     clear()
     refetchFiles()
     if (failed > 0) setMoveError(`${failed} filer kunne ikke flyttes`)
+  }
+
+  function handleDeleted(path: string) {
+    const nextIndex = lightboxIndex !== null && lightboxIndex >= sortedFiles.length - 1
+      ? Math.max(0, lightboxIndex - 1)
+      : lightboxIndex
+    setLightboxIndex(sortedFiles.length <= 1 ? null : nextIndex)
+    refetchFiles()
   }
 
   async function handleCreateFolder() {
@@ -225,12 +235,13 @@ export default function PhotoFolderGrid() {
             className="flex flex-wrap gap-1"
             onClick={e => { if (e.target === e.currentTarget) clear() }}
           >
-            {sortedFiles.map(f => (
+            {sortedFiles.map((f, i) => (
               <FileGroupTile
                 key={f.file_path}
                 file={f}
                 orderedPaths={orderedPaths}
                 onSelectSameDate={() => handleSelectSameDate(f)}
+                onDoubleClick={() => setLightboxIndex(i)}
               />
             ))}
           </div>
@@ -238,6 +249,16 @@ export default function PhotoFolderGrid() {
       </div>
 
       <PrescanStatusBar job={scanJob} />
+
+      {lightboxIndex !== null && (
+        <PreviewLightbox
+          files={sortedFiles}
+          index={lightboxIndex}
+          onNavigate={setLightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+          onDeleted={handleDeleted}
+        />
+      )}
     </div>
   )
 }

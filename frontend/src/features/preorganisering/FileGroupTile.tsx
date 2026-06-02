@@ -1,29 +1,25 @@
-import { useState } from 'react'
 import type { PrescanFileEntry } from '../../types/api'
 import usePreorganiserStore from '../../stores/usePreorganiserStore'
 import useContextMenuStore from '../../stores/useContextMenuStore'
-import PreviewLightbox from './PreviewLightbox'
 
 interface Props {
   file: PrescanFileEntry
   orderedPaths: string[]
   onSelectSameDate: () => void
+  onDoubleClick: () => void
 }
 
 function formatDate(iso: string | null): string {
   if (!iso) return '—'
-  const d = new Date(iso)
-  return d.toLocaleString('nb-NO', { dateStyle: 'short', timeStyle: 'short' })
+  return new Date(iso).toLocaleString('nb-NO', { dateStyle: 'short', timeStyle: 'short' })
 }
 
-export default function FileGroupTile({ file, orderedPaths, onSelectSameDate }: Props) {
+export default function FileGroupTile({ file, orderedPaths, onSelectSameDate, onDoubleClick }: Props) {
   const selected = usePreorganiserStore(s => s.selected)
   const selectOnly = usePreorganiserStore(s => s.selectOnly)
   const toggleOne = usePreorganiserStore(s => s.toggleOne)
   const selectRange = usePreorganiserStore(s => s.selectRange)
   const openContextMenu = useContextMenuStore(s => s.openContextMenu)
-
-  const [lightboxOpen, setLightboxOpen] = useState(false)
 
   const isSelected = selected.has(file.file_path)
   const selectedCount = selected.size
@@ -50,7 +46,7 @@ export default function FileGroupTile({ file, orderedPaths, onSelectSameDate }: 
         position: { x: e.clientX, y: e.clientY },
         items: [
           ...(sameDate ? [sameDate, { type: 'separator' as const }] : []),
-          { id: 'move', label: `Flytt ${selectedCount} bilder til…`, action: () => {/* handled by toolbar */} },
+          { id: 'move', label: `Flytt ${selectedCount} bilder til…`, action: () => {} },
         ],
       })
     } else {
@@ -58,7 +54,7 @@ export default function FileGroupTile({ file, orderedPaths, onSelectSameDate }: 
         position: { x: e.clientX, y: e.clientY },
         items: [
           ...(sameDate ? [sameDate, { type: 'separator' as const }] : []),
-          { id: 'move', label: 'Flytt til…', action: () => {/* handled by toolbar */} },
+          { id: 'move', label: 'Flytt til…', action: () => {} },
         ],
       })
     }
@@ -73,7 +69,7 @@ export default function FileGroupTile({ file, orderedPaths, onSelectSameDate }: 
           isSelected ? 'ring-2 ring-blue-400' : 'hover:ring-2 hover:ring-blue-400/60',
         ].join(' ')}
         onClick={handleClick}
-        onDoubleClick={() => setLightboxOpen(true)}
+        onDoubleClick={onDoubleClick}
         onContextMenu={handleContextMenu}
       >
         {hasPreview ? (
@@ -89,7 +85,6 @@ export default function FileGroupTile({ file, orderedPaths, onSelectSameDate }: 
           </div>
         )}
 
-        {/* Checkmark */}
         {isSelected && (
           <div className="absolute top-1 right-1 w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center pointer-events-none">
             <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -98,7 +93,6 @@ export default function FileGroupTile({ file, orderedPaths, onSelectSameDate }: 
           </div>
         )}
 
-        {/* Companion badge */}
         {file.companions.length > 0 && (
           <div className="absolute bottom-1 left-1 bg-black/60 rounded px-1 py-0.5 text-[9px] text-gray-300 pointer-events-none">
             +{file.companions.length}
@@ -120,10 +114,6 @@ export default function FileGroupTile({ file, orderedPaths, onSelectSameDate }: 
           <p className="uppercase text-gray-600">{file.master_type}{file.companions.length > 0 ? ` +${file.companions.length}` : ''}</p>
         </div>
       </div>
-
-      {lightboxOpen && (
-        <PreviewLightbox path={file.file_path} onClose={() => setLightboxOpen(false)} />
-      )}
     </div>
   )
 }

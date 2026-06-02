@@ -100,6 +100,54 @@ def process(req: ProcessRequest) -> ProcessResponse:
     )
 
 
+class ExifOut(BaseModel):
+    taken_at: str | None
+    camera_make: str | None
+    camera_model: str | None
+    lens_model: str | None
+    iso: int | None
+    shutter_speed: str | None
+    aperture: float | None
+    focal_length: float | None
+    gps_lat: float | None
+    gps_lng: float | None
+    width: int | None
+    height: int | None
+    file_size: int | None
+
+
+@router.get("/exif", response_model=ExifOut)
+def get_exif(path: str = Query(...)) -> ExifOut:
+    """Return EXIF metadata for a file without generating any preview."""
+    p = Path(path)
+    if not p.exists():
+        raise HTTPException(status_code=404, detail=f"Fil finnes ikke: {path}")
+    try:
+        exif = extract_exif(path)
+        cam = extract_camera_fields(path)
+        dt = extract_taken_at(exif)
+        lat, lng = extract_gps(exif)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"EXIF-ekstraksjon feilet: {exc}")
+
+    stat = p.stat()
+    return ExifOut(
+        taken_at=dt.isoformat() if dt else None,
+        camera_make=cam.get("camera_make"),
+        camera_model=cam.get("camera_model"),
+        lens_model=cam.get("lens_model"),
+        iso=cam.get("iso"),
+        shutter_speed=cam.get("shutter_speed"),
+        aperture=cam.get("aperture"),
+        focal_length=cam.get("focal_length"),
+        gps_lat=lat,
+        gps_lng=lng,
+        width=exif.get("width"),
+        height=exif.get("height"),
+        file_size=stat.st_size,
+    )
+
+
 @router.get("/preview")
 def preview_image(
     path: str = Query(...),

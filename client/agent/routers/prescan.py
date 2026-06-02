@@ -320,6 +320,17 @@ def _type_from_path(path: str) -> str:
     return file_type_from_suffix(Path(path).suffix.lower())
 
 
+def remove_from_cache(path: str) -> None:
+    """Fjern en fil fra prescan-cachen."""
+    with _db_lock:
+        conn = _get_conn()
+        try:
+            conn.execute("DELETE FROM prescan_cache WHERE file_path = ?", (path,))
+            conn.commit()
+        finally:
+            conn.close()
+
+
 def update_cache_path(old_path: str, new_path: str) -> None:
     """Oppdater fil-sti i cachen etter en flytt-operasjon."""
     with _db_lock:

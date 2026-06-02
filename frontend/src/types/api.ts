@@ -375,7 +375,27 @@ export interface MoveResult {
   destination_dir: string
 }
 
+export interface DeleteResult {
+  deleted: string[]
+}
+
 export interface MkdirResult {
   path: string
+}
+
+export interface ExifData {
+  taken_at: string | null
+  camera_make: string | null
+  camera_model: string | null
+  lens_model: string | null
+  iso: number | null
+  shutter_speed: string | null
+  aperture: number | null
+  focal_length: number | null
+  gps_lat: number | null
+  gps_lng: number | null
+  width: number | null
+  height: number | null
+  file_size: number | null
 }
 

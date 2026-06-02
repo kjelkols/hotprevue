@@ -1,5 +1,5 @@
 import { agentFetch } from './agentClient'
-import type { PrescanJobStatus, PrescanFileEntry } from '../types/api'
+import type { PrescanJobStatus, PrescanFileEntry, ExifData } from '../types/api'
 
 export function startPrescan(dir: string): Promise<PrescanJobStatus> {
   return agentFetch('/prescan/start', {
@@ -14,4 +14,8 @@ export function getPrescanStatus(jobId: string): Promise<PrescanJobStatus> {
 
 export function getPrescanFiles(dir: string): Promise<PrescanFileEntry[]> {
   return agentFetch(`/prescan/files?dir=${encodeURIComponent(dir)}`)
+}
+
+export function getExif(path: string): Promise<ExifData> {
+  return agentFetch(`/process/exif?path=${encodeURIComponent(path)}`)
 }
