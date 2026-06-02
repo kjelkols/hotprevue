@@ -6,9 +6,10 @@ interface Props {
   label: string
   files: PrescanFileEntry[]
   allFiles: PrescanFileEntry[]
+  onMoveRequest: () => void
 }
 
-export default function DateGroupHeader({ date, label, files, allFiles }: Props) {
+export default function DateGroupHeader({ date, label, files, allFiles, onMoveRequest }: Props) {
   const selected = usePreorganiserStore(s => s.selected)
   const dateAnchor = usePreorganiserStore(s => s.dateAnchor)
   const selectDate = usePreorganiserStore(s => s.selectDate)
@@ -63,6 +64,15 @@ export default function DateGroupHeader({ date, label, files, allFiles }: Props)
 
       {/* Linje */}
       <div className="flex-1 h-px bg-gray-800" />
+
+      {/* Flytt til ny mappe */}
+      <button
+        onClick={e => { e.stopPropagation(); onMoveRequest() }}
+        className="shrink-0 hidden rounded px-2 py-0.5 text-xs text-gray-500 hover:bg-gray-800 hover:text-gray-200 group-hover:block"
+        title="Flytt til ny mappe"
+      >
+        → mappe
+      </button>
     </div>
   )
 }

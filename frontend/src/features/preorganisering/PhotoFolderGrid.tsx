@@ -5,6 +5,7 @@ import { moveGroup, makeDir } from '../../api/fileops'
 import usePreorganiserStore from '../../stores/usePreorganiserStore'
 import FileGroupTile from './FileGroupTile'
 import DateGroupHeader from './DateGroupHeader'
+import MoveToNewFolderInline from './MoveToNewFolderInline'
 import PrescanStatusBar from './PrescanStatusBar'
 import TimeRangePicker from './TimeRangePicker'
 import PreviewLightbox from './PreviewLightbox'
@@ -26,6 +27,7 @@ export default function PhotoFolderGrid() {
   const toggleDateGrouping = usePreorganiserStore(s => s.toggleDateGrouping)
 
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
+  const [activeMoveDate, setActiveMoveDate] = useState<string | null>(null)
   const [scanJob, setScanJob] = useState<PrescanJobStatus | null>(null)
   const [showTimeRange, setShowTimeRange] = useState(false)
   const [moving, setMoving] = useState(false)
@@ -275,7 +277,16 @@ export default function PhotoFolderGrid() {
                   label={group.label}
                   files={group.files}
                   allFiles={sortedFiles}
+                  onMoveRequest={() => setActiveMoveDate(group.date)}
                 />
+                {activeMoveDate === group.date && (
+                  <MoveToNewFolderInline
+                    files={group.files}
+                    currentDir={currentDir}
+                    onMoved={() => { setActiveMoveDate(null); refetchFiles(); queryClient.invalidateQueries({ queryKey: ['browse', currentDir] }) }}
+                    onCancel={() => setActiveMoveDate(null)}
+                  />
+                )}
                 <div className="flex flex-wrap gap-1 pb-2">
                   {group.files.map(f => {
                     const i = orderedPaths.indexOf(f.file_path)
