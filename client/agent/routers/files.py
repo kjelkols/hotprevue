@@ -234,6 +234,7 @@ def _write_jpeg_orientation(path: Path, orientation: int) -> None:
     jpeg_bytes = path.read_bytes()
     try:
         exif_dict = piexif.load(jpeg_bytes)
+        exif_dict['thumbnail'] = None  # Unngå feil ved dump av ødelagte thumbnails
     except Exception:
         exif_dict = {'0th': {}, '1st': {}, 'Exif': {}, 'GPS': {}, 'Interop': {}}
     exif_dict.setdefault('0th', {})[piexif.ImageIFD.Orientation] = orientation
