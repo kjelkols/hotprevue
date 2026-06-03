@@ -368,6 +368,7 @@ export interface PrescanFileEntry {
   width: number | null
   height: number | null
   companions: string[]
+  orientation: number | null
 }
 
 export interface MoveResult {
@@ -381,6 +382,12 @@ export interface DeleteResult {
 
 export interface MkdirResult {
   path: string
+}
+
+export interface RotateResult {
+  hotpreview_b64: string
+  hothash: string
+  orientation: number
 }
 
 export interface ExifData {

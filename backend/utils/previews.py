@@ -39,8 +39,10 @@ def generate_hotpreview(file_path: str) -> tuple[bytes, str, int, int]:
     if _is_raw(file_path):
         img, orig_w, orig_h = _raw_open_for_thumb(file_path)
     else:
+        from PIL import ImageOps
         with Image.open(file_path) as f:
-            img = _to_rgb(f).copy()  # .copy() forces full load before file closes
+            img = ImageOps.exif_transpose(f)
+            img = _to_rgb(img).copy()
             orig_w, orig_h = img.size
 
     img.thumbnail(HOTPREVIEW_SIZE, Image.LANCZOS)

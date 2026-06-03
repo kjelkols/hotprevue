@@ -1,12 +1,15 @@
+import { useState } from 'react'
 import type { PrescanFileEntry } from '../../types/api'
 import usePreorganiserStore from '../../stores/usePreorganiserStore'
 import useContextMenuStore from '../../stores/useContextMenuStore'
+import { rotateImage } from '../../api/fileops'
 
 interface Props {
   file: PrescanFileEntry
   orderedPaths: string[]
   onSelectSameDate: () => void
   onDoubleClick: () => void
+  onRotated: (filePath: string, result: { hotpreview_b64: string; hothash: string; orientation: number }) => void
 }
 
 function formatDate(iso: string | null): string {
@@ -14,12 +17,13 @@ function formatDate(iso: string | null): string {
   return new Date(iso).toLocaleString('nb-NO', { dateStyle: 'short', timeStyle: 'short' })
 }
 
-export default function FileGroupTile({ file, orderedPaths, onSelectSameDate, onDoubleClick }: Props) {
+export default function FileGroupTile({ file, orderedPaths, onSelectSameDate, onDoubleClick, onRotated }: Props) {
   const selected = usePreorganiserStore(s => s.selected)
   const selectOnly = usePreorganiserStore(s => s.selectOnly)
   const toggleOne = usePreorganiserStore(s => s.toggleOne)
   const selectRange = usePreorganiserStore(s => s.selectRange)
   const openContextMenu = useContextMenuStore(s => s.openContextMenu)
+  const [rotating, setRotating] = useState(false)
 
   const isSelected = selected.has(file.file_path)
   const selectedCount = selected.size
@@ -31,6 +35,18 @@ export default function FileGroupTile({ file, orderedPaths, onSelectSameDate, on
     if (e.shiftKey) selectRange(file.file_path, orderedPaths)
     else if (e.ctrlKey || e.metaKey) toggleOne(file.file_path)
     else selectOnly(file.file_path)
+  }
+
+  async function handleRotate(e: React.MouseEvent, direction: 'cw' | 'ccw') {
+    e.stopPropagation()
+    if (rotating) return
+    setRotating(true)
+    try {
+      const result = await rotateImage(file.file_path, direction)
+      onRotated(file.file_path, result)
+    } finally {
+      setRotating(false)
+    }
   }
 
   function handleContextMenu(e: React.MouseEvent) {
@@ -82,6 +98,28 @@ export default function FileGroupTile({ file, orderedPaths, onSelectSameDate, on
         ) : (
           <div className="w-full h-full bg-gray-800 flex items-center justify-center">
             <span className="text-xs text-gray-600 uppercase tracking-wide">{file.master_type}</span>
+          </div>
+        )}
+
+        {/* Rotasjonsknapper — vises på hover */}
+        {hasPreview && (
+          <div className="absolute top-1 left-1 hidden group-hover:flex gap-1 z-10">
+            <button
+              onClick={e => handleRotate(e, 'ccw')}
+              disabled={rotating}
+              title="Roter mot klokken"
+              className="flex h-6 w-6 items-center justify-center rounded bg-black/60 text-white text-xs hover:bg-black/90 disabled:opacity-40"
+            >
+              ↺
+            </button>
+            <button
+              onClick={e => handleRotate(e, 'cw')}
+              disabled={rotating}
+              title="Roter med klokken"
+              className="flex h-6 w-6 items-center justify-center rounded bg-black/60 text-white text-xs hover:bg-black/90 disabled:opacity-40"
+            >
+              ↻
+            </button>
           </div>
         )}
 

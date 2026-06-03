@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { AGENT_URL } from '../../api/agentClient'
 import { getExif } from '../../api/prescan'
-import { deleteGroup } from '../../api/fileops'
+import { deleteGroup, rotateImage } from '../../api/fileops'
 import type { PrescanFileEntry } from '../../types/api'
 
 interface Props {
@@ -11,6 +11,7 @@ interface Props {
   onNavigate: (i: number) => void
   onClose: () => void
   onDeleted: (path: string) => void
+  onRotated: (filePath: string, result: { hotpreview_b64: string; hothash: string; orientation: number }) => void
 }
 
 function formatDate(iso: string | null): string {
@@ -24,10 +25,12 @@ function formatBytes(n: number | null): string {
   return `${(n / 1024 / 1024).toFixed(1)} MB`
 }
 
-export default function PreviewLightbox({ files, index, onNavigate, onClose, onDeleted }: Props) {
+export default function PreviewLightbox({ files, index, onNavigate, onClose, onDeleted, onRotated }: Props) {
   const file = files[index]
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [rotating, setRotating] = useState(false)
+  const [imgVersion, setImgVersion] = useState(0)
 
   // Zoom/pan state
   const [scale, setScale] = useState(1)
@@ -35,7 +38,7 @@ export default function PreviewLightbox({ files, index, onNavigate, onClose, onD
   const dragRef = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const src = `${AGENT_URL}/process/preview?path=${encodeURIComponent(file.file_path)}&maxpx=1600`
+  const src = `${AGENT_URL}/process/preview?path=${encodeURIComponent(file.file_path)}&maxpx=1600${imgVersion > 0 ? `&v=${imgVersion}` : ''}`
 
   const { data: exif } = useQuery({
     queryKey: ['exif', file.file_path],
@@ -48,6 +51,7 @@ export default function PreviewLightbox({ files, index, onNavigate, onClose, onD
     setScale(1)
     setOffset({ x: 0, y: 0 })
     setConfirmDelete(false)
+    setImgVersion(0)
   }, [index])
 
   // Non-passive wheel listener for zoom
@@ -111,6 +115,20 @@ export default function PreviewLightbox({ files, index, onNavigate, onClose, onD
   function handleDoubleClick() {
     setScale(1)
     setOffset({ x: 0, y: 0 })
+  }
+
+  async function handleRotate(direction: 'cw' | 'ccw') {
+    if (rotating) return
+    setRotating(true)
+    try {
+      const result = await rotateImage(file.file_path, direction)
+      onRotated(file.file_path, result)
+      setScale(1)
+      setOffset({ x: 0, y: 0 })
+      setImgVersion(v => v + 1)
+    } finally {
+      setRotating(false)
+    }
   }
 
   async function handleDelete() {
@@ -190,6 +208,26 @@ export default function PreviewLightbox({ files, index, onNavigate, onClose, onD
         >
           ×
         </button>
+
+        {/* Rotasjonsknapper */}
+        <div className="absolute top-3 right-3 z-10 flex gap-1">
+          <button
+            onClick={() => handleRotate('ccw')}
+            disabled={rotating}
+            title="Roter mot klokken"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white text-lg hover:bg-black/80 disabled:opacity-40"
+          >
+            ↺
+          </button>
+          <button
+            onClick={() => handleRotate('cw')}
+            disabled={rotating}
+            title="Roter med klokken"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white text-lg hover:bg-black/80 disabled:opacity-40"
+          >
+            ↻
+          </button>
+        </div>
 
         {/* Reset zoom */}
         {scale > 1 && (

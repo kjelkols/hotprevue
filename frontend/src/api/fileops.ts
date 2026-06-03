@@ -1,5 +1,5 @@
 import { agentFetch } from './agentClient'
-import type { MoveResult, MkdirResult, DeleteResult } from '../types/api'
+import type { MoveResult, MkdirResult, DeleteResult, RotateResult } from '../types/api'
 
 export function moveGroup(masterPath: string, destinationDir: string): Promise<MoveResult> {
   return agentFetch('/files/move', {
@@ -16,5 +16,12 @@ export function makeDir(path: string): Promise<MkdirResult> {
   return agentFetch('/files/mkdir', {
     method: 'POST',
     body: JSON.stringify({ path }),
+  })
+}
+
+export function rotateImage(filePath: string, direction: 'cw' | 'ccw'): Promise<RotateResult> {
+  return agentFetch('/files/rotate', {
+    method: 'POST',
+    body: JSON.stringify({ file_path: filePath, direction }),
   })
 }

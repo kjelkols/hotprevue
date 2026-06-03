@@ -120,6 +120,17 @@ export default function PhotoFolderGrid() {
     if (failed > 0) setMoveError(`${failed} filer kunne ikke flyttes`)
   }
 
+  function handleRotated(filePath: string, result: { hotpreview_b64: string; hothash: string; orientation: number }) {
+    queryClient.setQueryData<typeof files>(
+      ['prescan-files', currentDir],
+      prev => prev?.map(f =>
+        f.file_path === filePath
+          ? { ...f, hotpreview_b64: result.hotpreview_b64, hothash: result.hothash, orientation: result.orientation }
+          : f
+      ) ?? prev,
+    )
+  }
+
   function handleDeleted(path: string) {
     const nextIndex = lightboxIndex !== null && lightboxIndex >= sortedFiles.length - 1
       ? Math.max(0, lightboxIndex - 1)
@@ -305,6 +316,7 @@ export default function PhotoFolderGrid() {
                         orderedPaths={orderedPaths}
                         onSelectSameDate={() => handleSelectSameDate(f)}
                         onDoubleClick={() => setLightboxIndex(i)}
+                        onRotated={handleRotated}
                       />
                     )
                   })}
@@ -324,6 +336,7 @@ export default function PhotoFolderGrid() {
                 orderedPaths={orderedPaths}
                 onSelectSameDate={() => handleSelectSameDate(f)}
                 onDoubleClick={() => setLightboxIndex(i)}
+                onRotated={handleRotated}
               />
             ))}
           </div>
@@ -339,6 +352,7 @@ export default function PhotoFolderGrid() {
           onNavigate={setLightboxIndex}
           onClose={() => setLightboxIndex(null)}
           onDeleted={handleDeleted}
+          onRotated={handleRotated}
         />
       )}
     </div>

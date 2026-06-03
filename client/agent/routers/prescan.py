@@ -66,6 +66,10 @@ def _get_conn() -> sqlite3.Connection:
             scanned_at     TEXT NOT NULL
         )
     """)
+    try:
+        conn.execute("ALTER TABLE prescan_cache ADD COLUMN orientation INTEGER")
+    except sqlite3.OperationalError:
+        pass  # Kolonnen finnes allerede
     conn.commit()
     return conn
 
@@ -98,6 +102,7 @@ class PrescanFileEntry(BaseModel):
     width: int | None
     height: int | None
     companions: list[str]
+    orientation: int | None = None
 
 
 # ─── Endepunkter ──────────────────────────────────────────────────────────────
@@ -169,6 +174,7 @@ def get_files(dir: str = Query(...)) -> list[PrescanFileEntry]:
                     width=row["width"],
                     height=row["height"],
                     companions=companions,
+                    orientation=row["orientation"],
                 ))
             else:
                 result.append(PrescanFileEntry(
@@ -184,6 +190,7 @@ def get_files(dir: str = Query(...)) -> list[PrescanFileEntry]:
                     width=None,
                     height=None,
                     companions=companions,
+                    orientation=None,
                 ))
     finally:
         conn.close()
@@ -238,6 +245,7 @@ def _run_prescan(job_id: str, cancel_event: threading.Event) -> None:
                 camera_model = None
                 gps_lat = None
                 gps_lng = None
+                orientation = None
                 try:
                     exif = extract_exif(master_path)
                     cam = extract_camera_fields(master_path)
@@ -248,6 +256,7 @@ def _run_prescan(job_id: str, cancel_event: threading.Event) -> None:
                     gps_lng = lng
                     camera_make = cam.get("camera_make")
                     camera_model = cam.get("camera_model")
+                    orientation = exif.get("orientation")
                 except Exception:
                     pass
 
@@ -260,8 +269,8 @@ def _run_prescan(job_id: str, cancel_event: threading.Event) -> None:
                         INSERT OR REPLACE INTO prescan_cache
                             (file_path, file_mtime, file_size, hothash, hotpreview_b64,
                              taken_at, camera_make, camera_model, gps_lat, gps_lng,
-                             width, height, companions_json, scanned_at)
-                        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                             width, height, companions_json, scanned_at, orientation)
+                        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                         """,
                         (
                             master_path,
@@ -278,6 +287,7 @@ def _run_prescan(job_id: str, cancel_event: threading.Event) -> None:
                             height,
                             companions_json,
                             now,
+                            orientation,
                         ),
                     )
                     conn.commit()
@@ -349,8 +359,8 @@ def update_cache_path(old_path: str, new_path: str) -> None:
                     INSERT OR REPLACE INTO prescan_cache
                         (file_path, file_mtime, file_size, hothash, hotpreview_b64,
                          taken_at, camera_make, camera_model, gps_lat, gps_lng,
-                         width, height, companions_json, scanned_at)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                         width, height, companions_json, scanned_at, orientation)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                     """,
                     (
                         new_path,
@@ -367,8 +377,35 @@ def update_cache_path(old_path: str, new_path: str) -> None:
                         row["height"],
                         row["companions_json"],
                         row["scanned_at"],
+                        row["orientation"],
                     ),
                 )
+            conn.commit()
+        finally:
+            conn.close()
+
+
+def update_cache_after_rotate(path: str, hothash: str, hotpreview_b64_val: str, orientation: int) -> None:
+    """Oppdater prescan-cache etter rotasjon — ny preview, hothash og orientering."""
+    p = Path(path)
+    stat = p.stat() if p.exists() else None
+    with _db_lock:
+        conn = _get_conn()
+        try:
+            row = conn.execute(
+                "SELECT * FROM prescan_cache WHERE file_path = ?", (path,)
+            ).fetchone()
+            if row is None or stat is None:
+                return
+            conn.execute(
+                """
+                UPDATE prescan_cache
+                SET hothash = ?, hotpreview_b64 = ?, orientation = ?,
+                    file_mtime = ?, file_size = ?
+                WHERE file_path = ?
+                """,
+                (hothash, hotpreview_b64_val, orientation, stat.st_mtime, stat.st_size, path),
+            )
             conn.commit()
         finally:
             conn.close()
