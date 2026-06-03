@@ -82,6 +82,14 @@ backend-databasen på dette stadiet.
 - Valgfri sletting av kildefiler fra kortet etter verifisert kopiering
 - Enhetsnavn kan angis (f.eks. "Sony A7IV kort 1")
 
+**Bilderotasjon** (ADR-016)
+- ↺/↻-knapper vises ved hover på thumbnail i bildegrid
+- ↺/↻-knapper i verktøylinjen i fullskjerm-forhåndsvisning
+- JPEG: Orientation-tag skrives med piexif — pikslene røres ikke (lossless)
+- RAW/DNG og andre formater: orientering lagres i XMP sidecar-fil
+- Thumbnail oppdateres inline uten re-scan
+- Feil vises som rød overlay på thumbnail
+
 **Forhåndsvisning (lightbox)**
 - Dobbeltklikk på thumbnail åpner fullskjerm-forhåndsvisning
 - Bildene serveres direkte fra originalfilen av agenten — ingen mellomlagring
