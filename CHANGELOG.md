@@ -7,6 +7,13 @@ Brukes som grunnlag for release-dokumentasjon.
 
 ## [Ikke utgitt] — Preorganisering
 
+### Navigasjon
+
+- **«Preorganisering»-fanen omdøpt til «Lokale verktøy»** og flyttet til høyre
+  i navbaren ved siden av Innstillinger. Innholdsfanene (Events, Kolleksjoner,
+  Sesjoner, Tags, Søk, Sted, Fotografer) er samlet til venstre; verktøy- og
+  konfigurasjonsfaner (Lokale verktøy, Innstillinger) til høyre.
+
 ### Arkitektur
 
 - **Separert browse-logikk fra UI-inngangspunkter** (ADR-015): `FileBrowser`
