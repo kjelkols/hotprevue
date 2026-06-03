@@ -229,13 +229,17 @@ def _write_orientation(path: Path, orientation: int) -> None:
 
 
 def _write_jpeg_orientation(path: Path, orientation: int) -> None:
+    import io
     import piexif
+    jpeg_bytes = path.read_bytes()
     try:
-        exif_dict = piexif.load(str(path))
+        exif_dict = piexif.load(jpeg_bytes)
     except Exception:
         exif_dict = {'0th': {}, '1st': {}, 'Exif': {}, 'GPS': {}, 'Interop': {}}
     exif_dict.setdefault('0th', {})[piexif.ImageIFD.Orientation] = orientation
-    piexif.insert(piexif.dump(exif_dict), str(path))
+    buf = io.BytesIO()
+    piexif.insert(piexif.dump(exif_dict), jpeg_bytes, buf)
+    path.write_bytes(buf.getvalue())
 
 
 def _read_xmp_orientation(xmp_path: Path) -> int:
