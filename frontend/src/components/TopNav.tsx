@@ -1,14 +1,13 @@
 import { NavLink, Link } from 'react-router-dom'
 
 const NAV = [
-  { to: '/preorganisering', label: 'Preorganisering', end: false },
-  { to: '/events',      label: 'Events',         end: false },
-  { to: '/collections', label: 'Kolleksjoner',   end: false },
-  { to: '/sessions',    label: 'Sesjoner',       end: false },
-  { to: '/tags',        label: 'Tags',           end: false },
-  { to: '/searches',    label: 'Søk',            end: false },
-  { to: '/sted',        label: 'Sted',           end: false },
-  { to: '/fotografer',  label: 'Fotografer',     end: false },
+  { to: '/events',      label: 'Events',       end: false },
+  { to: '/collections', label: 'Kolleksjoner', end: false },
+  { to: '/sessions',    label: 'Sesjoner',     end: false },
+  { to: '/tags',        label: 'Tags',         end: false },
+  { to: '/searches',    label: 'Søk',          end: false },
+  { to: '/sted',        label: 'Sted',         end: false },
+  { to: '/fotografer',  label: 'Fotografer',   end: false },
 ] as const
 
 export default function TopNav() {
@@ -34,7 +33,16 @@ export default function TopNav() {
           {label}
         </NavLink>
       ))}
-      <div className="ml-auto">
+      <div className="ml-auto flex items-center gap-1">
+        <NavLink
+          to="/preorganisering"
+          className={({ isActive }) =>
+            'px-3 py-1.5 rounded text-sm transition-colors ' +
+            (isActive ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800')
+          }
+        >
+          Lokale verktøy
+        </NavLink>
         <NavLink
           to="/settings"
           className={({ isActive }) =>
