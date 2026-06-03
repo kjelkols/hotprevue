@@ -24,6 +24,7 @@ export default function FileGroupTile({ file, orderedPaths, onSelectSameDate, on
   const selectRange = usePreorganiserStore(s => s.selectRange)
   const openContextMenu = useContextMenuStore(s => s.openContextMenu)
   const [rotating, setRotating] = useState(false)
+  const [rotateError, setRotateError] = useState(false)
 
   const isSelected = selected.has(file.file_path)
   const selectedCount = selected.size
@@ -41,9 +42,14 @@ export default function FileGroupTile({ file, orderedPaths, onSelectSameDate, on
     e.stopPropagation()
     if (rotating) return
     setRotating(true)
+    setRotateError(false)
     try {
       const result = await rotateImage(file.file_path, direction)
       onRotated(file.file_path, result)
+    } catch (err) {
+      console.error('Rotasjon feilet:', err)
+      setRotateError(true)
+      setTimeout(() => setRotateError(false), 2000)
     } finally {
       setRotating(false)
     }
@@ -98,6 +104,13 @@ export default function FileGroupTile({ file, orderedPaths, onSelectSameDate, on
         ) : (
           <div className="w-full h-full bg-gray-800 flex items-center justify-center">
             <span className="text-xs text-gray-600 uppercase tracking-wide">{file.master_type}</span>
+          </div>
+        )}
+
+        {/* Feilindikator rotasjon */}
+        {rotateError && (
+          <div className="absolute inset-0 flex items-center justify-center bg-red-900/70 z-20 pointer-events-none rounded-sm">
+            <span className="text-xs text-white">!</span>
           </div>
         )}
 

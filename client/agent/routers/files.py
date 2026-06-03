@@ -129,10 +129,15 @@ def rotate_image(req: RotateRequest) -> RotateResult:
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Kunne ikke skrive orientering: {e}")
 
-    from utils.previews import generate_hotpreview, hotpreview_b64
     try:
-        jpeg_bytes, hothash, _w, _h = generate_hotpreview(str(path))
-        preview_b64 = hotpreview_b64(jpeg_bytes)
+        if path.suffix.lower() in JPEG_EXTENSIONS:
+            # JPEG: piexif oppdaterte EXIF — generate_hotpreview bruker exif_transpose
+            from utils.previews import generate_hotpreview, hotpreview_b64
+            jpeg_bytes, hothash, _w, _h = generate_hotpreview(str(path))
+            preview_b64 = hotpreview_b64(jpeg_bytes)
+        else:
+            # RAW/andre: XMP skrives ikke inn i filen — roter eksisterende preview
+            preview_b64, hothash = _rotate_cached_preview(str(path), req.direction)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Kunne ikke generere preview: {e}")
 
@@ -149,6 +154,40 @@ def make_dir(req: MkdirRequest) -> MkdirResult:
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Kunne ikke lage katalog: {e}")
     return MkdirResult(path=str(p))
+
+
+def _rotate_cached_preview(file_path: str, direction: str) -> tuple[str, str]:
+    """For RAW/andre: roter eksisterende hotpreview 90° i stedet for å re-lese filen."""
+    import base64
+    import hashlib
+    import io
+    from PIL import Image
+    from agent.routers.prescan import _get_conn
+
+    conn = _get_conn()
+    try:
+        row = conn.execute(
+            "SELECT hotpreview_b64 FROM prescan_cache WHERE file_path = ?", (file_path,)
+        ).fetchone()
+    finally:
+        conn.close()
+
+    if row is None or not row["hotpreview_b64"]:
+        from utils.previews import generate_hotpreview, hotpreview_b64
+        jpeg_bytes, hothash, _, _ = generate_hotpreview(file_path)
+        return hotpreview_b64(jpeg_bytes), hothash
+
+    jpeg_bytes = base64.b64decode(row["hotpreview_b64"])
+    img = Image.open(io.BytesIO(jpeg_bytes)).convert("RGB")
+    method = Image.Transpose.ROTATE_270 if direction == "cw" else Image.Transpose.ROTATE_90
+    img = img.transpose(method)
+
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=80, optimize=True)
+    new_bytes = buf.getvalue()
+    new_b64 = base64.b64encode(new_bytes).decode("ascii")
+    new_hothash = hashlib.sha256(new_bytes).hexdigest()
+    return new_b64, new_hothash
 
 
 def _move_file(src: Path, dst: Path) -> None:
