@@ -16,10 +16,12 @@ mid-batch, the same photos are picked up again. Qdrant upserts are idempotent.
 import logging
 import os
 import sys
+import threading
 import time
 
 import httpx
 
+import search_server
 from clip import CLIPIndexer
 from clustering import recluster
 from faces import FaceIndexer
@@ -103,6 +105,10 @@ def main() -> None:
 
     clip = CLIPIndexer(qdrant_url)
     faces = FaceIndexer(qdrant_url)
+
+    search_server.init(clip, qdrant_url)
+    t = threading.Thread(target=search_server.start, daemon=True)
+    t.start()
 
     backoff = POLL_INTERVAL
 

@@ -2,11 +2,13 @@ import uuid
 from datetime import datetime, timezone
 from typing import Literal
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from core.config import settings
 from database.session import get_db
 from models.ai import AiPhotoStatus
 
@@ -43,6 +45,29 @@ class AiStatusSummary(BaseModel):
     done: int
     errors: int
     pending: int
+
+
+class SearchResult(BaseModel):
+    hothash: str
+    score: float
+
+
+@router.get("/search", response_model=list[SearchResult])
+def search_photos(
+    q: str = Query(..., min_length=1),
+    limit: int = Query(default=20, le=100),
+):
+    if not settings.ai_search_url:
+        raise HTTPException(status_code=503, detail="AI_SEARCH_URL ikke konfigurert")
+    url = settings.ai_search_url.rstrip("/") + "/search"
+    try:
+        resp = httpx.get(url, params={"q": q, "limit": limit}, timeout=15)
+        resp.raise_for_status()
+        return resp.json()
+    except httpx.ConnectError:
+        raise HTTPException(status_code=503, detail="Søketjenesten er ikke tilgjengelig")
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
 
 
 @router.get("/jobs", response_model=list[AiJob])
