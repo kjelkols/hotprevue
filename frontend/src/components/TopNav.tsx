@@ -6,6 +6,7 @@ const NAV = [
   { to: '/sessions',    label: 'Sesjoner',     end: false },
   { to: '/tags',        label: 'Tags',         end: false },
   { to: '/searches',    label: 'Søk',          end: false },
+  { to: '/ai-search',   label: 'AI-søk',       end: false },
   { to: '/sted',        label: 'Sted',         end: false },
   { to: '/fotografer',  label: 'Fotografer',   end: false },
 ] as const
