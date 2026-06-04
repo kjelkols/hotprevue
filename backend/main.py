@@ -54,8 +54,10 @@ import models.settings  # noqa: F401
 import models.file_copy  # noqa: F401
 import models.shortcut  # noqa: F401
 import models.saved_search  # noqa: F401
+import models.ai  # noqa: F401
 
-from api import admin, collections, events, file_copy, input_sessions, machines, photographers, photos, searches, settings as settings_api, shortcuts, stats, system, tags, text_items  # noqa: E402
+from api import admin, ai, collections, events, file_copy, input_sessions, machines, photographers, photos, searches, settings as settings_api, shortcuts, stats, system, tags, text_items  # noqa: E402
+app.include_router(ai.router)
 app.include_router(admin.router)
 app.include_router(stats.router)
 app.include_router(photographers.router)

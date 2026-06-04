@@ -21,6 +21,7 @@ import models.saved_search  # noqa: E402, F401
 import models.settings  # noqa: E402, F401
 import models.shortcut  # noqa: E402, F401
 import models.text_item  # noqa: E402, F401
+import models.ai  # noqa: E402, F401
 
 config = context.config
 
