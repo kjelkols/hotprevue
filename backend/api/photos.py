@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from database.session import get_db
 from fastapi import File, Form, UploadFile
 
+from schemas.input_session import CheckHothashRequest, CheckHothashResponse
 from schemas.photo import (
     BatchBase,
     BatchCategory,
@@ -29,6 +30,11 @@ from schemas.photo import (
 from services import photo_service
 
 router = APIRouter(prefix="/photos", tags=["photos"])
+
+
+@router.post("/check-hothashes", response_model=CheckHothashResponse)
+def check_hothashes(data: CheckHothashRequest, db: Session = Depends(get_db)):
+    return photo_service.check_hothashes(db, data)
 
 
 @router.get("", response_model=list[PhotoListItem])

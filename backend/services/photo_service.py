@@ -9,7 +9,20 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session, selectinload
 
 from models.photo import ImageFile, Photo
+from schemas.input_session import CheckHothashRequest, CheckHothashResponse
 from schemas.photo import PerceptualHashComputeResult
+
+
+def check_hothashes(db: Session, data: CheckHothashRequest) -> CheckHothashResponse:
+    known_hashes = {
+        r[0]
+        for r in db.query(Photo.hothash)
+        .filter(Photo.hothash.in_(data.hothashes))
+        .all()
+    }
+    known = [h for h in data.hothashes if h in known_hashes]
+    unknown = [h for h in data.hothashes if h not in known_hashes]
+    return CheckHothashResponse(known=known, unknown=unknown)
 
 
 def list_photos(

@@ -70,20 +70,9 @@ def delete(db: Session, session_id: uuid.UUID) -> None:
 
 
 def check_hothashes(db: Session, data: CheckHothashRequest) -> CheckHothashResponse:
-    """Return which hothashes are already registered and which are new.
-
-    Call this after generating hotpreviews but before generating coldpreviews
-    to skip expensive coldpreview generation for duplicates.
-    """
-    known_hashes = {
-        r[0]
-        for r in db.query(Photo.hothash)
-        .filter(Photo.hothash.in_(data.hothashes))
-        .all()
-    }
-    known = [h for h in data.hothashes if h in known_hashes]
-    unknown = [h for h in data.hothashes if h not in known_hashes]
-    return CheckHothashResponse(known=known, unknown=unknown)
+    """Return which hothashes are already registered and which are new."""
+    from services import photo_service
+    return photo_service.check_hothashes(db, data)
 
 
 def register_group(

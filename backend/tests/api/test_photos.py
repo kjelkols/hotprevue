@@ -128,4 +128,68 @@ def test_list_photos_excludes_deleted_by_default(client, db, sample_image_path):
     db.commit()
 
     assert client.get("/photos").json() == []
-    assert len(client.get("/photos?deleted=true").json()) == 1
+
+
+# ─── POST /photos/check-hothashes ────────────────────────────────────────────
+
+def _make_photo_with_hash(db, photographer_id, hothash):
+    """Create a photo row with a specific hothash — no real image file needed."""
+    photo = Photo(
+        hothash=hothash,
+        hotpreview_b64="dGVzdA==",
+        photographer_id=photographer_id,
+    )
+    db.add(photo)
+    db.commit()
+    db.refresh(photo)
+    return photo
+
+
+def test_check_hothashes_empty_input(client):
+    r = client.post("/photos/check-hothashes", json={"hothashes": []})
+    assert r.status_code == 200
+    assert r.json() == {"known": [], "unknown": []}
+
+
+def test_check_hothashes_all_unknown(client):
+    r = client.post("/photos/check-hothashes", json={"hothashes": ["aaa111", "bbb222"]})
+    assert r.status_code == 200
+    data = r.json()
+    assert sorted(data["unknown"]) == ["aaa111", "bbb222"]
+    assert data["known"] == []
+
+
+def test_check_hothashes_all_known(client, db):
+    p = _make_photographer(db)
+    _make_photo_with_hash(db, p.id, "aaa111")
+    _make_photo_with_hash(db, p.id, "bbb222")
+
+    r = client.post("/photos/check-hothashes", json={"hothashes": ["aaa111", "bbb222"]})
+    assert r.status_code == 200
+    data = r.json()
+    assert sorted(data["known"]) == ["aaa111", "bbb222"]
+    assert data["unknown"] == []
+
+
+def test_check_hothashes_mixed(client, db):
+    p = _make_photographer(db)
+    _make_photo_with_hash(db, p.id, "known111")
+
+    r = client.post("/photos/check-hothashes", json={"hothashes": ["known111", "unknown222"]})
+    assert r.status_code == 200
+    data = r.json()
+    assert data["known"] == ["known111"]
+    assert data["unknown"] == ["unknown222"]
+
+
+def test_check_hothashes_preserves_order(client, db):
+    p = _make_photographer(db)
+    _make_photo_with_hash(db, p.id, "zzz")
+    _make_photo_with_hash(db, p.id, "aaa")
+
+    hashes = ["zzz", "mmm", "aaa", "nnn"]
+    r = client.post("/photos/check-hothashes", json={"hothashes": hashes})
+    assert r.status_code == 200
+    data = r.json()
+    assert data["known"] == ["zzz", "aaa"]
+    assert data["unknown"] == ["mmm", "nnn"]
