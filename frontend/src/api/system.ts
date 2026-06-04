@@ -18,3 +18,16 @@ export function scanDirectory(path: string, recursive: boolean): Promise<ScanRes
     body: JSON.stringify({ path, recursive }),
   })
 }
+
+export interface FolderEventMatch {
+  path: string
+  event: { id: string; name: string } | null
+}
+
+export function lookupFolderEvents(paths: string[]): Promise<{ matches: FolderEventMatch[] }> {
+  return apiFetch<{ matches: FolderEventMatch[] }>('/system/folder-event-lookup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ paths }),
+  })
+}

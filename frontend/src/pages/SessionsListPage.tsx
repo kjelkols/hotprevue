@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { listSessions, deleteSession } from '../api/inputSessions'
+import { useQuery } from '@tanstack/react-query'
+import { listSessions } from '../api/inputSessions'
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('nb-NO', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -8,26 +8,15 @@ function formatDate(iso: string) {
 
 export default function SessionsListPage() {
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const { data: sessions = [], isLoading, isError } = useQuery({
+  const { data: allSessions = [], isLoading, isError } = useQuery({
     queryKey: ['sessions'],
     queryFn: listSessions,
   })
-
-  const deleteMutation = useMutation({
-    mutationFn: deleteSession,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['sessions'] }),
-  })
+  const sessions = allSessions.filter(s => s.photo_count > 0)
 
   function openSession(session: { id: string; name: string }) {
     const params = new URLSearchParams({ session_id: session.id, title: session.name })
     navigate(`/browse?${params}`)
-  }
-
-  function handleDelete(e: React.MouseEvent, sessionId: string, name: string) {
-    e.stopPropagation()
-    if (!window.confirm(`Slett registreringen «${name}»?`)) return
-    deleteMutation.mutate(sessionId)
   }
 
   return (
@@ -57,19 +46,9 @@ export default function SessionsListPage() {
               >
                 <div className="flex items-baseline justify-between gap-4">
                   <span className="font-medium truncate">{session.name}</span>
-                  <div className="flex items-center gap-3 shrink-0">
-                    <span className="text-sm text-gray-400">
-                      {session.photo_count} bilder
-                    </span>
-                    {session.photo_count === 0 && (
-                      <button
-                        onClick={e => handleDelete(e, session.id, session.name)}
-                        className="text-xs text-gray-500 hover:text-red-400 transition-colors"
-                      >
-                        Slett
-                      </button>
-                    )}
-                  </div>
+                  <span className="text-sm text-gray-400 shrink-0">
+                    {session.photo_count} bilder
+                  </span>
                 </div>
                 <div className="flex items-baseline gap-3 mt-0.5">
                   <span className="text-sm text-gray-500 truncate">{session.source_path}</span>

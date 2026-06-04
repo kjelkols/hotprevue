@@ -2,10 +2,12 @@ import { useEffect, useRef, useState } from 'react'
 import { registerGroup, completeSession } from '../../api/inputSessions'
 import { processFile } from '../../api/agent'
 import type { FileGroup, ProcessResult } from '../../types/api'
+import type { ResolvedEntry } from './registrationTypes'
 
 interface Props {
   sessionId: string
   unknownGroups: FileGroup[]
+  resolvedEntries: ResolvedEntry[]
   onDone: (result: ProcessResult) => void
 }
 
@@ -17,13 +19,19 @@ interface Progress {
   errors: number
 }
 
-export default function StepUpload({ sessionId, unknownGroups, onDone }: Props) {
+function resolveEventId(masterPath: string, entries: ResolvedEntry[]): string | null {
+  let best: ResolvedEntry | null = null
+  for (const entry of entries) {
+    if (masterPath.startsWith(entry.folderPath + '/') || masterPath.startsWith(entry.folderPath)) {
+      if (!best || entry.folderPath.length > best.folderPath.length) best = entry
+    }
+  }
+  return best?.eventId ?? null
+}
+
+export default function StepUpload({ sessionId, unknownGroups, resolvedEntries, onDone }: Props) {
   const [progress, setProgress] = useState<Progress>({
-    done: 0,
-    total: unknownGroups.length,
-    registered: 0,
-    duplicates: 0,
-    errors: 0,
+    done: 0, total: unknownGroups.length, registered: 0, duplicates: 0, errors: 0,
   })
   const [currentFile, setCurrentFile] = useState('')
   const [failed, setFailed] = useState(false)
@@ -37,17 +45,9 @@ export default function StepUpload({ sessionId, unknownGroups, onDone }: Props) 
 
   async function runUpload() {
     for (const group of unknownGroups) {
-      const filename = group.master_path.split(/[\\/]/).pop() ?? group.master_path
-      setCurrentFile(filename)
-
+      setCurrentFile(group.master_path.split(/[\\/]/).pop() ?? group.master_path)
       try {
-        // Prosesser via lokal agent
-        const processed = await processFile(
-          group.master_path,
-          group.companions.map(c => c.path),
-        )
-
-        // Send ferdigprosessert data til backend
+        const processed = await processFile(group.master_path, group.companions.map(c => c.path))
         const result = await registerGroup(sessionId, {
           hothash: processed.hothash,
           hotpreview_b64: processed.hotpreview_b64,
@@ -68,8 +68,8 @@ export default function StepUpload({ sessionId, unknownGroups, onDone }: Props) 
           aperture: processed.camera_fields.aperture as number ?? null,
           focal_length: processed.camera_fields.focal_length as number ?? null,
           companions: group.companions,
+          event_id: resolveEventId(group.master_path, resolvedEntries),
         })
-
         setProgress(p => ({
           ...p,
           done: p.done + 1,
@@ -80,7 +80,6 @@ export default function StepUpload({ sessionId, unknownGroups, onDone }: Props) 
         setProgress(p => ({ ...p, done: p.done + 1, errors: p.errors + 1 }))
       }
     }
-
     try {
       const final = await completeSession(sessionId)
       onDone(final)
@@ -96,7 +95,6 @@ export default function StepUpload({ sessionId, unknownGroups, onDone }: Props) 
       <div className="rounded-xl border border-gray-700 bg-gray-900 p-6">
         <h2 className="mb-1 text-lg font-semibold text-white">Laster opp…</h2>
         <p className="mb-4 truncate text-sm text-gray-500">{currentFile || 'Starter…'}</p>
-
         <div className="mb-2 h-3 overflow-hidden rounded-full bg-gray-800">
           <div
             className="h-full rounded-full bg-blue-600 transition-all duration-300"
@@ -106,14 +104,12 @@ export default function StepUpload({ sessionId, unknownGroups, onDone }: Props) 
         <p className="mb-4 text-right text-sm text-gray-400">
           {progress.done} / {progress.total} ({percent}%)
         </p>
-
         <div className="grid grid-cols-3 gap-3">
           <MiniStat label="Registrert" value={progress.registered} color="text-green-400" />
           <MiniStat label="Duplikater" value={progress.duplicates} color="text-yellow-400" />
           <MiniStat label="Feil" value={progress.errors} color="text-red-400" />
         </div>
       </div>
-
       {failed && (
         <p className="rounded-xl border border-red-800 bg-red-950 px-4 py-3 text-sm text-red-300">
           Klarte ikke å fullføre sesjonen. Sjekk backend-tilkoblingen.

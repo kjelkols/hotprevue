@@ -1,50 +1,36 @@
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { listPhotographers, createPhotographer } from '../../api/photographers'
-import { createSession, checkHothashes } from '../../api/inputSessions'
-import { createEvent } from '../../api/events'
+import { checkHothashesGlobal } from '../../api/photos'
 import { scanDirectory, hashFile } from '../../api/agent'
 import DirectoryPicker from '../../components/DirectoryPicker'
 import { getSettings } from '../../api/settings'
 import { listVolumes } from '../../api/system'
-import EventSection from './EventSection'
-import { makeSlot, type EventSlot } from './registrationTypes'
-import type { FileGroup, ScanResult } from '../../types/api'
+import type { AnalyzeResult } from './registrationTypes'
 
 interface Props {
-  onDone: (sessionId: string, scan: ScanResult, unknownGroups: FileGroup[]) => void
-}
-
-function defaultSessionName(): string {
-  const now = new Date()
-  const date = now.toLocaleDateString('nb-NO', { day: 'numeric', month: 'long', year: 'numeric' })
-  const time = now.toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' })
-  return `Registrering ${date} ${time}`
+  onDone: (result: AnalyzeResult) => void
 }
 
 export default function StepSetup({ onDone }: Props) {
-  const [sessionName, setSessionName] = useState(defaultSessionName)
   const [dirPath, setDirPath] = useState('')
   const [recursive, setRecursive] = useState(true)
   const [photographerId, setPhotographerId] = useState('')
-  const [notes, setNotes] = useState('')
   const [newPhotographerName, setNewPhotographerName] = useState('')
   const [creatingPhotographer, setCreatingPhotographer] = useState(false)
-  const [eventSlots, setEventSlots] = useState<EventSlot[]>([makeSlot()])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [allRegistered, setAllRegistered] = useState(false)
 
   const { data: photographers, refetch: refetchPhotographers } = useQuery({
     queryKey: ['photographers'],
     queryFn: listPhotographers,
   })
-
   const { data: settingsData, error: settingsError } = useQuery({
     queryKey: ['settings'],
     queryFn: getSettings,
     retry: 1,
   })
-
   const { data: volumes = [] } = useQuery({
     queryKey: ['volumes'],
     queryFn: listVolumes,
@@ -60,12 +46,6 @@ export default function StepSetup({ onDone }: Props) {
   const isRemovable = dirPath !== '' && volumes.some(
     v => dirPath === v.path || dirPath.startsWith(v.path + '/')
   )
-
-  const effectivePath = dirPath
-
-  function handleDirSelect(path: string) {
-    setDirPath(path)
-  }
 
   async function handleCreatePhotographer() {
     if (!newPhotographerName.trim()) return
@@ -83,48 +63,26 @@ export default function StepSetup({ onDone }: Props) {
     }
   }
 
-  async function handleNext() {
-    if (!sessionName.trim()) { setError('Oppgi et navn for registreringen'); return }
-    if (!effectivePath) { setError('Velg en katalog'); return }
+  async function handleAnalyze() {
+    if (!dirPath) { setError('Velg en katalog'); return }
     if (!photographerId) { setError('Velg eller opprett en fotograf'); return }
 
     setBusy(true)
     setError('')
     try {
-      const scan = await scanDirectory(effectivePath, recursive)
-
-      // Løs opp event-ID: opprett nytt event om nødvendig
-      let defaultEventId: string | null = null
-      const slot = eventSlots[0]
-      if (slot.eventId) {
-        defaultEventId = slot.eventId
-      } else if (slot.eventName.trim()) {
-        const event = await createEvent({ name: slot.eventName.trim() })
-        defaultEventId = event.id
-      }
-
-      const session = await createSession({
-        name: sessionName.trim(),
-        source_path: effectivePath,
-        default_photographer_id: photographerId,
-        default_event_id: defaultEventId,
-        recursive,
-        notes: notes.trim() || null,
-      })
-
+      const scan = await scanDirectory(dirPath, recursive)
       const hashResults = await Promise.all(
         scan.groups.map(g => hashFile(g.master_path).then(r => ({ group: g, hothash: r.hothash })))
       )
-
-      const hothashes = hashResults.map(r => r.hothash)
-      const check = await checkHothashes(session.id, hothashes)
-
+      const check = await checkHothashesGlobal(hashResults.map(r => r.hothash))
       const unknownSet = new Set(check.unknown)
-      const unknownGroups = hashResults
-        .filter(r => unknownSet.has(r.hothash))
-        .map(r => r.group)
+      const unknownGroups = hashResults.filter(r => unknownSet.has(r.hothash)).map(r => r.group)
 
-      onDone(session.id, scan, unknownGroups)
+      if (unknownGroups.length === 0) {
+        setAllRegistered(true)
+      } else {
+        onDone({ scan, unknownGroups, dirPath, photographerId, recursive })
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Noe gikk galt')
     } finally {
@@ -132,36 +90,38 @@ export default function StepSetup({ onDone }: Props) {
     }
   }
 
+  if (allRegistered) {
+    return (
+      <div className="mx-auto max-w-xl">
+        <div className="rounded-xl border border-green-800/60 bg-green-950/20 px-6 py-8 text-center">
+          <p className="text-lg font-medium text-green-300">Alle bilder er allerede registrert</p>
+          <p className="mt-1 text-sm text-gray-400">{dirPath}</p>
+          <button
+            onClick={() => setAllRegistered(false)}
+            className="mt-4 rounded-lg bg-gray-700 px-4 py-2 text-sm text-white hover:bg-gray-600"
+          >
+            ← Tilbake
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="mx-auto max-w-xl space-y-6">
-
-      {/* Navn */}
-      <div>
-        <label className="mb-1 block text-sm font-medium text-gray-300">Navn på registrering</label>
-        <input
-          type="text"
-          value={sessionName}
-          onChange={e => setSessionName(e.target.value)}
-          className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-white outline-none focus:border-blue-500"
-          placeholder="f.eks. Sommerfest 2025"
-        />
-      </div>
-
-      {/* Katalog */}
       <div>
         <label className="mb-1 block text-sm font-medium text-gray-300">Katalog</label>
-
         <div className="flex gap-2">
           <input
             type="text"
             value={dirPath}
-            onChange={e => handleDirSelect(e.target.value)}
+            onChange={e => setDirPath(e.target.value)}
             className="flex-1 rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-white outline-none focus:border-blue-500"
             placeholder="Velg eller lim inn sti…"
           />
           <DirectoryPicker
             initialPath={dirPath}
-            onSelect={handleDirSelect}
+            onSelect={path => setDirPath(path)}
             trigger={
               <button className="rounded-lg bg-gray-700 px-4 py-2 text-sm font-medium text-white hover:bg-gray-600">
                 Bla…
@@ -169,17 +129,10 @@ export default function StepSetup({ onDone }: Props) {
             }
           />
         </div>
-
         <label className="mt-2 flex items-center gap-2 text-sm text-gray-400">
-          <input
-            type="checkbox"
-            checked={recursive}
-            onChange={e => setRecursive(e.target.checked)}
-            className="rounded"
-          />
+          <input type="checkbox" checked={recursive} onChange={e => setRecursive(e.target.checked)} className="rounded" />
           Inkluder undermapper
         </label>
-
         {isRemovable && (
           <div className="mt-3 rounded-lg border border-yellow-800/60 bg-yellow-950/20 px-3 py-2 text-sm text-yellow-300">
             Dette ser ut som et minnekort. Kopier bildene til disk i{' '}
@@ -189,10 +142,6 @@ export default function StepSetup({ onDone }: Props) {
         )}
       </div>
 
-      {/* Event */}
-      <EventSection slots={eventSlots} onChange={setEventSlots} />
-
-      {/* Fotograf */}
       <div>
         <label className="mb-1 block text-sm font-medium text-gray-300">Fotograf</label>
         <select
@@ -201,11 +150,8 @@ export default function StepSetup({ onDone }: Props) {
           className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-white outline-none focus:border-blue-500"
         >
           <option value="">— Velg fotograf —</option>
-          {photographers?.map(p => (
-            <option key={p.id} value={p.id}>{p.name}</option>
-          ))}
+          {photographers?.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
-
         <div className="mt-2 flex gap-2">
           <input
             type="text"
@@ -225,34 +171,19 @@ export default function StepSetup({ onDone }: Props) {
         </div>
       </div>
 
-      {/* Notater */}
-      <div>
-        <label className="mb-1 block text-sm font-medium text-gray-300">
-          Notater <span className="text-gray-500 font-normal">(valgfritt)</span>
-        </label>
-        <textarea
-          value={notes}
-          onChange={e => setNotes(e.target.value)}
-          rows={3}
-          className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-white outline-none focus:border-blue-500 resize-none"
-          placeholder="Fritekst om denne registreringen…"
-        />
-      </div>
-
       {settingsError && (
         <p className="text-xs text-yellow-500">
           Kunne ikke hente maskininnstillinger: {settingsError instanceof Error ? settingsError.message : 'ukjent feil'}
         </p>
       )}
-
       {error && <p className="text-sm text-red-400">{error}</p>}
 
       <button
-        onClick={handleNext}
+        onClick={handleAnalyze}
         disabled={busy}
         className="w-full rounded-xl bg-blue-600 py-3 font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
       >
-        {busy ? 'Skanner…' : 'Skann og fortsett →'}
+        {busy ? 'Skanner og analyserer…' : 'Analyser →'}
       </button>
     </div>
   )

@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from database.session import get_db
@@ -83,3 +84,46 @@ def release_lock(lock_type: str, db: Session = Depends(get_db)):
     """Release a lock. Silent if the lock doesn't exist."""
     db.query(MachineLock).filter(MachineLock.lock_type == lock_type).delete()
     db.commit()
+
+
+# ─── Folder → event lookup ─────────────────────────────────────────────────────
+
+class FolderEventRequest(BaseModel):
+    paths: list[str]
+
+
+class EventMatch(BaseModel):
+    id: str
+    name: str
+
+
+class FolderMatch(BaseModel):
+    path: str
+    event: EventMatch | None
+
+
+class FolderEventResponse(BaseModel):
+    matches: list[FolderMatch]
+
+
+_LOOKUP_SQL = text("""
+    SELECT p.event_id::text, e.name, COUNT(*) AS cnt
+    FROM photos p
+    JOIN image_files f ON f.photo_id = p.id
+    JOIN events e ON e.id = p.event_id
+    WHERE f.file_path LIKE :prefix
+      AND p.event_id IS NOT NULL
+    GROUP BY p.event_id, e.name
+    ORDER BY cnt DESC
+    LIMIT 1
+""")
+
+
+@router.post("/folder-event-lookup", response_model=FolderEventResponse)
+def folder_event_lookup(req: FolderEventRequest, db: Session = Depends(get_db)):
+    matches = []
+    for path in req.paths:
+        row = db.execute(_LOOKUP_SQL, {"prefix": path + "/%"}).first()
+        event = EventMatch(id=row[0], name=row[1]) if row else None
+        matches.append(FolderMatch(path=path, event=event))
+    return FolderEventResponse(matches=matches)

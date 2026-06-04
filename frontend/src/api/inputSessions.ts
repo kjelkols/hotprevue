@@ -67,6 +67,7 @@ export interface GroupPayload {
   coldpreview_b64: string
   master_path: string
   master_type: string
+  event_id?: string | null
   master_exif?: Record<string, unknown>
   width?: number
   height?: number

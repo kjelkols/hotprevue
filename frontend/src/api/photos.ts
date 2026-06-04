@@ -77,3 +77,11 @@ export function batchDelete(hothashes: string[]): Promise<{ updated: number }> {
     body: JSON.stringify({ hothashes }),
   })
 }
+
+export function checkHothashesGlobal(hothashes: string[]): Promise<CheckResponse> {
+  return apiFetch<CheckResponse>('/photos/check-hothashes', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ hothashes }),
+  })
+}
