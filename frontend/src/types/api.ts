@@ -406,3 +406,11 @@ export interface ExifData {
   file_size: number | null
 }
 
+// ─── AI ───────────────────────────────────────────────────────────────────────
+
+export interface AiSearchResult {
+  hothash: string
+  score: number
+}
+
+

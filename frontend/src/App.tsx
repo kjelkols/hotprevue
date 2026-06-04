@@ -21,6 +21,7 @@ import SettingsPage from './pages/SettingsPage'
 import LocationEditorPage from './pages/LocationEditorPage'
 import PhotographersPage from './pages/PhotographersPage'
 import PreorganiseringPage from './pages/PreorganiseringPage'
+import AiSearchPage from './pages/AiSearchPage'
 import ContextMenuOverlay from './components/ui/ContextMenuOverlay'
 import SelectionTray from './features/selection/SelectionTray'
 import EventPickerModal from './features/assignment/EventPickerModal'
@@ -81,6 +82,7 @@ export default function App() {
           <Route path="/sted"            element={<LocationEditorPage />} />
           <Route path="/fotografer"        element={<PhotographersPage />} />
           <Route path="/preorganisering"   element={<PreorganiseringPage />} />
+          <Route path="/ai-search"         element={<AiSearchPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
