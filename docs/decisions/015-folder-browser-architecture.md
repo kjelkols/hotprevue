@@ -1,6 +1,6 @@
 # ADR-015: Arkitektur for katalogbrowsing og filflytting
 
-**Status:** Delvis implementert (Alternativ A). Alternativ C er planlagt.
+**Status:** Implementert (Alternativ A + PinButton). Alternativ C er planlagt.
 
 ---
 
@@ -46,6 +46,24 @@ modal-malen.
 | `CopySection` (kortkopierings-destinasjon) | `DirectoryPicker` |
 | `SettingsPage` (snarveg-sti) | `DirectoryPicker` |
 | `PhotoFolderGrid` (flytt filer til) | `DestinationPicker` |
+
+### PinButton — inline snarveiopprettelse
+
+`DirectoryPicker` har fått en `PinButton`-komponent (📌) i header-raden,
+ved siden av stidisplayet. Den lar brukeren pinne gjeldende mappe som snarvei
+uten å forlate registreringsflyten og gå til Innstillinger → Snarveier.
+
+**Interaksjon:**
+- Ikke pinnett mappe: grå 📌 → klikk viser mappenavn (fast) + valgfritt etikettfelt
+- Etikett fylles inn (f.eks. "mors bilder") → Enter/✓ oppretter snarvei
+- Tom etikett → faller tilbake til mappenavnet som snarveinavn
+- Allerede pinnett mappe: blå 📌 → klikk fjerner snarveien
+
+Siden `useBrowse` bruker første snarvei som startpunkt når ingen sti er valgt,
+vil nyopprettede pinner automatisk brukes som startpunkt ved neste åpning.
+
+`PinButton` er en selvstendig komponent (`components/PinButton.tsx`) som
+bruker React Query-cachen `['shortcuts']` — ingen prop-drilling.
 
 ---
 

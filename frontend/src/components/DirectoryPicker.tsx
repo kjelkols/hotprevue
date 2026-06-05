@@ -10,6 +10,7 @@
 import { useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { useBrowse } from '../hooks/useBrowse'
+import PinButton from './PinButton'
 
 interface Props {
   initialPath?: string
@@ -50,6 +51,7 @@ export default function DirectoryPicker({ initialPath, onSelect, trigger }: Prop
               ↑ Opp
             </button>
             <p className="flex-1 text-xs text-gray-500 font-mono truncate" title={browse.path}>{browse.path || '…'}</p>
+            <PinButton path={browse.path} />
           </div>
 
           {(browse.shortcuts.length > 0 || browse.volumes.length > 0) && (
