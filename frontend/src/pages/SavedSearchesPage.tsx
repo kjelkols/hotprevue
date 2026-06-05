@@ -29,9 +29,9 @@ export default function SavedSearchesPage() {
       </div>
 
       <div className="p-4 max-w-2xl mx-auto">
-        {isLoading && <p className="text-gray-400 text-center py-8">Laster…</p>}
+        {isLoading && <p className="text-gray-300 text-center py-8">Laster…</p>}
         {!isLoading && searches.length === 0 && (
-          <p className="text-gray-500 text-center py-8">Ingen lagrede søk ennå.</p>
+          <p className="text-gray-400 text-center py-8">Ingen lagrede søk ennå.</p>
         )}
         <ul className="flex flex-col gap-2">
           {searches.map(s => (
@@ -43,17 +43,17 @@ export default function SavedSearchesPage() {
                 {s.name}
               </button>
               {s.description && (
-                <span className="text-sm text-gray-400 truncate max-w-xs hidden sm:block">
+                <span className="text-sm text-gray-300 truncate max-w-xs hidden sm:block">
                   {s.description}
                 </span>
               )}
-              <span className="text-xs text-gray-500 shrink-0">
+              <span className="text-xs text-gray-400 shrink-0">
                 {s.criteria.length} {s.criteria.length === 1 ? 'kriterie' : 'kriterier'}
               </span>
               <button
                 onClick={() => deleteMutation.mutate(s.id)}
                 disabled={deleteMutation.isPending}
-                className="text-gray-500 hover:text-red-400 transition-colors text-sm shrink-0 disabled:opacity-50"
+                className="text-gray-400 hover:text-red-400 transition-colors text-sm shrink-0 disabled:opacity-50"
               >
                 Slett
               </button>

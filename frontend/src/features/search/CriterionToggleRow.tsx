@@ -26,7 +26,7 @@ export default function CriterionToggleRow({
         <span className={`text-xs leading-none ${active ? 'text-blue-400' : 'text-gray-600'}`}>
           {active ? '●' : '○'}
         </span>
-        <span className={`text-sm font-medium ${active ? 'text-white' : 'text-gray-500'}`}>
+        <span className={`text-sm font-medium ${active ? 'text-white' : 'text-gray-400'}`}>
           {fieldDef.label}
         </span>
       </button>

@@ -69,7 +69,7 @@ export default function SearchPage() {
         <div className="flex items-center gap-2 border-b border-gray-800 px-3 py-2.5">
           <button
             onClick={() => navigate('/searches')}
-            className="text-sm text-gray-400 hover:text-white transition-colors"
+            className="text-sm text-gray-300 hover:text-white transition-colors"
           >
             ← Tilbake
           </button>
@@ -105,7 +105,7 @@ export default function SearchPage() {
       {/* Right panel — results */}
       <div className="flex flex-1 flex-col overflow-hidden">
         <div className="flex items-center gap-3 border-b border-gray-800 px-4 py-3">
-          <span className="text-sm text-gray-500">
+          <span className="text-sm text-gray-300">
             {photoSource.isLoading ? 'Søker…' : hasActiveCriteria ? `${photoSource.photos.length} bilder` : ''}
           </span>
           <div className="ml-auto">
@@ -114,7 +114,7 @@ export default function SearchPage() {
         </div>
         <div className="flex-1 overflow-y-auto p-3">
           {!hasActiveCriteria ? (
-            <div className="flex items-center justify-center py-20 text-sm text-gray-600">
+            <div className="flex items-center justify-center py-20 text-sm text-gray-500">
               Aktiver ett eller flere kriterier for å søke
             </div>
           ) : view === 'grid' ? (

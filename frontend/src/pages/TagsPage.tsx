@@ -20,10 +20,10 @@ export default function TagsPage() {
       </div>
 
       <div className="p-4 max-w-2xl mx-auto">
-        {isLoading && <p className="text-gray-400 py-8 text-center">Laster…</p>}
+        {isLoading && <p className="text-gray-300 py-8 text-center">Laster…</p>}
         {isError && <p className="text-red-400 py-8 text-center">Kunne ikke hente tags.</p>}
         {!isLoading && tags.length === 0 && (
-          <p className="text-gray-500 py-8 text-center">Ingen tags registrert ennå.</p>
+          <p className="text-gray-400 py-8 text-center">Ingen tags registrert ennå.</p>
         )}
         <ul className="flex flex-col gap-2">
           {tags.map(tag => (
@@ -34,7 +34,7 @@ export default function TagsPage() {
               >
                 {tag.name}
               </button>
-              <span className="text-sm text-gray-400 shrink-0">{tag.photo_count} bilder</span>
+              <span className="text-sm text-gray-300 shrink-0">{tag.photo_count} bilder</span>
             </li>
           ))}
         </ul>

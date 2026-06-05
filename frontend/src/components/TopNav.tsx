@@ -28,7 +28,7 @@ export default function TopNav() {
           end={end}
           className={({ isActive }) =>
             'px-3 py-1.5 rounded text-sm transition-colors ' +
-            (isActive ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800')
+            (isActive ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800')
           }
         >
           {label}
@@ -39,7 +39,7 @@ export default function TopNav() {
           to="/preorganisering"
           className={({ isActive }) =>
             'px-3 py-1.5 rounded text-sm transition-colors ' +
-            (isActive ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800')
+            (isActive ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800')
           }
         >
           Lokale verktøy
@@ -48,7 +48,7 @@ export default function TopNav() {
           to="/settings"
           className={({ isActive }) =>
             'px-3 py-1.5 rounded text-sm transition-colors ' +
-            (isActive ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800')
+            (isActive ? 'bg-gray-700 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-800')
           }
         >
           Innstillinger

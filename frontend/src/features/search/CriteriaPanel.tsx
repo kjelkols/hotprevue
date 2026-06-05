@@ -46,7 +46,7 @@ export default function CriteriaPanel({ initialCriteria, logic, onLogicChange, o
   return (
     <div className="space-y-0.5">
       <div className="flex items-center gap-2 px-3 pb-3">
-        <span className="text-xs text-gray-500">Kobling:</span>
+        <span className="text-xs text-gray-400">Kobling:</span>
         {(['AND', 'OR'] as const).map(l => (
           <button
             key={l}

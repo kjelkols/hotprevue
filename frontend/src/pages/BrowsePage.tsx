@@ -24,7 +24,7 @@ export default function BrowsePage() {
         {upUrl && (
           <button
             onClick={() => navigate(upUrl)}
-            className="text-sm text-gray-400 hover:text-white transition-colors shrink-0"
+            className="text-sm text-gray-300 hover:text-white transition-colors shrink-0"
           >
             ← Tilbake
           </button>

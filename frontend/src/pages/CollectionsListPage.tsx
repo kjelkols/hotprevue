@@ -69,9 +69,9 @@ export default function CollectionsListPage() {
       )}
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-20 text-gray-400">Laster…</div>
+        <div className="flex items-center justify-center py-20 text-gray-300">Laster…</div>
       ) : collections.length === 0 ? (
-        <p className="px-4 py-16 text-center text-gray-500">Ingen kolleksjoner ennå.</p>
+        <p className="px-4 py-16 text-center text-gray-400">Ingen kolleksjoner ennå.</p>
       ) : (
         <div className="divide-y divide-gray-800">
           {collections.map(c => (
@@ -82,9 +82,9 @@ export default function CollectionsListPage() {
             >
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-white truncate">{c.name}</p>
-                {c.description && <p className="mt-0.5 text-sm text-gray-400 truncate">{c.description}</p>}
+                {c.description && <p className="mt-0.5 text-sm text-gray-300 truncate">{c.description}</p>}
               </div>
-              <span className="text-sm text-gray-500 shrink-0">
+              <span className="text-sm text-gray-400 shrink-0">
                 {c.item_count} element{c.item_count !== 1 ? 'er' : ''}
               </span>
             </button>

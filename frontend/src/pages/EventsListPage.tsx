@@ -26,10 +26,10 @@ export default function EventsListPage() {
       </div>
 
       <div className="p-4 max-w-2xl mx-auto">
-        {isLoading && <p className="text-gray-400 py-8 text-center">Laster…</p>}
+        {isLoading && <p className="text-gray-300 py-8 text-center">Laster…</p>}
         {isError && <p className="text-red-400 py-8 text-center">Kunne ikke hente events.</p>}
         {!isLoading && events.length === 0 && (
-          <p className="text-gray-500 py-8 text-center">Ingen events opprettet ennå.</p>
+          <p className="text-gray-400 py-8 text-center">Ingen events opprettet ennå.</p>
         )}
         <ul className="flex flex-col gap-2">
           {events.map(event => (
@@ -40,10 +40,10 @@ export default function EventsListPage() {
               >
                 <div className="flex items-baseline justify-between gap-4">
                   <span className="font-medium truncate">{event.name}</span>
-                  <span className="text-sm text-gray-400 shrink-0">{event.photo_count} bilder</span>
+                  <span className="text-sm text-gray-300 shrink-0">{event.photo_count} bilder</span>
                 </div>
                 {(event.start_date || event.location) && (
-                  <p className="text-xs text-gray-500 mt-0.5">
+                  <p className="text-xs text-gray-400 mt-0.5">
                     {[formatEventDate(event.start_date, event.end_date), event.location].filter(Boolean).join(' · ')}
                   </p>
                 )}
