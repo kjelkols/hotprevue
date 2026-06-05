@@ -231,28 +231,28 @@ See `docs/decisions/008-client-server-split.md` for full rationale.
 ## Development Commands
 
 ```sh
-# Start backend (pgserver starter PostgreSQL automatisk)
+# Start backend
 make dev-backend
 # eller direkte:
-cd backend && HOTPREVUE_SERVER=local uv run uvicorn main:app --host 0.0.0.0 --port 8000
+cd backend && DATABASE_URL="postgresql+psycopg2:///hotprevue?host=/run/postgresql" uv run uvicorn main:app --host 0.0.0.0 --port 8000
 
 # Start Vite dev-server med hot-reload (tilgjengelig på nettverket, åpne i nettleser):
 make dev-frontend   # cd frontend && npm run dev:web  → http://<server-ip>:5173
 
-# Kjør tester
-make test
-# eller:
-cd backend && uv run pytest tests/ -v
+# Kjør Alembic-migrasjoner (lokal PostgreSQL via Unix socket):
+bash scripts/alembic-upgrade.sh
 
-# Kjør én test
-cd backend && uv run pytest tests/path/to/test_file.py::test_function_name
+# Kjør tester (lokal PostgreSQL):
+bash scripts/run-tests.sh
+# eller én test:
+bash scripts/run-tests.sh tests/api/test_photos.py::test_name
 
 # Bygg frontend til statiske filer
 make build-web
 # eller: cd frontend && npm run build:web  → frontend/dist/
 ```
 
-**Merk:** `--reload` virker ikke med pgserver (socket-problem med subprocess).
+**Merk:** `--reload` fungerer ikke med lokal dev-oppsett (socket-problem med subprocess).
 
 **Vite dev-server:** Proxyer automatisk alle API-kall til backend på port 8000.
 Tilgjengelig på `0.0.0.0` slik at Windows-nettleser kan koble til via server-IP.
@@ -290,10 +290,13 @@ git tag v0.2.0 && git push origin v0.2.0
 
 ## Registration API Endpoints
 
-- `POST /input-sessions/{id}/groups` — registers one processed image group; client sends hothash, hotpreview (base64), coldpreview (base64), EXIF, file metadata, and optional `machine_id`. Backend stores in DB and writes coldpreview to disk.
-- `POST /input-sessions/{id}/check-hothashes` — client sends list of hothashes, backend returns which are already registered. Call this *after* generating hotpreviews but *before* generating coldpreviews to skip duplicates early.
+- `POST /photos/check-hothashes` — session-independent duplicate check. Client sends `{ hothashes: string[] }`, backend returns `{ known: [], unknown: [] }`. Call this after hashing but before generating coldpreviews and before creating a session.
+- `POST /input-sessions` — create a registration session (only after confirming there are new images).
+- `POST /input-sessions/{id}/groups` — register one processed image group. Client sends hothash, previews (base64), EXIF, file metadata, optional `machine_id` and `event_id`. Backend stores in DB and writes coldpreview to disk.
+- `POST /input-sessions/{id}/complete` — finalise the session.
+- `POST /system/folder-event-lookup` — given `{ paths: string[] }`, returns `{ matches: [{ path, event: { id, name } | null }] }`. Used by StepFolderMap to detect which subdirectories are already associated with an event.
 
-**Removed:** `/system/pick-directory`, `/system/scan-directory`, `/system/browse`, `/input-sessions/{id}/groups-by-path` — these were backend filesystem operations that are now the client's responsibility.
+**Removed:** `/system/pick-directory`, `/system/scan-directory`, `/system/browse`, `/input-sessions/{id}/groups-by-path`, `/input-sessions/{id}/check-hothashes` — these were backend filesystem operations or session-coupled checks now superseded by the client-side flow.
 
 ## Lock API (multi-machine)
 
@@ -305,13 +308,20 @@ Locks have a 30-minute TTL. See `docs/decisions/010-multi-machine-locking.md`.
 
 ## Data Flow
 
+**Analyse (ingen sesjon opprettes ennå):**
 1. User opens the app in browser at `http://localhost:8000` (or `http://localhost:5173` during Vite dev).
 2. User selects a directory — the local Python client scans it directly.
-3. Client processes each image: extracts EXIF, generates hotpreview, computes hothash, generates coldpreview.
-4. Client calls `check-hothashes` to skip already-registered images before generating coldpreviews.
-5. Client sends each processed group to backend via `POST /input-sessions/{id}/groups`.
-6. Backend stores metadata in PostgreSQL and writes coldpreview to disk.
-7. Frontend fetches and displays images via backend API (coldpreviews served as HTTP files).
+3. Client hashes each image (hotpreview → hothash).
+4. Client calls `POST /photos/check-hothashes` (session-independent) to find which are new.
+5. If no new images: user is informed, no session is created.
+6. Frontend shows StepFolderMap: one row per subdirectory, editable event names, automatic lookup of existing events via `POST /system/folder-event-lookup`.
+
+**Registrering (etter brukerbekreftelse):**
+7. Client creates a session via `POST /input-sessions`.
+8. Client processes each new image: generates coldpreview, reads full EXIF.
+9. Client sends each processed group to backend via `POST /input-sessions/{id}/groups`, including `event_id` per group based on the catalog map.
+10. Backend stores metadata in PostgreSQL and writes coldpreview to disk.
+11. Frontend fetches and displays images via backend API (coldpreviews served as HTTP files).
 
 **Installation modes** (chosen in setup wizard, see ADR-009):
 - Local: client + backend + pgserver on same machine

@@ -1,6 +1,6 @@
 # ADR-024: Registreringsflyt v2 — multi-event, katalogkart og gjenskan
 
-**Status:** Forslag  
+**Status:** Implementert  
 **Dato:** 2026-06-04  
 **Grunnlag:** `docs/drafts/event-fra-katalogsti.md`, `docs/drafts/gjenskan-og-reorganisering.md`
 
