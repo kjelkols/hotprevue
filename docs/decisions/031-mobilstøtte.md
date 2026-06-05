@@ -50,13 +50,18 @@ enn vertikal bevegelse (unngår konflikt med vertikal scrolling).
 `ZoomableImage` eksponerer `onSwipeLeft` og `onSwipeRight`-props.
 `PhotoDetailPage` sender navigasjonsfunksjoner til disse.
 
-## Planlagt
-
 ### PWA — «Legg til på startskjerm»
 
-`manifest.json` med `display: standalone`, ikoner og `theme_color`.
-Gjør at appen kan installeres på iOS/Android og åpnes uten adresselinje.
-Krav: HTTPS eller localhost (Tailscale-tilkobling gir dette).
+`public/manifest.json` med `display: standalone`, ikoner (192px + 512px) og
+`theme_color: #111827`. Meta-tagger i `index.html`:
+`apple-mobile-web-app-capable`, `apple-mobile-web-app-status-bar-style`,
+`apple-mobile-web-app-title`, `theme-color`.
+
+- **iOS Safari**: Del-knapp → «Legg til på hjem-skjerm» — fungerer over HTTP.
+- **Android Chrome**: Krever HTTPS for automatisk installasjonsprompt, men
+  manuell «Legg til på startskjerm» fra Chrome-menyen fungerer over HTTP.
+
+## Planlagt
 
 ### Responsiv BrowsePage
 
