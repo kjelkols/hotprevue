@@ -85,7 +85,13 @@ export function useImageZoom(
     function onTouchMove(e: TouchEvent) {
       const state = ts.current
       if (!state) return
-      if (state.type === 'pan') {
+      if (state.type === 'none' && e.touches.length === 1) {
+        // Prevent browser back/forward swipe from stealing horizontal gestures
+        const t = e.touches[0]
+        if (Math.abs(t.clientX - state.startX) > Math.abs(t.clientY - state.startY)) {
+          e.preventDefault()
+        }
+      } else if (state.type === 'pan') {
         e.preventDefault()
         const t = e.touches[0]
         setOffset({ x: state.ox + t.clientX - state.startX, y: state.oy + t.clientY - state.startY })
@@ -134,13 +140,17 @@ export function useImageZoom(
       if (e.touches.length === 0) ts.current = null
     }
 
+    function onTouchCancel() { ts.current = null }
+
     el.addEventListener('touchstart', onTouchStart, { passive: false })
     el.addEventListener('touchmove', onTouchMove, { passive: false })
     el.addEventListener('touchend', onTouchEnd, { passive: true })
+    el.addEventListener('touchcancel', onTouchCancel, { passive: true })
     return () => {
       el.removeEventListener('touchstart', onTouchStart)
       el.removeEventListener('touchmove', onTouchMove)
       el.removeEventListener('touchend', onTouchEnd)
+      el.removeEventListener('touchcancel', onTouchCancel)
     }
   }, [containerRef])
 
