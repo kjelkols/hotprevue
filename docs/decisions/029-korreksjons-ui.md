@@ -55,8 +55,18 @@ på URL-en. `CorrectionPanel` bruker `qc.setQueryData(['photo', hothash], result
 i stedet for `invalidateQueries` — dette oppdaterer React Query-cachen *umiddelbart*
 med det returnerte `PhotoDetail`-objektet, slik at `coldpreviewUrl` endres
 i samme render-syklus uten å vente på en ekstra nettverksforespørsel.
-`DELETE`-mutasjonen (nullstill alt) bruker `invalidateQueries` siden den returnerer
-`void` og trenger en ny henting for ren tilstand.
+
+I tillegg bruker `CorrectionPanel` `qc.setQueriesData` for å skrive det oppdaterte
+`PhotoDetail`-objektet (som er et supersett av `PhotoListItem`) direkte inn i alle
+`['photos', ...]`-sider i cachen. Dette er nødvendig fordi listen har `staleTime: 30s`
+og er inaktiv (umontert) mens brukeren er i detaljvisningen — `invalidateQueries`
+alene vil ikke trigge refetch før komponenten mountes igjen, og da vises gammel
+thumbnail-orientering i mellomtiden. Med `setQueriesData` er thumbnail riktig
+orientert umiddelbart når brukeren går tilbake.
+
+`DELETE`-mutasjonen (nullstill alt) nullstiller korreksjonsfeltene manuelt i
+listecachen (`has_correction: false`, `rotation: null`, etc.) og invaliderer
+deretter begge spørringene.
 Sliders debounces ~400 ms for å unngå for hyppige API-kall.
 
 ### Nivå 3 — Popup fra BrowseView-kontekstmeny
@@ -101,8 +111,12 @@ features/browse/
 ```
 
 `CorrectionPanel` eier React Query-mutasjonen (`updateCorrection`).
-Bruker `setQueryData` for å oppdatere `['photo', hothash]` umiddelbart (ikke
-`invalidateQueries`), og `invalidateQueries` for `['photos']`-listen.
+Ved suksess:
+1. `setQueryData(['photo', hothash], result)` — oppdaterer detaljcachen umiddelbart
+2. `setQueriesData({ queryKey: ['photos'] }, …)` — skriver korreksjonsfelt inn i alle
+   sider i listecachen synkront, slik at thumbnail er riktig orientert uten å vente
+   på refetch
+3. `invalidateQueries(['photos'])` — sikrer at data til slutt hentes på nytt fra backend
 
 ### Crop-reset ved orientieringsendring
 

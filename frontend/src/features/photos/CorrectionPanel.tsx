@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { updateCorrection, deleteCorrection, type CorrectionPatch } from '../../api/photos'
-import type { PhotoDetail } from '../../types/api'
+import type { PhotoDetail, PhotoListItem } from '../../types/api'
 import CorrectionSliders from './CorrectionSliders'
 
 interface Props {
@@ -32,8 +32,22 @@ export default function CorrectionPanel({ photo, mode = 'full' }: Props) {
     setCropBottom(photo.correction?.crop_bottom ?? 0)
   }, [photo.hothash])
 
+  function patchListCache(updater: (p: PhotoListItem) => PhotoListItem) {
+    qc.setQueriesData<InfiniteData<PhotoListItem[]>>(
+      { queryKey: ['photos'] },
+      (old) => {
+        if (!old) return old
+        return {
+          ...old,
+          pages: old.pages.map(page => page.map(p => p.hothash === photo.hothash ? updater(p) : p)),
+        }
+      },
+    )
+  }
+
   function applyUpdate(updated: PhotoDetail) {
     qc.setQueryData<PhotoDetail>(['photo', photo.hothash], updated)
+    patchListCache(() => ({ ...updated }))
     qc.invalidateQueries({ queryKey: ['photos'] })
   }
   const updateMut = useMutation({
@@ -44,6 +58,17 @@ export default function CorrectionPanel({ photo, mode = 'full' }: Props) {
     mutationFn: () => deleteCorrection(photo.hothash),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['photo', photo.hothash] })
+      patchListCache(p => ({
+        ...p,
+        has_correction: false,
+        rotation: null,
+        flip_horizontal: false,
+        crop_left: null,
+        crop_top: null,
+        crop_right: null,
+        crop_bottom: null,
+        exposure_ev: null,
+      }))
       qc.invalidateQueries({ queryKey: ['photos'] })
     },
   })
