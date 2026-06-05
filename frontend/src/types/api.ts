@@ -25,6 +25,7 @@ export interface ScanResult {
 export interface BrowseDir {
   name: string
   path: string
+  image_count: number
 }
 
 export interface BrowseFile {

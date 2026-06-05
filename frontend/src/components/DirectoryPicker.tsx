@@ -77,7 +77,10 @@ export default function DirectoryPicker({ initialPath, onSelect, trigger }: Prop
               <button key={d.path} onClick={() => browse.setPath(d.path)}
                 className="w-full text-left px-3 py-2 rounded-lg text-sm text-white hover:bg-gray-800 flex items-center gap-3">
                 <span className="shrink-0 text-xs font-bold text-yellow-600 w-12">MAPPE</span>
-                <span className="truncate">{d.name}</span>
+                <span className="truncate flex-1">{d.name}</span>
+                {d.image_count > 0 && (
+                  <span className="shrink-0 text-xs text-gray-500">{d.image_count}</span>
+                )}
               </button>
             ))}
             {browse.data?.files.map(f => (

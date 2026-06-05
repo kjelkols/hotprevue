@@ -19,6 +19,7 @@ IMAGE_SUFFIXES = {
 class BrowseDir(BaseModel):
     name: str
     path: str
+    image_count: int = 0
 
 
 class BrowseFile(BaseModel):
@@ -126,7 +127,16 @@ def browse(path: str = Query(default="")) -> BrowseResult:
             if entry.name.startswith("."):
                 continue
             if entry.is_dir():
-                dirs.append(BrowseDir(name=entry.name, path=str(entry)))
+                count = 0
+                try:
+                    with os.scandir(entry) as it:
+                        count = sum(
+                            1 for e in it
+                            if e.is_file() and Path(e.name).suffix.lower() in IMAGE_SUFFIXES
+                        )
+                except PermissionError:
+                    pass
+                dirs.append(BrowseDir(name=entry.name, path=str(entry), image_count=count))
             elif entry.is_file() and entry.suffix.lower() in IMAGE_SUFFIXES:
                 files.append(BrowseFile(
                     name=entry.name,
