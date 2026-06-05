@@ -50,7 +50,8 @@ export default function PhotoDetailPage() {
     )
   }
 
-  const coldpreviewUrl = `${getBaseUrl()}/photos/${hothash}/coldpreview`
+  const cacheKey = photo.correction?.updated_at ? +new Date(photo.correction.updated_at) : 0
+  const coldpreviewUrl = `${getBaseUrl()}/photos/${hothash}/coldpreview${cacheKey ? `?t=${cacheKey}` : ''}`
 
   return (
     <div className="flex flex-col h-full bg-gray-950 text-white">

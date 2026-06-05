@@ -1,10 +1,14 @@
+import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { PhotoListItem } from '../../types/api'
+import { updateCorrection } from '../../api/photos'
 import useSelectionStore from '../../stores/useSelectionStore'
 import useContextMenuStore from '../../stores/useContextMenuStore'
 import useAssignmentStore from '../../stores/useAssignmentStore'
 import usePhotoNavStore from '../../stores/usePhotoNavStore'
 import ThumbnailShell from '../../components/ui/ThumbnailShell'
+import PhotoCorrectionDialog from '../photos/PhotoCorrectionDialog'
 
 function formatDate(taken_at: string | null): string {
   if (!taken_at) return 'Ukjent dato'
@@ -15,6 +19,8 @@ function formatDate(taken_at: string | null): string {
   return `${dd}.${mm}.${yy}`
 }
 
+const actionBtn = 'w-6 h-6 rounded bg-black/75 text-white text-base leading-none hover:bg-black/90 flex items-center justify-center'
+
 interface Props {
   photo: PhotoListItem
   orderedHashes: string[]
@@ -23,6 +29,8 @@ interface Props {
 export default function PhotoThumbnail({ photo, orderedHashes }: Props) {
   const navigate = useNavigate()
   const location = useLocation()
+  const [correctionOpen, setCorrectionOpen] = useState(false)
+
   const selectOnly = useSelectionStore(s => s.selectOnly)
   const toggleOne = useSelectionStore(s => s.toggleOne)
   const selectRange = useSelectionStore(s => s.selectRange)
@@ -32,6 +40,23 @@ export default function PhotoThumbnail({ photo, orderedHashes }: Props) {
   const openAssignment = useAssignmentStore(s => s.open)
   const setHothashes = usePhotoNavStore(s => s.setHothashes)
   const setBackUrl = usePhotoNavStore(s => s.setBackUrl)
+
+  const qc = useQueryClient()
+  const rotateMut = useMutation({
+    mutationFn: (rotation: number | null) => updateCorrection(photo.hothash, { rotation }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['photos'] }),
+  })
+
+  function rotateCCW(e: React.MouseEvent) {
+    e.stopPropagation()
+    const next = ((photo.rotation ?? 0) - 90 + 360) % 360
+    rotateMut.mutate(next || null)
+  }
+  function rotateCW(e: React.MouseEvent) {
+    e.stopPropagation()
+    const next = ((photo.rotation ?? 0) + 90) % 360
+    rotateMut.mutate(next || null)
+  }
 
   function handleClick(e: React.MouseEvent) {
     e.preventDefault()
@@ -67,7 +92,8 @@ export default function PhotoThumbnail({ photo, orderedHashes }: Props) {
     openContextMenu({
       position: { x: e.clientX, y: e.clientY },
       items: [
-        { id: 'open',       label: 'Åpne',                isDefault: true, action: () => navigate(`/photos/${photo.hothash}`) },
+        { id: 'open',    label: 'Åpne',                isDefault: true, action: () => navigate(`/photos/${photo.hothash}`) },
+        { id: 'correct', label: 'Korriger bilde…',     action: () => setCorrectionOpen(true) },
         { type: 'separator' },
         { id: 'event',      label: 'Sett event…',         action: () => openAssignment('event') },
         { id: 'collection', label: 'Legg til i samling…', action: () => openAssignment('collection') },
@@ -76,14 +102,31 @@ export default function PhotoThumbnail({ photo, orderedHashes }: Props) {
     })
   }
 
+  const rotateActions = (
+    <>
+      <button onClick={rotateCCW} title="Rotér mot klokken" className={actionBtn}>↺</button>
+      <button onClick={rotateCW}  title="Rotér med klokken" className={actionBtn}>↻</button>
+    </>
+  )
+
   return (
-    <ThumbnailShell
-      imageData={photo.hotpreview_b64}
-      isSelected={isSelected}
-      onClick={handleClick}
-      onDoubleClick={handleDoubleClick}
-      onContextMenu={handleContextMenu}
-      bottomOverlay={formatDate(photo.taken_at)}
-    />
+    <>
+      <ThumbnailShell
+        imageData={photo.hotpreview_b64}
+        isSelected={isSelected}
+        rotation={photo.rotation ?? undefined}
+        flipHorizontal={photo.flip_horizontal}
+        actions={rotateActions}
+        onClick={handleClick}
+        onDoubleClick={handleDoubleClick}
+        onContextMenu={handleContextMenu}
+        bottomOverlay={formatDate(photo.taken_at)}
+      />
+      <PhotoCorrectionDialog
+        hothash={photo.hothash}
+        open={correctionOpen}
+        onOpenChange={setCorrectionOpen}
+      />
+    </>
   )
 }

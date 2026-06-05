@@ -1,6 +1,7 @@
 import type { PhotoDetail } from '../../types/api'
 import PhotoLocationMap from './PhotoLocationMap'
 import PhotoMetaQuality from './PhotoMetaQuality'
+import CorrectionPanel from './CorrectionPanel'
 
 function formatDate(taken_at: string | null): string {
   if (!taken_at) return 'Ukjent dato'
@@ -42,6 +43,9 @@ export default function PhotoMetaPanel({ photo }: Props) {
 
   return (
     <div className="text-sm text-gray-100 space-y-5">
+      <CorrectionPanel photo={photo} mode="full" />
+      <div className="border-t border-gray-800" />
+
       {master && (
         <p className="font-mono text-xs text-gray-400 truncate">{filename(master.file_path)}</p>
       )}

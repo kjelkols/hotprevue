@@ -36,8 +36,13 @@ Korreksjoner appliseres i fast rekkefølge på coldpreview-JPEG ved servering:
 5. exposure_ev    → lyshetsjustering i EV (log2-skala, PIL Brightness)
 ```
 
-Original coldpreview på disk røres aldri. Responsen har `ETag: hothash-<timestamp>`
-slik at nettlesere invaliderer cachen ved korreksjonsendriger.
+Original coldpreview på disk røres aldri. Endepunktet svarer med
+`Cache-Control: private, max-age=3600` og `ETag: hothash-<correction_timestamp>`.
+Frontend cache-buster ved å legge `?t=<correction.updated_at>` på coldpreview-URL
+når en korreksjon finnes — dette er en ny URL som aldri er cachet i nettleseren.
+`CorrectionPanel` bruker React Query `setQueryData` for umiddelbar oppdatering
+av `['photo', hothash]`-cachen med returverdien fra PATCH, slik at URL-parameteren
+endres i samme render-syklus som mutasjonen fullføres.
 
 ### Rotation og flip_horizontal i PhotoListItem
 
@@ -80,6 +85,7 @@ Dersom ingen `PhotoCorrection`-rad finnes, opprettes den automatisk.
 - Backend endres aldri: `serve_coldpreview()` er eneste sted korreksjoner appliseres
 - Hotpreview i databasen endres ikke — CSS-transform brukes for thumbnails
 - Hothash forblir stabil etter registrering
-- ETag-strategi sikrer riktig nettleser-cache-invalidering ved korreksjonsendriger
+- `?t=<updated_at>`-parameteren og `setQueryData`-mønsteret sikrer umiddelbar
+  nettleser-cache-invalidering uten ekstra nettverksforespørsel
 - Fremtidig `saturation_adjust` kan legges til her når `saturation_mean` er
   tilgjengelig som kvalitetsmål (PIL `ImageEnhance.Color` er tilstrekkelig)

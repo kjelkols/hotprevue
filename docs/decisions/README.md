@@ -61,3 +61,4 @@ Hva innebærer denne beslutningen fremover?
 | 026 | Søkeside-redesign med splittet layout | Implementert |
 | 027 | UI-utseende — temabytte og tekststørrelse | Utkast |
 | 028 | Visningskorreksjoner (PhotoCorrection) | Implementert |
+| 029 | UI for visningskorreksjoner | Planlagt |

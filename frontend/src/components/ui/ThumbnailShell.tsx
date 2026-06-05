@@ -1,20 +1,31 @@
 interface ThumbnailShellProps {
   imageData: string
   isSelected: boolean
+  rotation?: number
+  flipHorizontal?: boolean
   onClick: (e: React.MouseEvent) => void
   onDoubleClick: (e: React.MouseEvent) => void
   onContextMenu: (e: React.MouseEvent) => void
   bottomOverlay?: React.ReactNode
+  actions?: React.ReactNode
 }
 
 export default function ThumbnailShell({
   imageData,
   isSelected,
+  rotation,
+  flipHorizontal,
   onClick,
   onDoubleClick,
   onContextMenu,
   bottomOverlay,
+  actions,
 }: ThumbnailShellProps) {
+  const transforms: string[] = []
+  if (rotation) transforms.push(`rotate(${rotation}deg)`)
+  if (flipHorizontal) transforms.push('scaleX(-1)')
+  const imgStyle = transforms.length ? { transform: transforms.join(' ') } : undefined
+
   return (
     <div
       className="relative group cursor-pointer overflow-hidden rounded-sm"
@@ -25,7 +36,8 @@ export default function ThumbnailShell({
       <img
         src={`data:image/jpeg;base64,${imageData}`}
         alt=""
-        className="w-[150px] h-[150px] object-cover transition-transform duration-150 group-hover:scale-105"
+        style={imgStyle}
+        className={`w-[150px] h-[150px] object-cover${!imgStyle ? ' transition-transform duration-150 group-hover:scale-105' : ''}`}
       />
 
       {/* Selection / hover ring */}
@@ -39,6 +51,17 @@ export default function ThumbnailShell({
           <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
+        </div>
+      )}
+
+      {/* Action buttons (rotation etc.) — appear on hover, stop click propagation */}
+      {actions && (
+        <div
+          className="absolute top-1 left-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+          onClick={e => e.stopPropagation()}
+          onDoubleClick={e => e.stopPropagation()}
+        >
+          {actions}
         </div>
       )}
 
