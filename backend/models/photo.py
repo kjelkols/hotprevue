@@ -72,6 +72,11 @@ class Photo(Base):
     dct_perceptual_hash: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     difference_hash: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
 
+    sharpness_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    exposure_mean: Mapped[float | None] = mapped_column(Float, nullable=True)
+    exposure_clipping: Mapped[float | None] = mapped_column(Float, nullable=True)
+    noise_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+
     registered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 

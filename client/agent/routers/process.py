@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 from utils.exif import extract_exif, extract_camera_fields, extract_taken_at, extract_gps
 from utils.previews import generate_hotpreview, hotpreview_b64, generate_coldpreview, generate_preview
+from utils.quality import compute_quality_metrics
 
 router = APIRouter(prefix="/process", tags=["process"])
 
@@ -56,6 +57,10 @@ class ProcessResponse(BaseModel):
     gps_lng: float | None
     width: int
     height: int
+    sharpness_score: float | None
+    exposure_mean: float | None
+    exposure_clipping: float | None
+    noise_score: float | None
 
 
 @router.post("", response_model=ProcessResponse)
@@ -86,6 +91,8 @@ def process(req: ProcessRequest) -> ProcessResponse:
     taken_at_dt = extract_taken_at(exif)
     gps_lat, gps_lng = extract_gps(exif)
 
+    quality = compute_quality_metrics(master)
+
     return ProcessResponse(
         hothash=hothash,
         hotpreview_b64=hotpreview_b64(jpeg_bytes),
@@ -97,6 +104,10 @@ def process(req: ProcessRequest) -> ProcessResponse:
         gps_lng=gps_lng,
         width=width,
         height=height,
+        sharpness_score=quality["sharpness_score"],
+        exposure_mean=quality["exposure_mean"],
+        exposure_clipping=quality["exposure_clipping"],
+        noise_score=quality["noise_score"],
     )
 
 

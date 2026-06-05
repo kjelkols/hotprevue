@@ -286,13 +286,13 @@ git tag v0.2.0 && git push origin v0.2.0
 - `GET /machines` — list all registered machines.
 - `GET /machines/{machine_id}` — get one machine.
 
-`GroupPayload` includes optional `machine_id` — client sends its machine UUID so backend can set `photos.registered_by_machine_id`.
+`GroupPayload` includes optional `machine_id` — client sends its machine UUID so backend can set `photos.registered_by_machine_id`. Also includes optional quality metrics (`sharpness_score`, `exposure_mean`, `exposure_clipping`, `noise_score`) computed from the original file during registration (ADR-021).
 
 ## Registration API Endpoints
 
 - `POST /photos/check-hothashes` — session-independent duplicate check. Client sends `{ hothashes: string[] }`, backend returns `{ known: [], unknown: [] }`. Call this after hashing but before generating coldpreviews and before creating a session.
 - `POST /input-sessions` — create a registration session (only after confirming there are new images).
-- `POST /input-sessions/{id}/groups` — register one processed image group. Client sends hothash, previews (base64), EXIF, file metadata, optional `machine_id` and `event_id`. Backend stores in DB and writes coldpreview to disk.
+- `POST /input-sessions/{id}/groups` — register one processed image group. Client sends hothash, previews (base64), EXIF, file metadata, optional `machine_id`, `event_id`, and quality metrics. Backend stores in DB and writes coldpreview to disk.
 - `POST /input-sessions/{id}/complete` — finalise the session.
 - `POST /system/folder-event-lookup` — given `{ paths: string[] }`, returns `{ matches: [{ path, event: { id, name } | null }] }`. Used by StepFolderMap to detect which subdirectories are already associated with an event.
 

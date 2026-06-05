@@ -109,6 +109,12 @@ class GroupPayload(BaseModel):
     dct_perceptual_hash: int | None = None
     difference_hash: int | None = None
 
+    # Teknisk bildekvalitet (ADR-021)
+    sharpness_score: float | None = None
+    exposure_mean: float | None = None
+    exposure_clipping: float | None = None
+    noise_score: float | None = None
+
     # Optional assignment overrides (falls back to session defaults)
     photographer_id: uuid.UUID | None = None
     event_id: uuid.UUID | None = None
