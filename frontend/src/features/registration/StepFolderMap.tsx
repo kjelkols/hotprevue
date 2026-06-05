@@ -3,11 +3,12 @@ import { createEvent } from '../../api/events'
 import { createSession } from '../../api/inputSessions'
 import { lookupFolderEvents } from '../../api/system'
 import type { FileGroup, ScanResult } from '../../types/api'
+import NamingOptionsPanel from './NamingOptionsPanel'
 import {
   computeFolderEntries,
-  FOLDER_PATTERNS,
+  DEFAULT_NAMING_OPTIONS,
   type AnalyzeResult,
-  type FolderPattern,
+  type NamingOptions,
   type ResolvedEntry,
 } from './registrationTypes'
 
@@ -27,7 +28,7 @@ function defaultSessionName(): string {
 export default function StepFolderMap({ result, onDone, onBack }: Props) {
   const { scan, unknownGroups, dirPath, photographerId, recursive } = result
 
-  const [pattern, setPattern] = useState<FolderPattern>('strip_date_prefix')
+  const [options, setOptions] = useState<NamingOptions>(DEFAULT_NAMING_OPTIONS)
   const [sessionName, setSessionName] = useState(defaultSessionName)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -35,13 +36,13 @@ export default function StepFolderMap({ result, onDone, onBack }: Props) {
   const [existingEvents, setExistingEvents] = useState<Record<string, { id: string; name: string } | null>>({})
 
   const baseEntries = useMemo(
-    () => computeFolderEntries(scan.groups, unknownGroups, dirPath, pattern),
-    [scan.groups, unknownGroups, dirPath, pattern],
+    () => computeFolderEntries(scan.groups, unknownGroups, dirPath, options),
+    [scan.groups, unknownGroups, dirPath, options],
   )
 
-  // Folder paths are stable across pattern changes — compute once for lookup
+  // Folder paths are stable across option changes — compute once for lookup
   const stablePaths = useMemo(
-    () => computeFolderEntries(scan.groups, unknownGroups, dirPath, 'identity').map(e => e.folderPath),
+    () => computeFolderEntries(scan.groups, unknownGroups, dirPath, DEFAULT_NAMING_OPTIONS).map(e => e.folderPath),
     [scan.groups, unknownGroups, dirPath],
   )
 
@@ -75,14 +76,13 @@ export default function StepFolderMap({ result, onDone, onBack }: Props) {
       .finally(() => setLookupLoading(false))
   }, [stablePaths])
 
-  function handlePatternChange(p: FolderPattern) {
-    setPattern(p)
-    const recomputed = computeFolderEntries(scan.groups, unknownGroups, dirPath, p)
+  function handleOptionsChange(opts: NamingOptions) {
+    setOptions(opts)
+    const recomputed = computeFolderEntries(scan.groups, unknownGroups, dirPath, opts)
     setEventNames(prev => {
       const updated: Record<string, string> = {}
       for (const entry of recomputed) {
         const existing = existingEvents[entry.folderPath]
-        // Keep existing event name if the user hasn't deviated, else use new derived name
         updated[entry.relPath] = existing?.name ?? entry.eventName
       }
       return updated
@@ -151,18 +151,12 @@ export default function StepFolderMap({ result, onDone, onBack }: Props) {
       </div>
 
       <div>
-        <div className="mb-2 flex items-center justify-between">
-          <span className="text-sm font-medium text-gray-300">
-            Katalogkart
-            {lookupLoading && <span className="ml-2 text-xs text-gray-500">Slår opp events…</span>}
-          </span>
-          <select
-            value={pattern}
-            onChange={e => handlePatternChange(e.target.value as FolderPattern)}
-            className="rounded border border-gray-700 bg-gray-800 px-2 py-1 text-xs text-gray-300 outline-none focus:border-blue-500"
-          >
-            {FOLDER_PATTERNS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
-          </select>
+        <div className="mb-2">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-gray-300">Katalogkart</span>
+            {lookupLoading && <span className="text-xs text-gray-500">Slår opp events…</span>}
+          </div>
+          <NamingOptionsPanel options={options} onChange={handleOptionsChange} />
         </div>
 
         <div className="overflow-x-auto rounded-xl border border-gray-700">
@@ -180,10 +174,19 @@ export default function StepFolderMap({ result, onDone, onBack }: Props) {
                 const currentName = eventNames[entry.relPath] ?? ''
                 const existing = existingEvents[entry.folderPath]
                 const isExisting = !!existing && currentName === existing.name
+                const lastSlash = entry.relPath.lastIndexOf('/')
+                const parentPart = lastSlash >= 0 ? entry.relPath.slice(0, lastSlash + 1) : ''
                 return (
                   <tr key={entry.relPath} className={entry.newCount === 0 ? 'opacity-40' : ''}>
-                    <td className="px-4 py-2 text-sm font-mono text-gray-400 whitespace-nowrap">
-                      {entry.relPath || <span className="italic text-gray-600">rotkatalog</span>}
+                    <td className="px-4 py-2 text-sm font-mono whitespace-nowrap">
+                      {entry.relPath === '' ? (
+                        <span className="italic text-gray-600">rotkatalog</span>
+                      ) : (
+                        <>
+                          {parentPart && <span className="text-gray-600">{parentPart}</span>}
+                          <span className="text-gray-300">{entry.folderName}</span>
+                        </>
+                      )}
                     </td>
                     <td className="px-4 py-2">
                       <div className="flex items-center gap-2">

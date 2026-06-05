@@ -22,37 +22,37 @@ export interface ResolvedEntry {
   eventId: string | null
 }
 
-export type FolderPattern =
-  | 'strip_date_prefix'
-  | 'strip_yyyymmdd_prefix'
-  | 'strip_year_prefix'
-  | 'strip_number_prefix'
-  | 'identity'
+export interface NamingOptions {
+  stripDatePrefix: boolean      // YYYY-MM-DD_ / YYYY_MM_DD_
+  stripCompactDate: boolean     // YYYYMMDD_
+  stripYearPrefix: boolean      // YYYY_
+  stripNumberPrefix: boolean    // 01_
+  underscoresToSpaces: boolean  // _ → mellomrom
+}
 
-export const FOLDER_PATTERNS: { id: FolderPattern; label: string }[] = [
-  { id: 'strip_date_prefix', label: 'Fjern dato-prefiks (2024-07-15 Fest → Fest)' },
-  { id: 'strip_yyyymmdd_prefix', label: 'Fjern kompakt dato-prefiks (20240715Fest → Fest)' },
-  { id: 'strip_year_prefix', label: 'Fjern årstall-prefiks (2024 Fest → Fest)' },
-  { id: 'strip_number_prefix', label: 'Fjern tall-prefiks (01 Fest → Fest)' },
-  { id: 'identity', label: 'Bruk mappenavn direkte' },
+export const DEFAULT_NAMING_OPTIONS: NamingOptions = {
+  stripDatePrefix: false,
+  stripCompactDate: false,
+  stripYearPrefix: false,
+  stripNumberPrefix: false,
+  underscoresToSpaces: false,
+}
+
+export const NAMING_OPTION_LABELS: { key: keyof NamingOptions; label: string }[] = [
+  { key: 'stripDatePrefix', label: 'Fjern dato-prefiks (2024-07-15_fest → fest)' },
+  { key: 'stripCompactDate', label: 'Fjern kompakt dato (20240715_fest → fest)' },
+  { key: 'stripYearPrefix', label: 'Fjern årstall (2024_fest → fest)' },
+  { key: 'stripNumberPrefix', label: 'Fjern tall-prefiks (01_fest → fest)' },
+  { key: 'underscoresToSpaces', label: 'Understrek → mellomrom' },
 ]
 
-export function applyPattern(folderName: string, pattern: FolderPattern): string {
+export function applyOptions(folderName: string, options: NamingOptions): string {
   let result = folderName
-  switch (pattern) {
-    case 'strip_date_prefix':
-      result = folderName.replace(/^\d{4}[-_.]?\d{2}[-_.]?\d{2}[_ ]+/, '')
-      break
-    case 'strip_yyyymmdd_prefix':
-      result = folderName.replace(/^\d{8}[_ ]+/, '')
-      break
-    case 'strip_year_prefix':
-      result = folderName.replace(/^\d{4}[_ -]+/, '')
-      break
-    case 'strip_number_prefix':
-      result = folderName.replace(/^\d+[._ ]+/, '')
-      break
-  }
+  if (options.stripDatePrefix) result = result.replace(/^\d{4}[-_.]?\d{2}[-_.]?\d{2}[_ ]+/, '')
+  if (options.stripCompactDate) result = result.replace(/^\d{8}[_ ]+/, '')
+  if (options.stripYearPrefix) result = result.replace(/^\d{4}[_ -]+/, '')
+  if (options.stripNumberPrefix) result = result.replace(/^\d+[._ ]+/, '')
+  if (options.underscoresToSpaces) result = result.replace(/_/g, ' ')
   return result.trim() || folderName
 }
 
@@ -60,7 +60,7 @@ export function computeFolderEntries(
   groups: FileGroup[],
   unknownGroups: FileGroup[],
   dirPath: string,
-  pattern: FolderPattern,
+  options: NamingOptions,
 ): FolderEntry[] {
   const unknownPaths = new Set(unknownGroups.map(g => g.master_path))
 
@@ -92,7 +92,7 @@ export function computeFolderEntries(
         relPath,
         folderPath: relPath ? `${dirPath}/${relPath}` : dirPath,
         folderName,
-        eventName: applyPattern(folderName, pattern),
+        eventName: applyOptions(folderName, options),
         totalCount: counts.total,
         newCount: counts.newCount,
       }
