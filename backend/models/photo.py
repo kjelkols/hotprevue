@@ -93,6 +93,26 @@ class Photo(Base):
     def flip_horizontal(self) -> bool:
         return self.correction.flip_horizontal if self.correction else False
 
+    @property
+    def crop_left(self) -> float | None:
+        return self.correction.crop_left if self.correction else None
+
+    @property
+    def crop_top(self) -> float | None:
+        return self.correction.crop_top if self.correction else None
+
+    @property
+    def crop_right(self) -> float | None:
+        return self.correction.crop_right if self.correction else None
+
+    @property
+    def crop_bottom(self) -> float | None:
+        return self.correction.crop_bottom if self.correction else None
+
+    @property
+    def exposure_ev(self) -> float | None:
+        return self.correction.exposure_ev if self.correction else None
+
     image_files: Mapped[list["ImageFile"]] = relationship(
         "ImageFile",
         back_populates="photo",

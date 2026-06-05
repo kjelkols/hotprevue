@@ -114,8 +114,7 @@ export default function PhotoThumbnail({ photo, orderedHashes }: Props) {
       <ThumbnailShell
         imageData={photo.hotpreview_b64}
         isSelected={isSelected}
-        rotation={photo.rotation ?? undefined}
-        flipHorizontal={photo.flip_horizontal}
+        correction={photo.has_correction ? photo : null}
         actions={rotateActions}
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}

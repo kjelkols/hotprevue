@@ -56,6 +56,11 @@ class PhotoListItem(BaseModel):
     has_correction: bool
     rotation: int | None
     flip_horizontal: bool
+    crop_left: float | None
+    crop_top: float | None
+    crop_right: float | None
+    crop_bottom: float | None
+    exposure_ev: float | None
     width: int | None
     height: int | None
     dct_perceptual_hash: int | None

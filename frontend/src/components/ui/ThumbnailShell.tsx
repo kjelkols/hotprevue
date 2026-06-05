@@ -1,8 +1,10 @@
+import type { CSSProperties } from 'react'
+import { computePhotoTransformCSS, type CorrectionInput } from '../../lib/photoTransform'
+
 interface ThumbnailShellProps {
   imageData: string
   isSelected: boolean
-  rotation?: number
-  flipHorizontal?: boolean
+  correction?: CorrectionInput | null
   onClick: (e: React.MouseEvent) => void
   onDoubleClick: (e: React.MouseEvent) => void
   onContextMenu: (e: React.MouseEvent) => void
@@ -13,18 +15,15 @@ interface ThumbnailShellProps {
 export default function ThumbnailShell({
   imageData,
   isSelected,
-  rotation,
-  flipHorizontal,
+  correction,
   onClick,
   onDoubleClick,
   onContextMenu,
   bottomOverlay,
   actions,
 }: ThumbnailShellProps) {
-  const transforms: string[] = []
-  if (rotation) transforms.push(`rotate(${rotation}deg)`)
-  if (flipHorizontal) transforms.push('scaleX(-1)')
-  const imgStyle = transforms.length ? { transform: transforms.join(' ') } : undefined
+  const { imgStyle, wrapperStyle } = computePhotoTransformCSS(correction)
+  const hasTransform = !!(imgStyle.transform || imgStyle.filter || wrapperStyle.clipPath)
 
   return (
     <div
@@ -33,12 +32,15 @@ export default function ThumbnailShell({
       onDoubleClick={onDoubleClick}
       onContextMenu={onContextMenu}
     >
-      <img
-        src={`data:image/jpeg;base64,${imageData}`}
-        alt=""
-        style={imgStyle}
-        className={`w-[150px] h-[150px] object-cover${!imgStyle ? ' transition-transform duration-150 group-hover:scale-105' : ''}`}
-      />
+      {/* Correction wrapper — clip-path for crop, in post-rotation coordinate space */}
+      <div style={wrapperStyle as CSSProperties} className="w-[150px] h-[150px]">
+        <img
+          src={`data:image/jpeg;base64,${imageData}`}
+          alt=""
+          style={imgStyle}
+          className={`w-[150px] h-[150px] object-cover${!hasTransform ? ' transition-transform duration-150 group-hover:scale-105' : ''}`}
+        />
+      </div>
 
       {/* Selection / hover ring */}
       <div className={`absolute inset-0 ring-2 ring-inset pointer-events-none transition-opacity
@@ -54,7 +56,7 @@ export default function ThumbnailShell({
         </div>
       )}
 
-      {/* Action buttons (rotation etc.) — appear on hover, stop click propagation */}
+      {/* Action buttons — appear on hover, stop click propagation */}
       {actions && (
         <div
           className="absolute top-1 left-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10"
@@ -65,7 +67,7 @@ export default function ThumbnailShell({
         </div>
       )}
 
-      {/* Bottom overlay (date, caption, …) */}
+      {/* Bottom overlay */}
       {bottomOverlay && (
         <div className="absolute bottom-0 left-0 right-0 bg-black/50 px-1 py-0.5 text-[10px] text-gray-200 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
           {bottomOverlay}

@@ -183,6 +183,11 @@ export interface PhotoListItem {
   has_correction: boolean
   rotation: number | null
   flip_horizontal: boolean
+  crop_left: number | null
+  crop_top: number | null
+  crop_right: number | null
+  crop_bottom: number | null
+  exposure_ev: number | null
   width: number | null
   height: number | null
   dct_perceptual_hash: number | null

@@ -51,9 +51,34 @@ export default function CorrectionPanel({ photo, mode = 'full' }: Props) {
   const rotation = photo.correction?.rotation ?? 0
   const flipH = photo.correction?.flip_horizontal ?? false
 
-  function rotateCW() { const n = (rotation + 90) % 360; updateMut.mutate({ rotation: n || null }) }
-  function rotateCCW() { const n = ((rotation - 90) + 360) % 360; updateMut.mutate({ rotation: n || null }) }
-  function rotate180() { const n = (rotation + 180) % 360; updateMut.mutate({ rotation: n || null }) }
+  const hasCrop = !!(
+    photo.correction?.crop_left ||
+    photo.correction?.crop_top ||
+    photo.correction?.crop_right ||
+    photo.correction?.crop_bottom
+  )
+
+  // Crop coordinates are stored in post-rotation space. Changing rotation or flip
+  // invalidates them, so we clear them automatically with the same PATCH call.
+  const cropReset = hasCrop
+    ? { crop_left: null, crop_top: null, crop_right: null, crop_bottom: null }
+    : {}
+
+  function rotateCW() {
+    const n = (rotation + 90) % 360
+    setCropLeft(0); setCropTop(0); setCropRight(0); setCropBottom(0)
+    updateMut.mutate({ rotation: n || null, ...cropReset })
+  }
+  function rotateCCW() {
+    const n = ((rotation - 90) + 360) % 360
+    setCropLeft(0); setCropTop(0); setCropRight(0); setCropBottom(0)
+    updateMut.mutate({ rotation: n || null, ...cropReset })
+  }
+  function rotate180() {
+    const n = (rotation + 180) % 360
+    setCropLeft(0); setCropTop(0); setCropRight(0); setCropBottom(0)
+    updateMut.mutate({ rotation: n || null, ...cropReset })
+  }
 
   function autoEnhance() {
     if (photo.exposure_mean == null) return
@@ -85,7 +110,14 @@ export default function CorrectionPanel({ photo, mode = 'full' }: Props) {
         <button onClick={rotateCW} title="Rotér med klokken" className={btn}>↻</button>
         <button onClick={rotate180} title="Snu 180°" className={rotation === 180 ? btnOn : btn}>180°</button>
         <div className="w-px h-5 bg-gray-700 mx-0.5" />
-        <button onClick={() => updateMut.mutate({ flip_horizontal: !flipH })} title="Speilvend" className={flipH ? btnOn : btn}>↔</button>
+        <button
+          onClick={() => {
+            setCropLeft(0); setCropTop(0); setCropRight(0); setCropBottom(0)
+            updateMut.mutate({ flip_horizontal: !flipH, ...cropReset })
+          }}
+          title="Speilvend"
+          className={flipH ? btnOn : btn}
+        >↔</button>
         {photo.exposure_mean != null && (
           <>
             <div className="w-px h-5 bg-gray-700 mx-0.5" />
