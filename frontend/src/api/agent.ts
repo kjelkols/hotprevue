@@ -19,6 +19,10 @@ export interface ProcessResponse {
   gps_lng: number | null
   width: number
   height: number
+  sharpness_score: number | null
+  exposure_mean: number | null
+  exposure_clipping: number | null
+  noise_score: number | null
 }
 
 export function scanDirectory(path: string, recursive = true): Promise<ScanResult> {

@@ -81,6 +81,10 @@ export interface GroupPayload {
   shutter_speed?: string | null
   aperture?: number | null
   focal_length?: number | null
+  sharpness_score?: number | null
+  exposure_mean?: number | null
+  exposure_clipping?: number | null
+  noise_score?: number | null
   companions?: { path: string; type: string }[]
 }
 
