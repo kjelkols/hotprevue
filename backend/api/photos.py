@@ -100,6 +100,27 @@ def get_photo_files(hothash: str, db: Session = Depends(get_db)):
     return [ImageFileSchema.model_validate(f) for f in files]
 
 
+@router.get("/{hothash}/download")
+def download_photo(
+    hothash: str,
+    size: str = Query(default="full", pattern="^(full|medium|small)$"),
+    db: Session = Depends(get_db),
+):
+    """Download a photo as JPEG with embedded EXIF metadata.
+
+    size: full (no resize), medium (max 1200px), small (max 600px).
+    """
+    image_bytes, filename = photo_service.build_download(db, hothash, size)
+    return Response(
+        content=image_bytes,
+        media_type="image/jpeg",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control": "no-store",
+        },
+    )
+
+
 @router.get("/{hothash}/coldpreview")
 def get_coldpreview(hothash: str, db: Session = Depends(get_db)):
     """Serve the coldpreview image, applying any stored correction on-the-fly.

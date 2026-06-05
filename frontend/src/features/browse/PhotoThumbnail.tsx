@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { PhotoListItem } from '../../types/api'
 import { updateCorrection } from '../../api/photos'
+import { getBaseUrl } from '../../api/client'
 import useSelectionStore from '../../stores/useSelectionStore'
 import useContextMenuStore from '../../stores/useContextMenuStore'
 import useAssignmentStore from '../../stores/useAssignmentStore'
@@ -94,6 +95,7 @@ export default function PhotoThumbnail({ photo, orderedHashes }: Props) {
       items: [
         { id: 'open',    label: 'Åpne',                isDefault: true, action: () => navigate(`/photos/${photo.hothash}`) },
         { id: 'correct', label: 'Korriger bilde…',     action: () => setCorrectionOpen(true) },
+        { id: 'download', label: 'Last ned (full)',     action: () => { window.location.href = `${getBaseUrl()}/photos/${photo.hothash}/download` } },
         { type: 'separator' },
         { id: 'event',      label: 'Sett event…',         action: () => openAssignment('event') },
         { id: 'collection', label: 'Legg til i samling…', action: () => openAssignment('collection') },

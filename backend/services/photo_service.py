@@ -5,6 +5,8 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
+import piexif
+
 from fastapi import HTTPException
 from sqlalchemy.orm import Session, selectinload
 
@@ -111,13 +113,13 @@ def get_image_files(db: Session, hothash: str) -> list[ImageFile]:
 # ---------------------------------------------------------------------------
 
 def serve_coldpreview(db: Session, hothash: str) -> tuple[bytes, str]:
-    """Return (image_bytes, etag) for the coldpreview, applying any correction on-the-fly.
+    """Return (image_bytes, etag) for the coldpreview with embedded EXIF.
 
     Corrections are applied in order: rotation → horizon → crop → exposure.
     The original coldpreview on disk is never modified.
     """
     from core.config import settings as app_settings
-    from PIL import Image, ImageEnhance
+    from models.photographer import Photographer
 
     photo = (
         db.query(Photo)
@@ -134,51 +136,23 @@ def serve_coldpreview(db: Session, hothash: str) -> tuple[bytes, str]:
     if not coldpreview_file.exists():
         raise HTTPException(status_code=404, detail="Coldpreview not found")
 
-    if photo.correction is None:
-        return coldpreview_file.read_bytes(), hothash
+    photographer_name = ""
+    if photo.photographer_id:
+        p = db.query(Photographer).filter(Photographer.id == photo.photographer_id).first()
+        if p and not p.is_unknown:
+            photographer_name = p.name
 
     c = photo.correction
-    img = Image.open(coldpreview_file)
+    img = _open_and_correct(coldpreview_file, c)
+    exif_bytes = _build_exif_bytes(photo, photographer_name, c)
+    image_bytes = _encode_jpeg(img, exif_bytes)
 
-    # 1. 90 / 180 / 270 degree rotation
-    if c.rotation:
-        img = img.rotate(-c.rotation, expand=True)
-
-    # 2. Horizontal flip
-    if c.flip_horizontal:
-        img = img.transpose(Image.FLIP_LEFT_RIGHT)
-
-    # 3. Horizon correction (fine rotation to level the horizon)
-    if c.horizon_angle:
-        orig_w, orig_h = img.size
-        img = img.rotate(-c.horizon_angle, expand=True, resample=Image.BICUBIC)
-        img = _crop_horizon(img, orig_w, orig_h, c.horizon_angle)
-
-    # 4. User crop (proportional 0.0–1.0 coordinates)
-    if any(v is not None for v in [c.crop_left, c.crop_top, c.crop_right, c.crop_bottom]):
-        w, h = img.size
-        left = int((c.crop_left or 0.0) * w)
-        top = int((c.crop_top or 0.0) * h)
-        right = int(w - (c.crop_right or 0.0) * w)
-        bottom = int(h - (c.crop_bottom or 0.0) * h)
-        img = img.crop((left, top, right, bottom))
-
-    # 5. Exposure EV (log2 scale brightness)
-    if c.exposure_ev:
-        img = ImageEnhance.Brightness(img).enhance(2.0 ** c.exposure_ev)
-
-    buf = io.BytesIO()
-    img.save(buf, format="JPEG", quality=85)
-    etag = f"{hothash}-{c.updated_at.timestamp()}"
-    return buf.getvalue(), etag
+    etag = hothash if c is None else f"{hothash}-{c.updated_at.timestamp()}"
+    return image_bytes, etag
 
 
 def _crop_horizon(img, orig_w: int, orig_h: int, angle_deg: float):
-    """Crop to remove black corners after horizon rotation.
-
-    Computes the largest centered rectangle (using original dimensions)
-    that fits inside the expanded rotated image without black pixels.
-    """
+    """Crop to remove black corners after horizon rotation."""
     a = math.radians(abs(angle_deg))
     tan_a = math.tan(a)
     new_w = max(1, int(orig_w - orig_h * tan_a))
@@ -187,6 +161,179 @@ def _crop_horizon(img, orig_w: int, orig_h: int, angle_deg: float):
     left = (ew - new_w) // 2
     top = (eh - new_h) // 2
     return img.crop((left, top, left + new_w, top + new_h))
+
+
+def _open_and_correct(coldpreview_file, c):
+    """Open coldpreview and apply PhotoCorrection pipeline (if any)."""
+    from PIL import Image, ImageEnhance
+
+    img = Image.open(coldpreview_file)
+    if c is None:
+        return img
+
+    if c.rotation:
+        img = img.rotate(-c.rotation, expand=True)
+    if c.flip_horizontal:
+        img = img.transpose(Image.FLIP_LEFT_RIGHT)
+    if c.horizon_angle:
+        orig_w, orig_h = img.size
+        img = img.rotate(-c.horizon_angle, expand=True, resample=Image.BICUBIC)
+        img = _crop_horizon(img, orig_w, orig_h, c.horizon_angle)
+    if any(v is not None for v in [c.crop_left, c.crop_top, c.crop_right, c.crop_bottom]):
+        w, h = img.size
+        left = int((c.crop_left or 0.0) * w)
+        top = int((c.crop_top or 0.0) * h)
+        right = int(w - (c.crop_right or 0.0) * w)
+        bottom = int(h - (c.crop_bottom or 0.0) * h)
+        img = img.crop((left, top, right, bottom))
+    if c.exposure_ev:
+        img = ImageEnhance.Brightness(img).enhance(2.0 ** c.exposure_ev)
+    return img
+
+
+def _build_exif_bytes(photo, photographer_name: str, c) -> bytes:
+    exif_0th: dict = {
+        piexif.ImageIFD.Software: b"Hotprevue",
+        piexif.ImageIFD.ImageDescription: f"hothash:{photo.hothash}".encode(),
+    }
+    if photo.camera_make:
+        exif_0th[piexif.ImageIFD.Make] = photo.camera_make.encode()
+    if photo.camera_model:
+        exif_0th[piexif.ImageIFD.Model] = photo.camera_model.encode()
+    if photographer_name:
+        exif_0th[piexif.ImageIFD.Artist] = photographer_name.encode()
+        exif_0th[piexif.ImageIFD.Copyright] = photographer_name.encode()
+
+    exif_exif: dict = {}
+    if photo.taken_at:
+        dt_str = photo.taken_at.strftime("%Y:%m:%d %H:%M:%S").encode()
+        exif_exif[piexif.ExifIFD.DateTimeOriginal] = dt_str
+        exif_exif[piexif.ExifIFD.DateTimeDigitized] = dt_str
+    if photo.lens_model:
+        exif_exif[piexif.ExifIFD.LensModel] = photo.lens_model.encode()
+    if photo.iso:
+        exif_exif[piexif.ExifIFD.ISOSpeedRatings] = photo.iso
+    if photo.aperture:
+        exif_exif[piexif.ExifIFD.FNumber] = (int(photo.aperture * 100), 100)
+    if photo.focal_length:
+        exif_exif[piexif.ExifIFD.FocalLength] = (int(photo.focal_length * 10), 10)
+    if photo.shutter_speed:
+        rational = _shutter_to_rational(photo.shutter_speed)
+        if rational:
+            exif_exif[piexif.ExifIFD.ExposureTime] = rational
+
+    user_comment = _build_user_comment(c)
+    exif_exif[piexif.ExifIFD.UserComment] = (
+        b"ASCII\x00\x00\x00" + user_comment.encode("ascii", errors="replace")
+    )
+
+    exif_gps: dict = {}
+    if photo.location_lat is not None and photo.location_lng is not None:
+        exif_gps = _build_gps_ifd(photo.location_lat, photo.location_lng)
+
+    return piexif.dump({"0th": exif_0th, "Exif": exif_exif, "GPS": exif_gps})
+
+
+def _encode_jpeg(img, exif_bytes: bytes, quality: int = 85) -> bytes:
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=quality, exif=exif_bytes)
+    return buf.getvalue()
+
+
+# ---------------------------------------------------------------------------
+# Download (JPEG with optional downscale, Content-Disposition attachment)
+# ---------------------------------------------------------------------------
+
+_SIZE_LIMITS = {"full": None, "medium": 1200, "small": 600}
+
+
+def build_download(db: Session, hothash: str, size: str) -> tuple[bytes, str]:
+    """Return (jpeg_bytes, suggested_filename) for a downloadable image."""
+    from PIL import Image
+    from core.config import settings as app_settings
+    from models.photographer import Photographer
+
+    max_px = _SIZE_LIMITS.get(size)
+
+    photo = (
+        db.query(Photo)
+        .options(selectinload(Photo.correction))
+        .filter(Photo.hothash == hothash)
+        .first()
+    )
+    if photo is None:
+        raise HTTPException(status_code=404, detail="Photo not found")
+
+    coldpreview_file = (
+        Path(app_settings.coldpreview_dir) / hothash[:2] / hothash[2:4] / f"{hothash}.jpg"
+    )
+    if not coldpreview_file.exists():
+        raise HTTPException(status_code=404, detail="Coldpreview not found")
+
+    photographer_name = ""
+    if photo.photographer_id:
+        p = db.query(Photographer).filter(Photographer.id == photo.photographer_id).first()
+        if p and not p.is_unknown:
+            photographer_name = p.name
+
+    c = photo.correction
+    img = _open_and_correct(coldpreview_file, c)
+
+    if max_px is not None:
+        w, h = img.size
+        if max(w, h) > max_px:
+            scale = max_px / max(w, h)
+            img = img.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
+
+    exif_bytes = _build_exif_bytes(photo, photographer_name, c)
+    return _encode_jpeg(img, exif_bytes), f"{hothash}.jpg"
+
+
+def _build_user_comment(c) -> str:
+    parts = ["Hotprevue"]
+    if c is not None:
+        corrections = []
+        if c.rotation:
+            corrections.append(f"rotation={c.rotation}")
+        if c.flip_horizontal:
+            corrections.append("flip_horizontal")
+        if c.horizon_angle:
+            corrections.append(f"horizon_angle={c.horizon_angle:.2f}")
+        if c.exposure_ev:
+            sign = "+" if c.exposure_ev > 0 else ""
+            corrections.append(f"exposure_ev={sign}{c.exposure_ev:.2f}")
+        if any(v is not None for v in [c.crop_left, c.crop_top, c.crop_right, c.crop_bottom]):
+            corrections.append("cropped")
+        if corrections:
+            parts.append("corrections:" + ",".join(corrections))
+    return "|".join(parts)
+
+
+def _shutter_to_rational(shutter_speed: str) -> tuple[int, int] | None:
+    """Convert shutter speed string (e.g. '1/250', '2') to piexif rational tuple."""
+    try:
+        if "/" in shutter_speed:
+            num, den = shutter_speed.split("/")
+            return int(num), int(den)
+        val = float(shutter_speed)
+        return int(val * 1000), 1000
+    except (ValueError, AttributeError):
+        return None
+
+
+def _build_gps_ifd(lat: float, lng: float) -> dict:
+    def to_dms(deg: float) -> tuple[tuple, tuple, tuple]:
+        d = int(abs(deg))
+        m = int((abs(deg) - d) * 60)
+        s = round(((abs(deg) - d) * 60 - m) * 60 * 100)
+        return (d, 1), (m, 1), (s, 100)
+
+    return {
+        piexif.GPSIFD.GPSLatitudeRef: b"N" if lat >= 0 else b"S",
+        piexif.GPSIFD.GPSLatitude: to_dms(lat),
+        piexif.GPSIFD.GPSLongitudeRef: b"E" if lng >= 0 else b"W",
+        piexif.GPSIFD.GPSLongitude: to_dms(lng),
+    }
 
 
 # ---------------------------------------------------------------------------

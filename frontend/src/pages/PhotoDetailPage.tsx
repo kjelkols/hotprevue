@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { getPhoto } from '../api/photos'
 import { getBaseUrl } from '../api/client'
 import PhotoMetaPanel from '../features/photos/PhotoMetaPanel'
+import PhotoDownloadShare from '../features/photos/PhotoDownloadShare'
 import ZoomableImage from '../components/ZoomableImage'
 import usePhotoNavStore from '../stores/usePhotoNavStore'
 import SplitPane from '../components/SplitPane'
@@ -63,8 +64,11 @@ export default function PhotoDetailPage() {
           ← Tilbake
         </button>
 
+        <div className="ml-auto flex items-center gap-3">
+          <PhotoDownloadShare hothash={hothash!} />
+
         {currentIndex >= 0 && (
-          <div className="flex items-center gap-2 ml-auto">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => prevHash && navigate(`/photos/${prevHash}`)}
               disabled={!prevHash}
@@ -86,6 +90,7 @@ export default function PhotoDetailPage() {
             </button>
           </div>
         )}
+        </div>
       </div>
 
       <div className="flex-1 min-h-0">
