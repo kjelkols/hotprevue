@@ -186,6 +186,7 @@ export interface PhotoListItem {
   difference_hash: number | null
   camera_make: string | null
   camera_model: string | null
+  lens_model: string | null
   iso: number | null
   shutter_speed: string | null
   aperture: number | null
@@ -226,6 +227,10 @@ export interface PhotoDetail extends PhotoListItem {
   registered_at: string
   image_files: ImageFileInfo[]
   correction: PhotoCorrection | null
+  sharpness_score: number | null
+  exposure_mean: number | null
+  exposure_clipping: number | null
+  noise_score: number | null
 }
 
 // ─── TextItems ────────────────────────────────────────────────────────────────

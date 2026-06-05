@@ -59,6 +59,7 @@ class PhotoListItem(BaseModel):
     difference_hash: int | None
     camera_make: str | None
     camera_model: str | None
+    lens_model: str | None
     iso: int | None
     shutter_speed: str | None
     aperture: float | None
@@ -77,6 +78,10 @@ class PhotoDetail(PhotoListItem):
     registered_at: datetime
     image_files: list[ImageFileSchema]
     correction: PhotoCorrectionSchema | None
+    sharpness_score: float | None
+    exposure_mean: float | None
+    exposure_clipping: float | None
+    noise_score: float | None
 
 
 # ---------------------------------------------------------------------------
