@@ -85,6 +85,14 @@ class Photo(Base):
         """Read by PhotoListItem schema (from_attributes=True). Requires correction to be loaded."""
         return self.correction is not None
 
+    @property
+    def rotation(self) -> int | None:
+        return self.correction.rotation if self.correction else None
+
+    @property
+    def flip_horizontal(self) -> bool:
+        return self.correction.flip_horizontal if self.correction else False
+
     image_files: Mapped[list["ImageFile"]] = relationship(
         "ImageFile",
         back_populates="photo",
@@ -160,6 +168,7 @@ class PhotoCorrection(Base):
         primary_key=True,
     )
     rotation: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    flip_horizontal: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
     horizon_angle: Mapped[float | None] = mapped_column(Float, nullable=True)
     exposure_ev: Mapped[float | None] = mapped_column(Float, nullable=True)
     crop_left: Mapped[float | None] = mapped_column(Float, nullable=True)

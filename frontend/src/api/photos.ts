@@ -78,6 +78,28 @@ export function batchDelete(hothashes: string[]): Promise<{ updated: number }> {
   })
 }
 
+export interface CorrectionPatch {
+  rotation?: number | null
+  flip_horizontal?: boolean
+  horizon_angle?: number | null
+  exposure_ev?: number | null
+  crop_left?: number | null
+  crop_top?: number | null
+  crop_right?: number | null
+  crop_bottom?: number | null
+}
+
+export function updateCorrection(hothash: string, data: CorrectionPatch): Promise<PhotoDetail> {
+  return apiFetch<PhotoDetail>(`/photos/${hothash}/correction`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}
+
+export function deleteCorrection(hothash: string): Promise<void> {
+  return apiFetch<void>(`/photos/${hothash}/correction`, { method: 'DELETE' })
+}
+
 export function checkHothashesGlobal(hothashes: string[]): Promise<CheckResponse> {
   return apiFetch<CheckResponse>('/photos/check-hothashes', {
     method: 'POST',

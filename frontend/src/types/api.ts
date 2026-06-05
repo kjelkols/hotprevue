@@ -181,6 +181,8 @@ export interface PhotoListItem {
   is_stack_cover: boolean
   deleted_at: string | null
   has_correction: boolean
+  rotation: number | null
+  flip_horizontal: boolean
   width: number | null
   height: number | null
   dct_perceptual_hash: number | null
@@ -212,6 +214,7 @@ export interface ImageFileInfo {
 export interface PhotoCorrection {
   photo_id: string
   rotation: number | null
+  flip_horizontal: boolean
   horizon_angle: number | null
   exposure_ev: number | null
   crop_left: number | null

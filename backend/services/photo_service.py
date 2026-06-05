@@ -8,7 +8,7 @@ from pathlib import Path
 from fastapi import HTTPException
 from sqlalchemy.orm import Session, selectinload
 
-from models.photo import ImageFile, Photo
+from models.photo import ImageFile, Photo, PhotoCorrection
 from schemas.input_session import CheckHothashRequest, CheckHothashResponse
 from schemas.photo import PerceptualHashComputeResult
 
@@ -144,13 +144,17 @@ def serve_coldpreview(db: Session, hothash: str) -> tuple[bytes, str]:
     if c.rotation:
         img = img.rotate(-c.rotation, expand=True)
 
-    # 2. Horizon correction (fine rotation to level the horizon)
+    # 2. Horizontal flip
+    if c.flip_horizontal:
+        img = img.transpose(Image.FLIP_LEFT_RIGHT)
+
+    # 3. Horizon correction (fine rotation to level the horizon)
     if c.horizon_angle:
         orig_w, orig_h = img.size
         img = img.rotate(-c.horizon_angle, expand=True, resample=Image.BICUBIC)
         img = _crop_horizon(img, orig_w, orig_h, c.horizon_angle)
 
-    # 3. User crop (proportional 0.0–1.0 coordinates)
+    # 4. User crop (proportional 0.0–1.0 coordinates)
     if any(v is not None for v in [c.crop_left, c.crop_top, c.crop_right, c.crop_bottom]):
         w, h = img.size
         left = int((c.crop_left or 0.0) * w)
@@ -159,7 +163,7 @@ def serve_coldpreview(db: Session, hothash: str) -> tuple[bytes, str]:
         bottom = int(h - (c.crop_bottom or 0.0) * h)
         img = img.crop((left, top, right, bottom))
 
-    # 4. Exposure EV (log2 scale brightness)
+    # 5. Exposure EV (log2 scale brightness)
     if c.exposure_ev:
         img = ImageEnhance.Brightness(img).enhance(2.0 ** c.exposure_ev)
 
@@ -199,6 +203,47 @@ def patch_photo(db: Session, hothash: str, data) -> Photo:
     db.commit()
     db.refresh(photo)
     return photo
+
+
+def update_correction(db: Session, hothash: str, data) -> Photo:
+    photo = (
+        db.query(Photo)
+        .options(selectinload(Photo.correction), selectinload(Photo.image_files))
+        .filter(Photo.hothash == hothash)
+        .first()
+    )
+    if photo is None:
+        raise HTTPException(status_code=404, detail="Photo not found")
+
+    updates = data.model_dump(exclude_unset=True)
+    if not updates:
+        return photo
+
+    if photo.correction is None:
+        photo.correction = PhotoCorrection(photo_id=photo.id)
+        db.add(photo.correction)
+
+    for field, value in updates.items():
+        setattr(photo.correction, field, value)
+
+    photo.correction.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(photo)
+    return photo
+
+
+def delete_correction(db: Session, hothash: str) -> None:
+    photo = (
+        db.query(Photo)
+        .options(selectinload(Photo.correction))
+        .filter(Photo.hothash == hothash)
+        .first()
+    )
+    if photo is None:
+        raise HTTPException(status_code=404, detail="Photo not found")
+    if photo.correction is not None:
+        db.delete(photo.correction)
+        db.commit()
 
 
 # ---------------------------------------------------------------------------

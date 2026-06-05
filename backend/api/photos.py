@@ -21,6 +21,7 @@ from schemas.photo import (
     BatchTakenAt,
     BatchTakenAtOffset,
     CompanionCreate,
+    CorrectionPatch,
     ImageFileSchema,
     PhotoDetail,
     PhotoListItem,
@@ -127,6 +128,17 @@ def add_companion(hothash: str, data: CompanionCreate, db: Session = Depends(get
 def patch_photo(hothash: str, data: PhotoPatch, db: Session = Depends(get_db)):
     photo = photo_service.patch_photo(db, hothash, data)
     return PhotoDetail.model_validate(photo)
+
+
+@router.patch("/{hothash}/correction", response_model=PhotoDetail)
+def patch_correction(hothash: str, data: CorrectionPatch, db: Session = Depends(get_db)):
+    photo = photo_service.update_correction(db, hothash, data)
+    return PhotoDetail.model_validate(photo)
+
+
+@router.delete("/{hothash}/correction", status_code=204)
+def delete_correction(hothash: str, db: Session = Depends(get_db)):
+    photo_service.delete_correction(db, hothash)
 
 
 @router.post("/{hothash}/delete", status_code=204)

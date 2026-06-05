@@ -25,6 +25,7 @@ class PhotoCorrectionSchema(BaseModel):
 
     photo_id: uuid.UUID
     rotation: int | None
+    flip_horizontal: bool
     horizon_angle: float | None
     exposure_ev: float | None
     crop_left: float | None
@@ -53,6 +54,8 @@ class PhotoListItem(BaseModel):
     is_stack_cover: bool
     deleted_at: datetime | None
     has_correction: bool
+    rotation: int | None
+    flip_horizontal: bool
     width: int | None
     height: int | None
     dct_perceptual_hash: int | None
@@ -101,6 +104,20 @@ class PhotoPatch(BaseModel):
     category_id: uuid.UUID | None = None
     event_id: uuid.UUID | None = None
     photographer_id: uuid.UUID | None = None
+
+
+class CorrectionPatch(BaseModel):
+    """Partial update for photo_corrections. Only fields present in the request are updated.
+    Send null to clear a field (e.g. rotation: null removes rotation).
+    """
+    rotation: int | None = None
+    flip_horizontal: bool | None = None
+    horizon_angle: float | None = None
+    exposure_ev: float | None = None
+    crop_left: float | None = None
+    crop_top: float | None = None
+    crop_right: float | None = None
+    crop_bottom: float | None = None
 
 
 # ---------------------------------------------------------------------------
