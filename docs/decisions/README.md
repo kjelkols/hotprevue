@@ -47,3 +47,17 @@ Hva innebærer denne beslutningen fremover?
 | 012 | Identitetsvalg i nett-sesjon | Godkjent |
 | 013 | Migrasjon fra lokal til sentral database | Godkjent |
 | 014 | Bildekategorisering via picker-modaler | Godkjent |
+| 015 | Arkitektur for katalogbrowsing og filflytting | Godkjent |
+| 016 | Bilderotasjon via EXIF og XMP sidecar (Lokale verktøy) | Godkjent |
+| 017 | Sporing av originalfilers lagringssted | Planlagt |
+| 018 | Filutforsker for finjustering | Planlagt |
+| 019 | Håndtering av rotasjon ved registrering | Planlagt |
+| 020 | XMP sidecar ved registrering | Planlagt |
+| 021 | Teknisk bildekvalitet ved registrering | Implementert |
+| 022 | AI-analyselag | Planlagt |
+| 023 | Søkarkitektur | Implementert |
+| 024 | Registreringsflyt v2 (klientdrevet) | Implementert |
+| 025 | QuickView — delt visning i BrowseView | Implementert |
+| 026 | Søkeside-redesign med splittet layout | Implementert |
+| 027 | UI-utseende — temabytte og tekststørrelse | Utkast |
+| 028 | Visningskorreksjoner (PhotoCorrection) | Implementert |

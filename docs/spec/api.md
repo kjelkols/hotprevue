@@ -22,6 +22,8 @@ Teknisk API-dokumentasjon genereres automatisk fra kjørende backend (se `script
 | `GET` | `/photos/{hothash}` | Hent ett photo med full metadata |
 | `PATCH` | `/photos/{hothash}` | Oppdater metadata (taken_at, tags, rating, event, photographer, osv.) |
 | `GET` | `/photos/{hothash}/coldpreview` | Hent coldpreview-bilde (JPEG, med korreksjon hvis den finnes) |
+| `PATCH` | `/photos/{hothash}/correction` | Delvis oppdatering av visningskorreksjoner (oppretter rad om nødvendig) |
+| `DELETE` | `/photos/{hothash}/correction` | Fjern alle visningskorreksjoner |
 | `GET` | `/photos/{hothash}/files` | List ImageFiles tilknyttet photo |
 | `POST` | `/photos/{hothash}/companions` | Legg til companion-fil (kun metadata, ingen opplasting) |
 | `POST` | `/photos/{hothash}/delete` | Mykt slett photo |
@@ -29,11 +31,23 @@ Teknisk API-dokumentasjon genereres automatisk fra kjørende backend (se `script
 | `POST` | `/photos/empty-trash` | Hard-slett alle mykt slettede photos |
 
 **`GET /photos/{hothash}/coldpreview` — respons:**
-Returnerer `image/jpeg`. Hvis photo har en aktiv `PhotoCorrection`, appliseres korreksjonene på-farten fra original coldpreview (rotasjon → horisontkorreksjon → crop → eksponering). Original coldpreview på disk røres aldri.
+Returnerer `image/jpeg`. Hvis photo har en aktiv `PhotoCorrection`, appliseres korreksjonene på-farten: rotation → flip_horizontal → horizon_angle → crop → exposure_ev. Original coldpreview på disk røres aldri.
 
 - `ETag` settes til hothash (ingen korreksjon — immutabelt) eller `hothash-<timestamp>` (med korreksjon)
 - `Cache-Control: private, max-age=3600`
 - `404` hvis photo ikke finnes eller coldpreview-fil mangler
+
+**`PATCH /photos/{hothash}/correction` — parametere (alle valgfrie):**
+
+| Felt | Type | Beskrivelse |
+|---|---|---|
+| `rotation` | int \| null | `90`, `180`, `270` — send `null` for å fjerne |
+| `flip_horizontal` | bool | `true` / `false` |
+| `horizon_angle` | float \| null | Grader (±15°) |
+| `exposure_ev` | float \| null | EV-justering |
+| `crop_left/top/right/bottom` | float \| null | 0.0–1.0 per kant |
+
+Kun felt som er til stede i requesten oppdateres (`exclude_unset`). Returnerer `PhotoDetail`.
 
 **`POST /photos/{hothash}/companions` — parametere:**
 - `path` (string, påkrevd) — originalsti på frontends filsystem
@@ -318,6 +332,8 @@ Standard: `taken_at_desc`. Alle sorteringer bruker `registered_at_asc` som sekun
 | `stack_id`, `is_stack_cover` | Gallerilogikk |
 | `deleted_at` | Søppelkassvisning |
 | `has_correction` | Bool — indikerer om korreksjon finnes |
+| `rotation` | Denormalisert fra `PhotoCorrection` — for CSS-transform av thumbnails |
+| `flip_horizontal` | Denormalisert fra `PhotoCorrection` — for CSS-transform av thumbnails |
 | `camera_make`, `camera_model` | Nyttig i liste |
 | `iso`, `shutter_speed`, `aperture`, `focal_length` | Nyttig i liste |
 
