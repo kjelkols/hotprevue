@@ -85,29 +85,44 @@ fremtidig iterasjon dersom mer sofistikert histogram-analyse ønskes.
 ## Komponentstruktur
 
 ```
+lib/
+  photoTransform.ts            ← computePhotoTransformCSS(correction) — eneste
+                                  kilde til CSS-transformasjonslogikk i frontend
+
 features/photos/
   CorrectionPanel.tsx          ← delt komponent, mode: 'full' | 'compact'
+  CorrectionSliders.tsx        ← sliders for horisont, eksponering, crop
   PhotoCorrectionDialog.tsx    ← Radix Dialog-wrapper rundt CorrectionPanel
   PhotoMetaPanel.tsx           ← <CorrectionPanel mode="full"> øverst
 
 features/browse/
-  PhotoThumbnail.tsx           ← hover-knapper (↻/↺) + CSS-transform
-  ThumbnailShell.tsx           ← ny actions-prop for overlay-knapper
+  PhotoThumbnail.tsx           ← hover-knapper (↻/↺), sender correction til shell
+  ThumbnailShell.tsx           ← bruker computePhotoTransformCSS, correction-prop
 ```
 
 `CorrectionPanel` eier React Query-mutasjonen (`updateCorrection`).
 Bruker `setQueryData` for å oppdatere `['photo', hothash]` umiddelbart (ikke
 `invalidateQueries`), og `invalidateQueries` for `['photos']`-listen.
 
+### Crop-reset ved orientieringsendring
+
+Crop-koordinater er lagret relativt til post-rotasjons-/flip-bildet. Endring av
+`rotation` eller `flip_horizontal` invaliderer disse koordinatene. `CorrectionPanel`
+nullstiller automatisk alle fire crop-felt i samme PATCH-kall som orienterings-
+endringen. Dette hindrer at et usynlig, ugyldig crop-rektangel overlever en rotasjon.
+
 ## Konsekvenser
 
 - Ingen nye backend-endepunkter for kjerne-funksjonaliteten (endepunktene
   finnes fra ADR-028)
 - `ThumbnailShell`-endring er bakoverkompatibel (`actions` er valgfri)
-- CSS-transform av thumbnails er gratis — `rotation` er allerede i `PhotoListItem`
+- CSS-transform av thumbnails er gratis — alle korreksjonsfelt er i `PhotoListItem`
+- `computePhotoTransformCSS` sikrer at thumbnail og coldpreview alltid bruker
+  samme transformasjonsrekkefølge
 - Sliders krever debouncing for å unngå API-overbelastning
-- `flip_horizontal` er ikke eksponert på thumbnail-nivå — det er vanskelig å
-  bedømme riktig på 150px og bør gjøres i detaljvisning
+- `flip_horizontal` er ikke eksponert på thumbnail-nivå — vanskelig å bedømme
+  riktig på 150px, gjøres i detaljvisning eller dialog
+- Horisontjustering vises ikke i thumbnails (se `photoTransform.ts`)
 
 ## Ikke i scope
 

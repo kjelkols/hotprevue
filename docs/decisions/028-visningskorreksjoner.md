@@ -44,12 +44,35 @@ når en korreksjon finnes — dette er en ny URL som aldri er cachet i nettleser
 av `['photo', hothash]`-cachen med returverdien fra PATCH, slik at URL-parameteren
 endres i samme render-syklus som mutasjonen fullføres.
 
-### Rotation og flip_horizontal i PhotoListItem
+### Denormalisering til PhotoListItem
 
-`rotation` og `flip_horizontal` er denormalisert inn i `PhotoListItem` via Python
-`@property`-felter på `Photo`-modellen. Dette gjør det mulig å vise riktig
-orientering i thumbnails (CSS `transform: rotate()` og `scaleX(-1)`) uten ekstra
-API-kall. Full `PhotoCorrection` er bare tilgjengelig i `PhotoDetail`.
+Feltene `rotation`, `flip_horizontal`, `crop_left`, `crop_top`, `crop_right`,
+`crop_bottom` og `exposure_ev` er denormalisert inn i `PhotoListItem` via Python
+`@property`-felter på `Photo`-modellen. Dette gjør at alle thumbnail-visninger
+(browse, søk, QuickView) kan vise fullstendige korreksjoner uten ekstra API-kall.
+Full `PhotoCorrection`-objekt er bare tilgjengelig i `PhotoDetail`.
+
+### Enhetlig CSS-transformasjon
+
+`src/lib/photoTransform.ts` er den eneste kilden til CSS-transformasjonslogikk
+i frontend. Funksjonen `computePhotoTransformCSS(correction)` speiler backend-
+pipelinen nøyaktig og returnerer `{ imgStyle, wrapperStyle }`:
+
+```
+imgStyle.transform  → rotate(Ndeg) scaleX(-1)  — CSS venstre→høyre = roter først
+imgStyle.filter     → brightness(2^ev)          — eksponering
+wrapperStyle.clipPath → inset(ct% cr% cb% cl%)  — crop i post-rotasjonsrommet
+```
+
+For 150×150 kvadratiske thumbnails er `clip-path` på wrapper-elementet
+geometrisk korrekt: container-koordinatene tilsvarer det roterte bildets visuelle
+rom, slik at crop-verdiene (lagret post-rotasjon) direkte oversettes uten
+koordinattransformasjon. Horisontjustering utelates i CSS (for subtil på 150px,
+krever auto-crop-steg som ikke kan repliseres).
+
+**Viktig:** Crop-koordinater er alltid relative til post-rotasjons/-flip-bildet.
+Endring av `rotation` eller `flip_horizontal` nullstiller crop-feltene automatisk
+i samme PATCH-kall (se ADR-029).
 
 ### API-endepunkter
 
@@ -82,8 +105,8 @@ Dersom ingen `PhotoCorrection`-rad finnes, opprettes den automatisk.
 
 ## Konsekvenser
 
-- Backend endres aldri: `serve_coldpreview()` er eneste sted korreksjoner appliseres
-- Hotpreview i databasen endres ikke — CSS-transform brukes for thumbnails
+- Backend endres aldri: `serve_coldpreview()` er eneste sted piksler transformeres
+- Hotpreview i databasen endres ikke — `computePhotoTransformCSS` håndterer CSS
 - Hothash forblir stabil etter registrering
 - `?t=<updated_at>`-parameteren og `setQueryData`-mønsteret sikrer umiddelbar
   nettleser-cache-invalidering uten ekstra nettverksforespørsel
