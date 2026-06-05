@@ -12,6 +12,7 @@ export default function PhotoDetailPage() {
   const navigate = useNavigate()
 
   const hothashes = usePhotoNavStore(s => s.hothashes)
+  const backUrl = usePhotoNavStore(s => s.backUrl)
   const currentIndex = hothash ? hothashes.indexOf(hothash) : -1
   const prevHash = currentIndex > 0 ? hothashes[currentIndex - 1] : null
   const nextHash = currentIndex >= 0 && currentIndex < hothashes.length - 1 ? hothashes[currentIndex + 1] : null
@@ -24,12 +25,13 @@ export default function PhotoDetailPage() {
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') navigate(backUrl)
       if (e.key === 'ArrowLeft' && prevHash) navigate(`/photos/${prevHash}`)
       if (e.key === 'ArrowRight' && nextHash) navigate(`/photos/${nextHash}`)
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [prevHash, nextHash, navigate])
+  }, [prevHash, nextHash, navigate, backUrl])
 
   if (isLoading) {
     return (
@@ -53,7 +55,7 @@ export default function PhotoDetailPage() {
     <div className="flex flex-col h-full bg-gray-950 text-white">
       <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-800 shrink-0">
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => navigate(backUrl)}
           className="text-sm text-gray-400 hover:text-white transition-colors"
         >
           ← Tilbake

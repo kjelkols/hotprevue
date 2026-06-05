@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import type { PhotoListItem } from '../../types/api'
 import useSelectionStore from '../../stores/useSelectionStore'
 import useContextMenuStore from '../../stores/useContextMenuStore'
@@ -22,6 +22,7 @@ interface Props {
 
 export default function PhotoThumbnail({ photo, orderedHashes }: Props) {
   const navigate = useNavigate()
+  const location = useLocation()
   const selectOnly = useSelectionStore(s => s.selectOnly)
   const toggleOne = useSelectionStore(s => s.toggleOne)
   const selectRange = useSelectionStore(s => s.selectRange)
@@ -30,6 +31,7 @@ export default function PhotoThumbnail({ photo, orderedHashes }: Props) {
   const openContextMenu = useContextMenuStore(s => s.openContextMenu)
   const openAssignment = useAssignmentStore(s => s.open)
   const setHothashes = usePhotoNavStore(s => s.setHothashes)
+  const setBackUrl = usePhotoNavStore(s => s.setBackUrl)
 
   function handleClick(e: React.MouseEvent) {
     e.preventDefault()
@@ -40,6 +42,7 @@ export default function PhotoThumbnail({ photo, orderedHashes }: Props) {
 
   function handleDoubleClick() {
     setHothashes(orderedHashes)
+    setBackUrl(location.pathname + location.search)
     navigate(`/photos/${photo.hothash}`)
   }
 

@@ -16,15 +16,19 @@ export default function BrowsePage() {
   const photoSource = usePhotoSource({ sessionId, eventId, tag })
   const [view, setView] = useState<'grid' | 'timeline'>('grid')
 
+  const upUrl = eventId ? `/events/${eventId}` : sessionId ? '/sessions' : tag ? '/tags' : null
+
   return (
     <div className="min-h-full bg-gray-950 text-white">
       <div className="flex items-center gap-4 px-4 py-3 border-b border-gray-800">
-        <button
-          onClick={() => navigate(-1)}
-          className="text-sm text-gray-400 hover:text-white transition-colors shrink-0"
-        >
-          ← Tilbake
-        </button>
+        {upUrl && (
+          <button
+            onClick={() => navigate(upUrl)}
+            className="text-sm text-gray-400 hover:text-white transition-colors shrink-0"
+          >
+            ← Tilbake
+          </button>
+        )}
         <h1 className="text-xl font-semibold flex-1 truncate">{title}</h1>
         <ViewToggle view={view} onChange={setView} />
       </div>
