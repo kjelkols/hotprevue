@@ -1,5 +1,5 @@
 import { apiFetch } from './client'
-import type { PhotoDetail, PhotoListItem } from '../types/api'
+import type { PhotoDetail, PhotoListItem, CheckResponse } from '../types/api'
 
 export function listPhotos(params: {
   limit?: number

@@ -2,14 +2,13 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getSearch, createSearch, patchSearch } from '../api/searches'
-import SearchCriteriaBuilder from '../features/search/SearchCriteriaBuilder'
-import PhotoGrid from '../features/browse/PhotoGrid'
+import CriteriaPanel from '../features/search/CriteriaPanel'
+import QuickView from '../features/browse/QuickView'
 import PhotoTimeline from '../features/browse/PhotoTimeline'
 import ViewToggle from '../components/ViewToggle'
 import { usePhotoSource } from '../hooks/usePhotoSource'
 import type { SearchCriterion } from '../types/api'
 
-type Applied = { logic: 'AND' | 'OR'; criteria: SearchCriterion[] } | null
 type View = 'grid' | 'timeline'
 
 export default function SearchPage() {
@@ -20,15 +19,8 @@ export default function SearchPage() {
   const [name, setName] = useState('')
   const [logic, setLogic] = useState<'AND' | 'OR'>('AND')
   const [criteria, setCriteria] = useState<SearchCriterion[]>([])
-  const [applied, setApplied] = useState<Applied>(null)
-  const [seeded, setSeeded] = useState(false)
+  const [debounced, setDebounced] = useState<{ logic: 'AND' | 'OR'; criteria: SearchCriterion[] }>({ logic: 'AND', criteria: [] })
   const [view, setView] = useState<View>('grid')
-
-  const photoSource = usePhotoSource({
-    logic: applied?.logic ?? 'AND',
-    criteria: applied?.criteria,
-    enabled: !!applied,
-  })
 
   const { data: saved } = useQuery({
     queryKey: ['searches', id],
@@ -37,14 +29,23 @@ export default function SearchPage() {
   })
 
   useEffect(() => {
-    if (saved && !seeded) {
+    if (saved) {
       setName(saved.name)
       setLogic(saved.logic)
       setCriteria(saved.criteria)
-      setApplied({ logic: saved.logic, criteria: saved.criteria })
-      setSeeded(true)
     }
-  }, [saved, seeded])
+  }, [saved?.id])
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced({ logic, criteria }), 400)
+    return () => clearTimeout(t)
+  }, [logic, criteria])
+
+  const photoSource = usePhotoSource({
+    logic: debounced.logic,
+    criteria: debounced.criteria,
+    enabled: debounced.criteria.length > 0,
+  })
 
   const saveMutation = useMutation({
     mutationFn: () =>
@@ -57,59 +58,81 @@ export default function SearchPage() {
     },
   })
 
+  const isReady = !id || !!saved
+  const hasActiveCriteria = debounced.criteria.length > 0
+
   return (
-    <div className="min-h-full bg-gray-950 text-white">
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-800">
-        <button
-          onClick={() => navigate('/searches')}
-          className="text-sm text-gray-400 hover:text-white transition-colors shrink-0"
-        >
-          ← Tilbake
-        </button>
-        <input
-          value={name}
-          onChange={e => setName(e.target.value)}
-          placeholder="Søkenavn…"
-          className="flex-1 bg-transparent text-xl font-semibold outline-none placeholder-gray-600 min-w-0"
-        />
-        {applied && <ViewToggle view={view} onChange={setView} />}
-        <button
-          onClick={() => saveMutation.mutate()}
-          disabled={saveMutation.isPending || !name.trim()}
-          className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-500 disabled:opacity-50 transition-colors shrink-0"
-        >
-          {saveMutation.isPending ? 'Lagrer…' : id ? 'Lagre endringer' : 'Lagre søk'}
-        </button>
-      </div>
+    <div className="flex h-full overflow-hidden bg-gray-950 text-white">
 
-      <div className="p-4 space-y-4 max-w-3xl">
-        <SearchCriteriaBuilder
-          logic={logic}
-          criteria={criteria}
-          onLogicChange={setLogic}
-          onCriteriaChange={setCriteria}
-        />
-        <button
-          onClick={() => setApplied({ logic, criteria })}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-500 transition-colors"
-        >
-          Kjør søk
-        </button>
-      </div>
-
-      {applied && (
-        <div className="p-4">
-          {view === 'grid' ? (
-            <PhotoGrid {...photoSource} />
-          ) : (
-            <PhotoTimeline
-              key={JSON.stringify(applied)}
-              logic={applied.logic}
-              criteria={applied.criteria}
+      {/* Left panel — criteria */}
+      <div className="flex w-[300px] shrink-0 flex-col border-r border-gray-800">
+        <div className="flex items-center gap-2 border-b border-gray-800 px-3 py-2.5">
+          <button
+            onClick={() => navigate('/searches')}
+            className="text-sm text-gray-400 hover:text-white transition-colors"
+          >
+            ← Tilbake
+          </button>
+        </div>
+        <div className="flex items-center gap-2 border-b border-gray-800 px-3 py-2">
+          <input
+            value={name}
+            onChange={e => setName(e.target.value)}
+            placeholder="Søkenavn…"
+            className="min-w-0 flex-1 bg-transparent text-sm font-medium outline-none placeholder-gray-600"
+          />
+          <button
+            onClick={() => saveMutation.mutate()}
+            disabled={saveMutation.isPending || !name.trim()}
+            className="shrink-0 rounded bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-500 disabled:opacity-50 transition-colors"
+          >
+            {saveMutation.isPending ? '…' : 'Lagre'}
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto py-3">
+          {isReady && (
+            <CriteriaPanel
+              key={id ?? 'new'}
+              initialCriteria={saved?.criteria}
+              logic={logic}
+              onLogicChange={setLogic}
+              onChange={setCriteria}
             />
           )}
         </div>
-      )}
+      </div>
+
+      {/* Right panel — results */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <div className="flex items-center gap-3 border-b border-gray-800 px-4 py-3">
+          <span className="text-sm text-gray-500">
+            {photoSource.isLoading ? 'Søker…' : hasActiveCriteria ? `${photoSource.photos.length} bilder` : ''}
+          </span>
+          <div className="ml-auto">
+            <ViewToggle view={view} onChange={setView} />
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto p-3">
+          {!hasActiveCriteria ? (
+            <div className="flex items-center justify-center py-20 text-sm text-gray-600">
+              Aktiver ett eller flere kriterier for å søke
+            </div>
+          ) : view === 'grid' ? (
+            <QuickView
+              photos={photoSource.photos}
+              isLoading={photoSource.isLoading}
+              hasMore={photoSource.hasMore}
+              onLoadMore={photoSource.loadMore}
+            />
+          ) : (
+            <PhotoTimeline
+              key={JSON.stringify(debounced)}
+              logic={debounced.logic}
+              criteria={debounced.criteria}
+            />
+          )}
+        </div>
+      </div>
     </div>
   )
 }
