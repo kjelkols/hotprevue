@@ -28,7 +28,7 @@ export default function FolderPanel() {
   const volumePaths = new Set(volumes.map((v: BrowseDir) => v.path))
 
   return (
-    <aside className="flex w-56 shrink-0 flex-col border-r border-gray-800 bg-gray-950 overflow-y-auto">
+    <aside className="flex h-full w-full flex-col border-r border-gray-800 bg-gray-950 overflow-y-auto">
 
       {/* Festede mapper */}
       {pinned.length > 0 && (

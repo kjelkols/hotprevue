@@ -6,6 +6,7 @@ import CriteriaPanel from '../features/search/CriteriaPanel'
 import QuickView from '../features/browse/QuickView'
 import PhotoTimeline from '../features/browse/PhotoTimeline'
 import ViewToggle from '../components/ViewToggle'
+import SplitPane from '../components/SplitPane'
 import { usePhotoSource } from '../hooks/usePhotoSource'
 import type { SearchCriterion } from '../types/api'
 
@@ -61,78 +62,81 @@ export default function SearchPage() {
   const isReady = !id || !!saved
   const hasActiveCriteria = debounced.criteria.length > 0
 
-  return (
-    <div className="flex h-full overflow-hidden bg-gray-950 text-white">
-
-      {/* Left panel — criteria */}
-      <div className="flex w-[300px] shrink-0 flex-col border-r border-gray-800">
-        <div className="flex items-center gap-2 border-b border-gray-800 px-3 py-2.5">
-          <button
-            onClick={() => navigate('/searches')}
-            className="text-sm text-gray-300 hover:text-white transition-colors"
-          >
-            ← Tilbake
-          </button>
-        </div>
-        <div className="flex items-center gap-2 border-b border-gray-800 px-3 py-2">
-          <input
-            value={name}
-            onChange={e => setName(e.target.value)}
-            placeholder="Søkenavn…"
-            className="min-w-0 flex-1 bg-transparent text-sm font-medium outline-none placeholder-gray-600"
+  const leftPanel = (
+    <div className="flex h-full flex-col border-r border-gray-800">
+      <div className="flex items-center gap-2 border-b border-gray-800 px-3 py-2.5">
+        <button
+          onClick={() => navigate('/searches')}
+          className="text-sm text-gray-300 hover:text-white transition-colors"
+        >
+          ← Tilbake
+        </button>
+      </div>
+      <div className="flex items-center gap-2 border-b border-gray-800 px-3 py-2">
+        <input
+          value={name}
+          onChange={e => setName(e.target.value)}
+          placeholder="Søkenavn…"
+          className="min-w-0 flex-1 bg-transparent text-sm font-medium outline-none placeholder-gray-600"
+        />
+        <button
+          onClick={() => saveMutation.mutate()}
+          disabled={saveMutation.isPending || !name.trim()}
+          className="shrink-0 rounded bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-500 disabled:opacity-50 transition-colors"
+        >
+          {saveMutation.isPending ? '…' : 'Lagre'}
+        </button>
+      </div>
+      <div className="flex-1 overflow-y-auto py-3">
+        {isReady && (
+          <CriteriaPanel
+            key={id ?? 'new'}
+            initialCriteria={saved?.criteria}
+            logic={logic}
+            onLogicChange={setLogic}
+            onChange={setCriteria}
           />
-          <button
-            onClick={() => saveMutation.mutate()}
-            disabled={saveMutation.isPending || !name.trim()}
-            className="shrink-0 rounded bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-500 disabled:opacity-50 transition-colors"
-          >
-            {saveMutation.isPending ? '…' : 'Lagre'}
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto py-3">
-          {isReady && (
-            <CriteriaPanel
-              key={id ?? 'new'}
-              initialCriteria={saved?.criteria}
-              logic={logic}
-              onLogicChange={setLogic}
-              onChange={setCriteria}
-            />
-          )}
-        </div>
+        )}
       </div>
+    </div>
+  )
 
-      {/* Right panel — results */}
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <div className="flex items-center gap-3 border-b border-gray-800 px-4 py-3">
-          <span className="text-sm text-gray-300">
-            {photoSource.isLoading ? 'Søker…' : hasActiveCriteria ? `${photoSource.photos.length} bilder` : ''}
-          </span>
-          <div className="ml-auto">
-            <ViewToggle view={view} onChange={setView} />
-          </div>
-        </div>
-        <div className="flex-1 overflow-y-auto p-3">
-          {!hasActiveCriteria ? (
-            <div className="flex items-center justify-center py-20 text-sm text-gray-500">
-              Aktiver ett eller flere kriterier for å søke
-            </div>
-          ) : view === 'grid' ? (
-            <QuickView
-              photos={photoSource.photos}
-              isLoading={photoSource.isLoading}
-              hasMore={photoSource.hasMore}
-              onLoadMore={photoSource.loadMore}
-            />
-          ) : (
-            <PhotoTimeline
-              key={JSON.stringify(debounced)}
-              logic={debounced.logic}
-              criteria={debounced.criteria}
-            />
-          )}
+  const rightPanel = (
+    <div className="flex h-full flex-col">
+      <div className="flex items-center gap-3 border-b border-gray-800 px-4 py-3">
+        <span className="text-sm text-gray-300">
+          {photoSource.isLoading ? 'Søker…' : hasActiveCriteria ? `${photoSource.photos.length} bilder` : ''}
+        </span>
+        <div className="ml-auto">
+          <ViewToggle view={view} onChange={setView} />
         </div>
       </div>
+      <div className="flex-1 overflow-y-auto p-3">
+        {!hasActiveCriteria ? (
+          <div className="flex items-center justify-center py-20 text-sm text-gray-500">
+            Aktiver ett eller flere kriterier for å søke
+          </div>
+        ) : view === 'grid' ? (
+          <QuickView
+            photos={photoSource.photos}
+            isLoading={photoSource.isLoading}
+            hasMore={photoSource.hasMore}
+            onLoadMore={photoSource.loadMore}
+          />
+        ) : (
+          <PhotoTimeline
+            key={JSON.stringify(debounced)}
+            logic={debounced.logic}
+            criteria={debounced.criteria}
+          />
+        )}
+      </div>
+    </div>
+  )
+
+  return (
+    <div className="h-full bg-gray-950 text-white">
+      <SplitPane left={leftPanel} right={rightPanel} defaultSize={300} minSize={200} maxSize={550} storageKey="search" />
     </div>
   )
 }

@@ -6,6 +6,7 @@ import { getBaseUrl } from '../api/client'
 import PhotoMetaPanel from '../features/photos/PhotoMetaPanel'
 import ZoomableImage from '../components/ZoomableImage'
 import usePhotoNavStore from '../stores/usePhotoNavStore'
+import SplitPane from '../components/SplitPane'
 
 export default function PhotoDetailPage() {
   const { hothash } = useParams<{ hothash: string }>()
@@ -86,16 +87,15 @@ export default function PhotoDetailPage() {
         )}
       </div>
 
-      <div className="flex flex-1 min-h-0">
-        {/* Left panel: coldpreview (~60%) */}
-        <div className="flex-[3] bg-gray-900">
-          <ZoomableImage key={hothash} src={coldpreviewUrl} />
-        </div>
-
-        {/* Right panel: metadata (~40%) */}
-        <div className="flex-[2] overflow-y-auto p-6 border-l border-gray-800">
-          <PhotoMetaPanel photo={photo} />
-        </div>
+      <div className="flex-1 min-h-0">
+        <SplitPane
+          left={<div className="h-full bg-gray-900"><ZoomableImage key={hothash} src={coldpreviewUrl} /></div>}
+          right={<div className="h-full overflow-y-auto p-6 border-l border-gray-800"><PhotoMetaPanel photo={photo} /></div>}
+          defaultSize={700}
+          minSize={300}
+          maxSize={1400}
+          storageKey="photo-detail"
+        />
       </div>
     </div>
   )
