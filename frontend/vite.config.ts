@@ -26,6 +26,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: '0.0.0.0',
+    allowedHosts: true,
     proxy: Object.fromEntries(
       API_ROUTES.map(route => [route, { target: BACKEND, changeOrigin: true }])
     ),

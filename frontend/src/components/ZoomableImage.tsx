@@ -4,11 +4,13 @@ import { useImageZoom } from '../hooks/useImageZoom'
 interface Props {
   src: string
   alt?: string
+  onSwipeLeft?: () => void
+  onSwipeRight?: () => void
 }
 
-export default function ZoomableImage({ src, alt = '' }: Props) {
+export default function ZoomableImage({ src, alt = '', onSwipeLeft, onSwipeRight }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const { scale, offsetX, offsetY, isZoomed, onMouseDown } = useImageZoom(containerRef)
+  const { scale, offsetX, offsetY, isZoomed, onMouseDown } = useImageZoom(containerRef, onSwipeLeft, onSwipeRight)
 
   return (
     <div
@@ -20,12 +22,7 @@ export default function ZoomableImage({ src, alt = '' }: Props) {
         className="absolute inset-0 flex items-center justify-center"
         style={{ transform: `scale(${scale}) translate(${offsetX / scale}px, ${offsetY / scale}px)` }}
       >
-        <img
-          src={src}
-          alt={alt}
-          className="max-h-full max-w-full object-contain"
-          draggable={false}
-        />
+        <img src={src} alt={alt} className="max-h-full max-w-full object-contain" draggable={false} />
       </div>
     </div>
   )
