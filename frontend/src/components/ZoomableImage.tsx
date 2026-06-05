@@ -15,7 +15,7 @@ export default function ZoomableImage({ src, alt = '', onSwipeLeft, onSwipeRight
   return (
     <div
       ref={containerRef}
-      className={['w-full h-full overflow-hidden relative', isZoomed ? 'cursor-grab active:cursor-grabbing' : ''].join(' ')}
+      className={['w-full h-full overflow-hidden relative touch-none', isZoomed ? 'cursor-grab active:cursor-grabbing' : ''].join(' ')}
       onMouseDown={onMouseDown}
     >
       <div

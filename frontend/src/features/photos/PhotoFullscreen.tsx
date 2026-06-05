@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import ZoomableImage from '../../components/ZoomableImage'
 
 interface Props {
@@ -15,26 +15,31 @@ interface Props {
 export default function PhotoFullscreen({ src, prevHash, nextHash, currentIndex, total, onExit, onPrev, onNext }: Props) {
   const [showControls, setShowControls] = useState(true)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
 
-  function revealControls() {
+  const revealControls = useCallback(() => {
     setShowControls(true)
     if (timerRef.current) clearTimeout(timerRef.current)
     timerRef.current = setTimeout(() => setShowControls(false), 3000)
-  }
+  }, [])
 
   useEffect(() => {
     revealControls()
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
-  }, [])
+  }, [revealControls])
+
+  // Native passive listener — does not interfere with ZoomableImage's non-passive touch handlers
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    el.addEventListener('touchstart', revealControls, { passive: true })
+    return () => el.removeEventListener('touchstart', revealControls)
+  }, [revealControls])
 
   const ctrl = `transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black overflow-hidden"
-      onMouseMove={revealControls}
-      onTouchStart={revealControls}
-    >
+    <div ref={containerRef} className="fixed inset-0 z-50 bg-black overflow-hidden" onMouseMove={revealControls}>
       <ZoomableImage
         key={src}
         src={src}
@@ -48,7 +53,11 @@ export default function PhotoFullscreen({ src, prevHash, nextHash, currentIndex,
         className={`absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-black/60 hover:bg-black/80 text-white text-lg ${ctrl}`}
       >✕</button>
 
-      <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent px-6 pb-8 pt-16 ${ctrl}`}>
+      {/* Gradient: pointer-events-none so it never blocks swipes */}
+      <div className={`absolute bottom-0 left-0 right-0 h-28 bg-gradient-to-t from-black/80 to-transparent pointer-events-none ${ctrl}`} />
+
+      {/* Nav buttons: separate element, tight around the buttons */}
+      <div className={`absolute bottom-6 left-0 right-0 px-6 ${ctrl}`}>
         <div className="flex items-center justify-between max-w-sm mx-auto">
           <button
             onClick={onPrev}
