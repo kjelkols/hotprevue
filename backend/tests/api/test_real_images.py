@@ -7,9 +7,18 @@ Run with:
     uv run pytest --real-images
 """
 
+import base64
+import hashlib
+import tempfile
+from pathlib import Path
+
 import pytest
 
 from core.config import settings as app_settings
+from utils.exif import extract_camera_fields, extract_exif, extract_gps, extract_taken_at
+from utils.previews import generate_coldpreview, generate_hotpreview, hotpreview_b64
+from utils.quality import compute_quality_metrics
+from utils.registration import file_type_from_suffix
 
 
 @pytest.fixture(autouse=True)
@@ -38,17 +47,67 @@ def _create_session(client, photographer_id, source_path):
     return r.json()["id"]
 
 
-def _register_by_path(client, session_id, master_path, master_type, companions=None):
-    """Register via the path-based endpoint (backend reads file from disk)."""
-    r = client.post(
-        f"/input-sessions/{session_id}/groups-by-path",
-        json={
-            "master_path": str(master_path),
-            "master_type": master_type,
-            "companions": companions or [],
-        },
-    )
-    return r
+def _build_group_payload(master_path: Path, companions: list[Path] | None = None) -> dict:
+    """Process an image file as the client would, returning a GroupPayload dict."""
+    master_str = str(master_path)
+
+    jpeg_bytes, hothash, width, height = generate_hotpreview(master_str)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        cold_path = generate_coldpreview(master_str, hothash, tmp)
+        cold_b64 = base64.b64encode(Path(cold_path).read_bytes()).decode("ascii")
+
+    exif = extract_exif(master_str)
+    cam = extract_camera_fields(master_str)
+    taken_at_dt = extract_taken_at(exif)
+    gps_lat, gps_lng = extract_gps(exif)
+    quality = compute_quality_metrics(master_str)
+
+    master_data = master_path.read_bytes()
+
+    companion_payloads = []
+    for comp_path in (companions or []):
+        comp_data = comp_path.read_bytes()
+        companion_payloads.append({
+            "path": str(comp_path),
+            "type": file_type_from_suffix(comp_path.suffix.lower()),
+            "file_size_bytes": len(comp_data),
+            "file_content_hash": hashlib.sha256(comp_data).hexdigest(),
+            "exif_data": extract_exif(str(comp_path)),
+        })
+
+    return {
+        "hothash": hothash,
+        "hotpreview_b64": hotpreview_b64(jpeg_bytes),
+        "coldpreview_b64": cold_b64,
+        "master_path": master_str,
+        "master_type": file_type_from_suffix(master_path.suffix.lower()),
+        "master_size_bytes": len(master_data),
+        "master_content_hash": hashlib.sha256(master_data).hexdigest(),
+        "master_exif": exif,
+        "width": width,
+        "height": height,
+        "taken_at": taken_at_dt.isoformat() if taken_at_dt else None,
+        "location_lat": gps_lat,
+        "location_lng": gps_lng,
+        "camera_make": cam.get("camera_make"),
+        "camera_model": cam.get("camera_model"),
+        "lens_model": cam.get("lens_model"),
+        "iso": cam.get("iso"),
+        "shutter_speed": cam.get("shutter_speed"),
+        "aperture": cam.get("aperture"),
+        "focal_length": cam.get("focal_length"),
+        "sharpness_score": quality["sharpness_score"],
+        "exposure_mean": quality["exposure_mean"],
+        "exposure_clipping": quality["exposure_clipping"],
+        "noise_score": quality["noise_score"],
+        "companions": companion_payloads,
+    }
+
+
+def _register(client, session_id: str, master_path: Path, companions: list[Path] | None = None):
+    payload = _build_group_payload(master_path, companions)
+    return client.post(f"/input-sessions/{session_id}/groups", json=payload)
 
 
 # ---------------------------------------------------------------------------
@@ -62,7 +121,7 @@ def test_register_jpeg_only(client, real_image_dir):
     photographer_id = _create_photographer(client)
     session_id = _create_session(client, photographer_id, str(real_image_dir))
 
-    r = _register_by_path(client, session_id, jpeg, "JPEG")
+    r = _register(client, session_id, jpeg)
     assert r.status_code == 201, r.text
     data = r.json()
     assert data["status"] == "registered"
@@ -81,10 +140,7 @@ def test_raw_is_master_when_both_present(client, real_image_dir):
     photographer_id = _create_photographer(client)
     session_id = _create_session(client, photographer_id, str(real_image_dir))
 
-    r = _register_by_path(
-        client, session_id, nef, "RAW",
-        companions=[{"path": str(jpeg), "type": "JPEG"}],
-    )
+    r = _register(client, session_id, nef, companions=[jpeg])
     assert r.status_code == 201, r.text
     hothash = r.json()["hothash"]
 
@@ -104,7 +160,7 @@ def test_register_nef_standalone(client, real_image_dir):
     photographer_id = _create_photographer(client)
     session_id = _create_session(client, photographer_id, str(real_image_dir))
 
-    r = _register_by_path(client, session_id, nef, "RAW")
+    r = _register(client, session_id, nef)
     assert r.status_code == 201, r.text
     assert r.json()["status"] == "registered"
 
@@ -120,7 +176,7 @@ def test_exif_stored_on_master_imagefile(client, real_image_dir):
     photographer_id = _create_photographer(client)
     session_id = _create_session(client, photographer_id, str(real_image_dir))
 
-    r = _register_by_path(client, session_id, nef, "RAW")
+    r = _register(client, session_id, nef)
     hothash = r.json()["hothash"]
 
     files = client.get(f"/photos/{hothash}/files").json()
@@ -137,10 +193,7 @@ def test_exif_stored_on_jpeg_companion(client, real_image_dir):
     photographer_id = _create_photographer(client)
     session_id = _create_session(client, photographer_id, str(real_image_dir))
 
-    r = _register_by_path(
-        client, session_id, nef, "RAW",
-        companions=[{"path": str(jpeg), "type": "JPEG"}],
-    )
+    r = _register(client, session_id, nef, companions=[jpeg])
     hothash = r.json()["hothash"]
 
     files = client.get(f"/photos/{hothash}/files").json()
@@ -155,7 +208,7 @@ def test_photo_canonical_fields_populated(client, real_image_dir):
     photographer_id = _create_photographer(client)
     session_id = _create_session(client, photographer_id, str(real_image_dir))
 
-    r = _register_by_path(client, session_id, nef, "RAW")
+    r = _register(client, session_id, nef)
     hothash = r.json()["hothash"]
 
     detail = client.get(f"/photos/{hothash}").json()
@@ -172,7 +225,7 @@ def test_photo_dimensions_populated(client, real_image_dir):
     photographer_id = _create_photographer(client)
     session_id = _create_session(client, photographer_id, str(real_image_dir))
 
-    r = _register_by_path(client, session_id, nef, "RAW")
+    r = _register(client, session_id, nef)
     hothash = r.json()["hothash"]
 
     detail = client.get(f"/photos/{hothash}").json()
@@ -180,6 +233,10 @@ def test_photo_dimensions_populated(client, real_image_dir):
     assert detail["width"] is not None and detail["width"] > 3000
     assert detail["height"] is not None and detail["height"] > 2000
 
+
+# ---------------------------------------------------------------------------
+# File metadata
+# ---------------------------------------------------------------------------
 
 @pytest.mark.real_images
 def test_file_size_bytes_populated(client, real_image_dir):
@@ -189,10 +246,7 @@ def test_file_size_bytes_populated(client, real_image_dir):
     photographer_id = _create_photographer(client)
     session_id = _create_session(client, photographer_id, str(real_image_dir))
 
-    r = _register_by_path(
-        client, session_id, nef, "RAW",
-        companions=[{"path": str(jpeg), "type": "JPEG"}],
-    )
+    r = _register(client, session_id, nef, companions=[jpeg])
     hothash = r.json()["hothash"]
 
     files = client.get(f"/photos/{hothash}/files").json()
@@ -209,10 +263,7 @@ def test_file_content_hash_populated(client, real_image_dir):
     photographer_id = _create_photographer(client)
     session_id = _create_session(client, photographer_id, str(real_image_dir))
 
-    r = _register_by_path(
-        client, session_id, nef, "RAW",
-        companions=[{"path": str(jpeg), "type": "JPEG"}],
-    )
+    r = _register(client, session_id, nef, companions=[jpeg])
     hothash = r.json()["hothash"]
 
     files = client.get(f"/photos/{hothash}/files").json()
@@ -229,10 +280,7 @@ def test_file_content_hash_differs_between_nef_and_jpeg(client, real_image_dir):
     photographer_id = _create_photographer(client)
     session_id = _create_session(client, photographer_id, str(real_image_dir))
 
-    r = _register_by_path(
-        client, session_id, nef, "RAW",
-        companions=[{"path": str(jpeg), "type": "JPEG"}],
-    )
+    r = _register(client, session_id, nef, companions=[jpeg])
     hothash = r.json()["hothash"]
 
     files = client.get(f"/photos/{hothash}/files").json()
@@ -251,7 +299,7 @@ def test_coldpreview_served_for_nef(client, real_image_dir):
     photographer_id = _create_photographer(client)
     session_id = _create_session(client, photographer_id, str(real_image_dir))
 
-    r = _register_by_path(client, session_id, nef, "RAW")
+    r = _register(client, session_id, nef)
     hothash = r.json()["hothash"]
 
     r = client.get(f"/photos/{hothash}/coldpreview")
@@ -265,32 +313,34 @@ def test_coldpreview_served_for_nef(client, real_image_dir):
 # ---------------------------------------------------------------------------
 
 @pytest.mark.real_images
-def test_nef_duplicate_detection(client, real_image_dir):
-    """Same NEF content at two different paths → duplicate."""
+def test_nef_already_registered(client, real_image_dir):
+    """Registering the same path twice → already_registered."""
     nef = real_image_dir / "nikon_d800.NEF"
     photographer_id = _create_photographer(client)
 
     session1 = _create_session(client, photographer_id, str(real_image_dir))
-    r1 = _register_by_path(client, session1, nef, "RAW")
-    assert r1.status_code == 201
+    r1 = _register(client, session1, nef)
+    assert r1.status_code == 201, r1.text
 
     session2 = _create_session(client, photographer_id, str(real_image_dir))
-    r2 = client.post(
-        f"/input-sessions/{session2}/groups-by-path",
-        json={
-            "master_path": str(nef) + ".backup",  # Different path, same content
-            "master_type": "RAW",
-            "companions": [],
-        },
-    )
-    # Path doesn't exist → error, not duplicate. Use the same path instead.
-    r2 = client.post(
-        f"/input-sessions/{session2}/groups-by-path",
-        json={
-            "master_path": str(nef),
-            "master_type": "RAW",
-            "companions": [],
-        },
-    )
+    r2 = _register(client, session2, nef)
     assert r2.status_code == 200
     assert r2.json()["status"] == "already_registered"
+
+
+@pytest.mark.real_images
+def test_nef_duplicate_content(client, real_image_dir):
+    """Same image content at a different path → duplicate."""
+    nef = real_image_dir / "nikon_d800.NEF"
+    photographer_id = _create_photographer(client)
+
+    session1 = _create_session(client, photographer_id, str(real_image_dir))
+    r1 = _register(client, session1, nef)
+    assert r1.status_code == 201, r1.text
+
+    session2 = _create_session(client, photographer_id, str(real_image_dir))
+    payload = _build_group_payload(nef)
+    payload["master_path"] = str(nef) + ".copy"  # Different path, same content
+    r2 = client.post(f"/input-sessions/{session2}/groups", json=payload)
+    assert r2.status_code == 200
+    assert r2.json()["status"] == "duplicate"
