@@ -9,6 +9,8 @@ export function listPhotos(params: {
   sessionId?: string
   eventId?: string
   tag?: string
+  taken_after?: string
+  taken_before?: string
 }): Promise<PhotoListItem[]> {
   const q = new URLSearchParams()
   if (params.limit != null) q.set('limit', String(params.limit))
@@ -17,6 +19,8 @@ export function listPhotos(params: {
   if (params.sessionId) q.set('session_id', params.sessionId)
   if (params.eventId) q.set('event_id', params.eventId)
   if (params.tag) q.append('tags', params.tag)
+  if (params.taken_after) q.set('taken_after', params.taken_after)
+  if (params.taken_before) q.set('taken_before', params.taken_before)
   if (params.hothashes) {
     for (const h of params.hothashes) q.append('hothash', h)
   }
