@@ -99,9 +99,6 @@ export default function DirectoryPicker({ initialPath, onSelect, trigger }: Prop
                   className="group cursor-pointer w-full px-3 py-2 rounded-lg text-sm text-white hover:bg-gray-800 flex items-center gap-3">
                   <span className="shrink-0 text-xs font-bold text-yellow-600 w-12">MAPPE</span>
                   <span className="truncate flex-1">{d.name}</span>
-                  {d.image_count > 0 && (
-                    <span className="shrink-0 text-xs text-gray-500 group-hover:hidden">{d.image_count}</span>
-                  )}
                   <PinDirButton path={d.path} name={d.name} shortcutId={pinned?.id} />
                 </div>
               )
