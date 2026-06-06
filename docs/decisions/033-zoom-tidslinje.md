@@ -1,221 +1,275 @@
 # ADR-033: Zoom-tidslinje — semantisk zoom over bildesamlingen
 
-**Status:** Forslag  
-**Dato:** 2026-06-06
+**Status:** Under implementasjon  
+**Dato:** 2026-06-06  
+**Sist oppdatert:** 2026-06-06
 
 ---
 
 ## Kontekst
 
 Den eksisterende trestrukturen (ADR-006) gir presis datonavigasjon, men krever at
-brukeren aktivt ekspanderer år → måned → dag — tre klikk for å komme til bilder.
-Treet gir heller ingen romlig oversikt over fordelingen av bilder over tid.
+brukeren aktivt ekspanderer år → måned → dag. Treet gir heller ingen romlig oversikt
+over fordelingen av bilder over tid.
 
-**Problemet med eksisterende tidsvisninger i populære verktøy:**
+**Problemet med eksisterende tidsvisninger:**
 
 - *Google Photos / Apple Photos:* Vertikal scroll er egentlig en «evig feed» forkledd
-  som tidslinje. For å hoppe fra 2018 til 2024 scroller man gjennom alt imellom, eller
-  bruker en upresis skrubber uten kontekstuell forankring.
+  som tidslinje. Å hoppe fra 2018 til 2024 krever enten massevis av scroll eller en
+  upresis skrubber.
 - *Apple Photos År/Måneder/Dager-tabs:* Diskrete modus-bytt uten romlig kontinuitet.
   Brukeren mister plasseringssansen mellom hvert bytt.
-- *Lightroom histogram-tidslinje:* Kun søk, ikke navigasjon. Ikke interaktivt.
+- *Lightroom histogram-tidslinje:* Kun søk, ikke navigasjon.
 
 **Nøkkelinnsikten:** Zoom i rom er intuitivt fordi det er slik kart fungerer.
-Brukeren beholder alltid plasseringssansen, og navigasjon skjer ved å
-«bevege seg» — ikke ved å bytte modus.
+Brukeren beholder alltid plasseringssansen og navigerer ved å «bevege seg»,
+ikke ved å bytte modus.
 
 ---
 
 ## Beslutning
 
-Nytt alternativt view: **horisontal zoom-tidslinje** med kontinuerlig semantisk zoom.
-
-Tilgjengelig som visningsvalg i BrowsePage (ved siden av PhotoGrid og PhotoTimeline).
+**Separat rute `/timeline`** med egen nav-lenke — ikke et alternativ innenfor BrowsePage.
+Tidslinjen er et eget verktøy for utforskning og minnnavigasjon, ikke en variant av
+bla-siden.
 
 ---
 
-## Kjerneprinsipp: én kontinuerlig tilstandsvariabel
+## Kjerneprinsipp: semantisk progressiv avsløring
 
-Alt styres av ett tall: **`timePerPx`** (millisekunder per piksel).
+En enkelt tilstandsvariabel **`pxPerDay`** (piksler per dag) styrer alt.
 
 ```
-timePerPx høy  →  ser mange år   →  lite detalj
-timePerPx lav  →  ser få dager   →  mye detalj
+pxPerDay lav  →  ser mange år   →  skyer
+pxPerDay høy  →  ser få dager   →  thumbnails
 ```
 
-Zoom: `timePerPx *= faktor` forankret til musens X-posisjon.
-Pan: dra horisontalt (eller Shift + musehjul).
+Det finnes ingen diskrete nivåer — alt er kontinuerlig. Visuelle elementer fadder
+inn og ut ved terskelverdier.
 
-Det finnes ingen diskrete nivåer — alt er kontinuerlig, men visse
-visuelle elementer blekner inn/ut ved terskelverdier:
+### Akse-orientering
 
-| `timePerPx` (sekunder/px) | Tidslinjeenhet | Hva vises |
-|---|---|---|
-| > 30 dager | år | år-labels, densitetsflater |
-| 1–30 dager | måneder | måned-labels, event-ballonger |
-| 2–24 timer | dager | dag-labels, densitetssøyler |
-| < 2 timer | timer | miniatyrbilder, eksakt klokkeslett |
+**Vertikal tidslinje:** Y = tid (nedover), X = innhold (hele bredden).
 
-Overgangene er CSS `opacity`-fades over en faktor-2 sone rundt terskelen —
-ikke harde bytt.
+- Standard scroll panorerer i tid — ingen konflikt med zoom
+- Hele skjermbredden brukes til bilder
+- Kalenderanalogien: tid går nedover
+
+### Interaksjon
+
+| Handling | Effekt |
+|---|---|
+| Scroll | Panorerer i tid (opp/ned) |
+| Ctrl+scroll | Zoom inn/ut, forankret på musens Y-posisjon |
+| +/− knapper | Alternativ zoom |
+| Klikk på bilde | Åpner BrowsePage med bildet i fokus |
+
+### Tilstandslagring
+
+`pxPerDay` og `topMs` lagres i localStorage via Zustand `persist` — brukeren
+finner igjen nøyaktig samme zoom-posisjon ved neste besøk.
 
 ---
 
-## Render-modell: tre uavhengige lag
+## Fire zoomenivåer
+
+### Nivå 1 — År-sky (`pxPerDay < 0.4`)
+
+- Én rad per år, klippet til år der det faktisk finnes bilder
+- Skyens «tyngde» (dot-tetthet, opasitet) ∝ log(antall bilder)
+- Bare årstall og skyformasjon — ingen labels, ingen bilder
+
+### Nivå 2 — Måneds-sky (`0.4 ≤ pxPerDay < 8`)
+
+- Én rad per måned
+- 3–8 cloud-dots per måned, stabilt posisjonert (seed = dato, ikke Math.random)
+- Størrelse og tetthet ∝ log(antall bilder i måneden)
+- Månedsnavn dukker frem i ruler
+
+### Nivå 3 — Mikro-bilder i skyform (`8 ≤ pxPerDay < 60`)
+
+- Individuelle hotpreviews med stabil tilfeldig offset innenfor dagkolonnen
+- `filter: drop-shadow(0 0 6px rgba(0,0,0,0.8))` opprettholder sky-assosiasjon
+- Opasitet ∝ avstand fra klyngsenter (100% i midten, 40% i kanten)
+- Bilder kan overlappe
+
+### Nivå 4 — Fulle thumbnails (`pxPerDay ≥ 60`)
+
+- Standard grid-layout innenfor dagraden
+- Smooth fade-in over nivå 3
+
+---
+
+## Skyvisualisering: CSS metaball-teknikk
+
+Overlappende sirkler med `blur + contrast`-filter smelter sammen til organiske
+blob-former — nøyaktig som skyer. Ren CSS, ingen tredjepartsbibliotek.
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│ LAG 1 – Tidsstripe (alltid)                             │
-│  år-labels  |  måned-labels  |  dag-labels              │
-├─────────────────────────────────────────────────────────┤
-│ LAG 2 – Densitetsvisualisering (lav-middels zoom)       │
-│  Waveform-kurve fylt med gradient: farge = tetthet      │
-│  Event-ballonger: avrundede piller med eventnavn        │
-├─────────────────────────────────────────────────────────┤
-│ LAG 3 – Miniatyrbilder (høy zoom, fadder inn over lag 2)│
-│  Absolutt posisjonerte hotpreview-thumbnails per dag    │
-└─────────────────────────────────────────────────────────┘
+.cloud-wrapper {
+  filter: blur(15px) contrast(20);
+  isolation: isolate;
+}
+.cloud-dot {
+  background: <farge>;
+  border-radius: 50%;
+  position: absolute;
+}
 ```
 
-Alle lag er vanlige DOM-elementer med `position: absolute` og `transform: translateX`.
-Ingen canvas-API — dette gir tilgjengelighet, hover-states og React-kompatibilitet.
+**Antall dots:** `ceil(sqrt(count))`, maks 40. Logaritmisk slik at kontrasten
+mellom 1 og 300 bilder er lesbar uten at DOM vokser ukontrollert.
+
+**Fargeoverlay:** Blobs rendres hvit-på-mørk for korrekt merge-effekt.
+Fargelaget legges oppå med `mix-blend-mode`.
+
+**Stabil posisjonering:** Pseudo-random offset beregnet fra datohash —
+bildene hopper ikke ved re-render:
+
+```typescript
+function stableRandom(seed: string, index: number): number {
+  let h = 0
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0
+  return ((h + index * 2654435761) >>> 0) / 0xFFFFFFFF
+}
+```
 
 ---
 
-## Densitetsvisualisering
+## Overganger mellom nivåer
 
-**Waveform-estetikk** (ikke nakne søyler):
+Ingen harde bytt. Crossfade over et zoom-område rundt terskelen:
 
-- Data: antall bilder per tidsenhet (måned ved lav zoom, dag ved høy)
-- Form: SVG `<path>` med `smooth` bezier-interpolasjon mellom datapunkter
-- Farge: gradient fra `gray-800` (tomt) til `blue-500` (tett), fylt under kurven
-- Høyde: logaritmisk skala (stor kontrast også mellom sjeldne dager og rike dager)
+```
+skyOpacity  = clamp(1 − (pxPerDay − THRESH) / FADE_RANGE, 0, 1)
+imgOpacity  = clamp((pxPerDay − THRESH) / FADE_RANGE, 0, 1)
+```
 
-**Event-ballonger:**
-- Vises mellom år-nivå og dag-nivå (middels zoom)
-- Posisjonert langs X ved eventets mediane bildedato
-- Bredde: proporsjonal med eventets tidsrom (min. 80 px for lesbarhet)
-- Innhold: eventnavn, eventuelt `YYYY-MM` hvis plass
+Dots i skyen krymper gradvis til thumbnails — skyen «oppløses» til bilder.
 
 ---
 
-## Thumbnail-lag
+## Separasjon fra BrowsePage
 
-Vises når `timePerPx < 2 timer/px` (tilsvarer omtrent «7 dager synlig»).
+Tidslinjen er ikke et view-alternativ i BrowsePage, men en separat side:
 
-- Bruker `hotpreview_b64` (allerede i API-responsen, ingen ekstra kall)
-- Absolutt posisjonert langs X etter `taken_at`
-- Vertikalt stablet innenfor dagen (max 3 rader, deretter klipp med «+N»)
-- Klikk: åpner PhotoDetailPage
+| ZoomTimeline (`/timeline`) | BrowsePage (`/browse`) |
+|---|---|
+| Utforskning, minne | Redigering, seleksjon |
+| Hele samlingen | Filtrert etter event/tag/sesjon |
+| Temporal navigasjon | Flat liste, dato-sortert |
+| Ingen batch-operasjoner | Seleksjon, tildeling |
 
-Virtualisering: kun thumbnails innenfor viewport ± 200 px rendres
-(`IntersectionObserver` eller manuell vindu-sjekk i `useEffect`).
-
----
-
-## Navigasjon til grid
-
-Klikk på en dag-kolonne (ikke på et bilde) i thumbnail-sonen:
-→ `BrowsePage` med `?taken_from=YYYY-MM-DD&taken_to=YYYY-MM-DD` — standard grid,
-   sortert på dato. Tilbakeknapp returnerer til tidslinjen i samme soom-nivå.
-
-Klikk på enkeltbilde: direkte til `PhotoDetailPage`.
+**Klikk på bilde** → `BrowsePage?taken_from=YYYY-MM-DD&focus=<hothash>` — åpner
+browse-view på riktig dato med bildet fremhevet.
 
 ---
 
 ## Data-strategi
 
-**Ny backend-rute:** `GET /photos/timeline`
+**Eksisterende backend-rute (implementert):** `GET /photos/timeline`
 
 ```
 ?granularity=year    →  [{year, count}]
 ?granularity=month   →  [{year, month, count}]
-?granularity=day&from=YYYY-MM-DD&to=YYYY-MM-DD
-                     →  [{date, count, sample_hotpreview_b64}]
+?granularity=day     →  [{date, count}]
 ```
 
-`sample_hotpreview_b64` er ett representativt bilde per dag (nyeste) — brukes
-til å fargelegge densitetsgradient med bildetone (valgfritt, kan droppes om tregt).
-
 **Hente-strategi:**
-- Lav zoom: hele samlingens år/måned-aggregat lastes én gang ved oppstart (lite data)
-- Høy zoom: dag-aggregat for synlig tidsvindu lastes ved zoom-stopp
-  (debounset 200 ms)
-- Thumbnails: hentes kun for synlig dag-kolonne, via eksisterende paginert
-  `GET /photos?taken_from=&taken_to=`
+- Årsdata: hentes én gang ved oppstart, stale 5 min
+- Måneds/dag-data: hentes for synlig vindu + buffer, debounset 180 ms
+- Thumbnails: hentes via `GET /photos?taken_after=&taken_before=`, kun ved nivå 3–4
 
-**Filter-arv:** Tidslinjen respekterer aktive filtre fra BrowsePage
-(event_id, tag, photographer osv.) ved å sende disse som query-parametre til
-timeline-endepunktet. Brukeren ser da tidsfordelingen av det filtrerte settet.
+**Klipping:** År uten data vises ikke. `yearBuckets` bestemmer y-aksen sin rekkevidde.
 
 ---
 
-## Samspill med eksisterende views
+## Tilleggsideer (fremtidig scope)
 
-- **PhotoGrid / PhotoTimeline:** Uberørt. Tidslinjen er et tredje alternativ,
-  ikke en erstatning.
-- **ADR-006 (trestruktur):** Forblir tilgjengelig i søkesiden. Zoom-tidslinjen
-  er et annet brukstilfelle (utforsk/naviger vs. søk/finn).
-- **usePhotoSource:** Gjenbrukes ikke direkte (tidslinjen har egen data-hook),
-  men dag-grid-navigasjonen bruker `usePhotoSource` med datofilter.
+**Klyngdeteksjon:** Finn automatisk hendelsesklynger (mange bilder tett i tid,
+atskilt av tomme perioder) og tegn en myk kontur rundt dem. Kan foreslå event-navn.
+
+**Fargekoding etter årstid:** Sky-farge basert på dato — blå (vinter), grønn (vår),
+oransje (sommer), rød (høst). Visuelt mønster uten å lese labels.
+
+**Minnekort-modus:** Klikk på en dag → pop-up «på denne datoen for N år siden»
+med bilder fra samme kalenderdag i andre år.
+
+**Fotograf-filter:** Skyene viser kun bilder fra valgt fotograf.
+Avslører hvem som er mest aktiv i hvilke perioder.
+
+**Glemte bilder:** Fremhev perioder med bilder men ingen tilknyttede events —
+uregistrerte minner.
+
+**Scroll-momentum (inertia):** Etter at brukeren slipper scroll, fortsetter
+panorering med avtagende fart. Standard på mobil, forbedrer desktop-UX.
+
+**Årsring-oversikt:** Ved max zoom-ut, ett sirkelpanel per år der sektorer (måneder)
+har tykkelse ∝ bildetall. Kompakt kaleidoskopisk oversikt.
 
 ---
 
 ## Begrunnelse for tekniske valg
 
-**Horisontal (ikke vertikal) tidslinje:**
-Tid assosiert med horisontal akse er universelt (graf-konvensjon, kart-tidslinje).
-Vertikal scroll er allerede reservert for navigasjon innenfor viewet.
+**Vertikal (ikke horisontal) tidslinje:**
+Standard scroll = pan i tid er intuitivt og konflikter ikke med zoom.
+Hele bredden frigjøres til innhold. Kalenderanalogien er sterkere vertikalt.
+
+**Metaball (ikke SVG waveform):**
+`blur + contrast` er ren CSS, ingen canvas eller SVG-manipulasjon.
+Resultatet er organisk og distinkt — ikke et diagram. Støttes i alle
+moderne nettlesere uten polyfill.
 
 **DOM (ikke Canvas):**
-Canvas gir bedre ytelse for tettvevd rendering, men krever manuell
-hit-testing, tilgjengelighet og tooltips. For et personlig enkeltbruker-system
-med < 50 000 bilder er DOM tilstrekkelig og enklere å vedlikeholde.
+Canvas krever manuell hit-testing og tilgjengelighet. DOM gir
+hover-states, `title`-attributter og React-kompatibilitet uten overhead.
+
+**Stabil tilfeldig posisjon (hash, ikke Math.random):**
+Bilder og dots skal ikke flytte seg ved zoom, re-render eller navigasjon.
+Deterministisk seed basert på dato gir stabilt, men naturlig utseende.
 
 **Hotpreview (ikke coldpreview) for thumbnails:**
-Hotpreview er base64 i API-responsen — ingen ekstra HTTP-kall, ingen
-cache-kompleksitet. 150×150 px er tilstrekkelig for thumbnails i tidslinjen
-(visningsstørrelse 40–80 px).
+Base64 i API-responsen — ingen ekstra HTTP-kall. 150×150 px er tilstrekkelig
+for visningsstørrelser 20–100 px.
 
-**Logaritmisk densitetsskala:**
-En samling bilder fra en fotograf vil ha *svært* ujevn fordeling:
-noen dager 300 bilder (bryllup), de fleste dager 0–5. Lineær skala
-ville gjøre de fleste dager usynlige.
-
-**Debounset data-henting (ikke per-frame):**
-Zoom er fluid og kan generere 60 events/sek. Backend-kall skal kun skje
-ved zoom-pause, ikke kontinuerlig.
+**Logaritmisk tetthets-skala:**
+Bildedistribusjon er ekstrem: noen dager 300 bilder, de fleste 0–5.
+Lineær skala gjør de fleste dager usynlige.
 
 ---
 
 ## Konsekvenser
 
-### Backend
+### Backend (implementert)
 
-1. Ny rute `GET /photos/timeline` i `api/photos.py`
-2. Ny tjeneste `timeline_service.py` med tre aggregeringsfunksjoner
-   (year, month, day) — rene SQLAlchemy group-by-spørringer
-3. Nytt skjema `TimelineResponse` i `schemas/photos.py`
-4. Eksisterende spørringer berøres ikke
+- `GET /photos/timeline?granularity=year|month|day`
+- `GET /photos/timeline/events`
+- Rene SQLAlchemy GROUP BY-spørringer, ingen nye tabeller
 
-### Frontend
+### Frontend (delvis implementert)
 
 ```
 src/features/timeline/
-  ZoomTimeline.tsx       # container: zoom-state, wheel/drag-handler
-  TimelineRuler.tsx      # tidsstripe med adaptive labels
-  DensityLayer.tsx       # SVG waveform + event-ballonger
-  ThumbnailLayer.tsx     # hotpreview-thumbnails ved høy zoom
-  useTimelineData.ts     # data-fetching med debounce
-src/api/timeline.ts      # GET /photos/timeline
+  ZoomTimeline.tsx      # container: zoom-state, Ctrl+scroll
+  TimelineRows.tsx      # virtual rendering av rader
+  TimelineRow.tsx       # én rad (dag/måned/år)
+  buildRows.ts          # ren funksjon for radgenerering
+  useTimelineData.ts    # data-fetching, debounset
+src/api/timeline.ts     # GET /photos/timeline
 ```
 
-5. BrowsePage: nytt view-alternativ «Tidslinje» i ViewToggle
-6. useViewStore: ny verdi `'zoom-timeline'`
+**Gjenstår:**
+- Sky-visualisering med metaball-teknikk (erstatter densitetsbar)
+- Mikro-bilder i skyform (nivå 3)
+- Stabil tilfeldig plassering (hash-seed)
+- Smooth crossfade mellom nivåene
+- Egen rute `/timeline` + nav-lenke
+- Zustand persist for `pxPerDay` + `topMs`
+- Klikk-til-browse med focus-parameter
 
-### Ikke i scope for første versjon
+### Ikke i scope
 
-- Touch/pinch-zoom på mobil (ADR-031 håndterer mobilsupport separat)
-- Redigering direkte i tidslinjen (åpne BrowsePage for det)
+- Touch/pinch-zoom på mobil (ADR-031)
+- Redigering direkte i tidslinjen
 - Sammenligning av to tidsperioder side ved side
 - Eksport av tidslinje som bilde
