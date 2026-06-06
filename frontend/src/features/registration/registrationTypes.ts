@@ -1,5 +1,12 @@
 import type { FileGroup, ScanResult } from '../../types/api'
 
+export interface QuickScanResult {
+  scan: ScanResult
+  dirPath: string
+  photographerId: string
+  recursive: boolean
+}
+
 export interface AnalyzeResult {
   scan: ScanResult
   unknownGroups: FileGroup[]
