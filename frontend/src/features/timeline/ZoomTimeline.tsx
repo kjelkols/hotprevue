@@ -12,7 +12,7 @@ export default function ZoomTimeline() {
   const ref = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ w: 1200, h: 600 })
 
-  const { pxPerDay, topMs, initialized, setPxPerDay, setTopMs, setInitialized } = useTimelineStore()
+  const { pxPerDay, topMs, setPxPerDay, setTopMs } = useTimelineStore()
 
   // Refs for event handlers (no stale closure)
   const ppdRef = useRef(pxPerDay)
@@ -21,6 +21,9 @@ export default function ZoomTimeline() {
   useEffect(() => { ppdRef.current = pxPerDay }, [pxPerDay])
   useEffect(() => { topRef.current = topMs }, [topMs])
   useEffect(() => { hRef.current = size.h }, [size.h])
+
+  // Auto-center runs once per session (ref resets every mount, not persisted)
+  const autoCentered = useRef(false)
 
   const bottomMs = topMs + (size.h * DAY_MS) / pxPerDay
 
@@ -58,16 +61,27 @@ export default function ZoomTimeline() {
 
   const data = useTimelineData(topMs, bottomMs, pxPerDay)
 
-  // Auto-center on most recent data — only on very first visit (not if state was restored)
+  // Auto-center once per session: skip if the restored view already shows data
   useEffect(() => {
-    if (initialized || data.yearBuckets.length === 0) return
-    setInitialized()
+    if (autoCentered.current) return
+    if (data.isLoadingYears) return
     const withData = data.yearBuckets.filter(b => b.count > 0)
     if (withData.length === 0) return
+    autoCentered.current = true
+
+    const ppd = ppdRef.current
+    const top = topRef.current
+    const viewTo = top + (hRef.current * DAY_MS) / ppd
+    const hasDataInView = withData.some(b =>
+      Date.UTC(b.year + 1, 0, 1) >= top && Date.UTC(b.year, 0, 1) <= viewTo
+    )
+    if (hasDataInView) return
+
+    // Scroll to show the most recent data year at month granularity
     const maxYear = withData[withData.length - 1].year
-    setTopMs(Date.UTC(maxYear - 2, 0, 1))
-    setPxPerDay(clamp(hRef.current / (3 * 365), MIN_PPD, MAX_PPD))
-  }, [data.yearBuckets, initialized])
+    setTopMs(Date.UTC(maxYear, 0, 1) - 90 * DAY_MS)
+    setPxPerDay(2)
+  }, [data.yearBuckets, data.isLoadingYears])
 
   function zoom(factor: number) {
     const ppd = ppdRef.current
@@ -83,18 +97,25 @@ export default function ZoomTimeline() {
       className="relative bg-gray-950 rounded-xl border border-gray-800 overflow-hidden"
       style={{ height: 'calc(100vh - 80px)' }}
     >
+      {data.isLoadingYears && (
+        <div className="absolute inset-0 flex items-center justify-center z-10">
+          <div className="text-gray-500 text-sm animate-pulse">Laster tidslinje…</div>
+        </div>
+      )}
       <div className="absolute top-2 right-3 z-10 flex items-center gap-1.5">
         <span className="text-xs text-gray-700 mr-1">Ctrl+rull = zoom</span>
         <button onClick={() => zoom(1.7)} className="rounded bg-gray-800 px-2 py-0.5 text-sm text-gray-400 hover:text-white font-mono">+</button>
         <button onClick={() => zoom(1 / 1.7)} className="rounded bg-gray-800 px-2 py-0.5 text-sm text-gray-400 hover:text-white font-mono">−</button>
       </div>
-      <TimelineRows
-        topMs={topMs}
-        bottomMs={bottomMs}
-        pxPerDay={pxPerDay}
-        containerWidth={size.w}
-        {...data}
-      />
+      {!data.isLoadingYears && (
+        <TimelineRows
+          topMs={topMs}
+          bottomMs={bottomMs}
+          pxPerDay={pxPerDay}
+          containerWidth={size.w}
+          {...data}
+        />
+      )}
     </div>
   )
 }

@@ -22,7 +22,7 @@ export default function CloudDots({ count, seed, width, height, opacity = 1 }: P
 
   return (
     <div
-      className="absolute inset-0 overflow-hidden pointer-events-none"
+      className="absolute inset-0 pointer-events-none"
       style={{ opacity, filter: `blur(${blurPx}px)` }}
     >
       {Array.from({ length: numDots }, (_, i) => {

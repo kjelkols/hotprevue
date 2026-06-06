@@ -39,7 +39,7 @@ export function useTimelineData(fromMs: number, toMs: number, pxPerDay: number) 
     staleTime: 60_000,
   })
 
-  const { data: yearBuckets = [] } = useQuery<TimelineBucket[]>({
+  const { data: yearBuckets = [], isLoading: isLoadingYears } = useQuery<TimelineBucket[]>({
     queryKey: ['tl-year-buckets'],
     queryFn: () => getTimelineBuckets({ granularity: 'year' }),
     staleTime: 300_000,
@@ -64,5 +64,5 @@ export function useTimelineData(fromMs: number, toMs: number, pxPerDay: number) 
     staleTime: 30_000,
   })
 
-  return { buckets, yearBuckets, events, thumbnails, granularity: gran, showThumbnails }
+  return { buckets, yearBuckets, isLoadingYears, events, thumbnails, granularity: gran, showThumbnails }
 }
