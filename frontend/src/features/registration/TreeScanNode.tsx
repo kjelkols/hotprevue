@@ -35,6 +35,7 @@ export default function TreeScanNode({ node, depth, getState }: Props) {
     <div>
       {node.groups.length > 0 && (
         <div
+          data-scan-path={node.path}
           className="flex items-center gap-2.5 py-1.5 px-2 rounded hover:bg-gray-800/40"
           style={{ paddingLeft: 8 + depth * 20 }}
         >

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { checkHothashesGlobal } from '../../api/photos'
 import { hashFile } from '../../api/agent'
 import { buildTree, flatDirs, DEFAULT_NODE_STATE, type NodeState } from './treeUtils'
@@ -19,8 +19,17 @@ export default function StepTreeScan({ scan, dirPath, onDone, onBack }: Props) {
   const [nodeStates, setNodeStates] = useState<Record<string, NodeState>>({})
   const [stats, setStats] = useState({ newCount: 0, knownCount: 0, errors: 0, scanned: 0 })
   const [result, setResult] = useState<FileGroup[]>([])
+  const [scanningPath, setScanningPath] = useState<string | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   const tree = buildTree(dirPath, scan.groups)
+
+  useEffect(() => {
+    if (!scanningPath || !containerRef.current) return
+    const escaped = scanningPath.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+    const el = containerRef.current.querySelector<HTMLElement>(`[data-scan-path="${escaped}"]`)
+    el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [scanningPath])
 
   function setNode(path: string, state: NodeState) {
     setNodeStates(prev => ({ ...prev, [path]: state }))
@@ -34,6 +43,7 @@ export default function StepTreeScan({ scan, dirPath, onDone, onBack }: Props) {
 
     for (const dir of dirs) {
       setNode(dir.path, { status: 'scanning', newCount: 0, knownCount: 0, errorCount: 0 })
+      setScanningPath(dir.path)
       try {
         const hashes = await Promise.all(
           dir.groups.map(g => hashFile(g.master_path).then(r => ({ group: g, hothash: r.hothash })))
@@ -67,7 +77,7 @@ export default function StepTreeScan({ scan, dirPath, onDone, onBack }: Props) {
           <span className="text-xs text-gray-600 font-mono truncate">{dirPath}</span>
           <span className="text-xs text-gray-600 shrink-0 ml-3">{scan.groups.length} filer</span>
         </div>
-        <div className="overflow-y-auto max-h-[55vh] py-1">
+        <div ref={containerRef} className="overflow-y-auto max-h-[55vh] py-1">
           <TreeScanNode node={tree} depth={0} getState={getState} />
         </div>
       </div>
