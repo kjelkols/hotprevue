@@ -1,5 +1,6 @@
 import os
 import platform
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from fastapi import APIRouter, Query
@@ -111,6 +112,17 @@ def list_volumes() -> list[VolumeEntry]:
     return volumes
 
 
+def _count_images(dir_path: str) -> int:
+    try:
+        with os.scandir(dir_path) as it:
+            return sum(
+                1 for e in it
+                if e.is_file() and Path(e.name).suffix.lower() in IMAGE_SUFFIXES
+            )
+    except OSError:
+        return 0
+
+
 @router.get("", response_model=BrowseResult)
 def browse(path: str = Query(default="")) -> BrowseResult:
     p = Path(path).expanduser() if path else Path.home()
@@ -118,7 +130,7 @@ def browse(path: str = Query(default="")) -> BrowseResult:
     if not p.exists() or not p.is_dir():
         p = Path.home()
 
-    dirs: list[BrowseDir] = []
+    dir_entries: list[Path] = []
     files: list[BrowseFile] = []
 
     try:
@@ -127,16 +139,7 @@ def browse(path: str = Query(default="")) -> BrowseResult:
             if entry.name.startswith("."):
                 continue
             if entry.is_dir():
-                count = 0
-                try:
-                    with os.scandir(entry) as it:
-                        count = sum(
-                            1 for e in it
-                            if e.is_file() and Path(e.name).suffix.lower() in IMAGE_SUFFIXES
-                        )
-                except PermissionError:
-                    pass
-                dirs.append(BrowseDir(name=entry.name, path=str(entry), image_count=count))
+                dir_entries.append(entry)
             elif entry.is_file() and entry.suffix.lower() in IMAGE_SUFFIXES:
                 files.append(BrowseFile(
                     name=entry.name,
@@ -145,6 +148,19 @@ def browse(path: str = Query(default="")) -> BrowseResult:
                 ))
     except PermissionError:
         pass
+
+    # Tell bilder i alle undermapper parallelt — cloud/FUSE-mapper kan henge sekvensielt
+    counts: dict[str, int] = {str(e): 0 for e in dir_entries}
+    if dir_entries:
+        with ThreadPoolExecutor(max_workers=min(16, len(dir_entries))) as pool:
+            futures = {pool.submit(_count_images, str(e)): str(e) for e in dir_entries}
+            for future in as_completed(futures, timeout=2.0):
+                counts[futures[future]] = future.result()
+
+    dirs = [
+        BrowseDir(name=e.name, path=str(e), image_count=counts[str(e)])
+        for e in dir_entries
+    ]
 
     parent = str(p.parent) if p != p.parent else None
 
