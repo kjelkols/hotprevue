@@ -9,6 +9,7 @@ import { useQueryClient, useMutation } from '@tanstack/react-query'
 import { useBrowse } from '../hooks/useBrowse'
 import { deleteShortcut } from '../api/shortcuts'
 import PinDirButton from './PinDirButton'
+import PathBreadcrumb from './PathBreadcrumb'
 
 interface Props {
   initialPath?: string
@@ -46,23 +47,17 @@ export default function DirectoryPicker({ initialPath, onSelect, trigger }: Prop
         <Dialog.Overlay className="fixed inset-0 bg-black/60 z-40" />
         <Dialog.Content className="fixed inset-x-4 top-[8%] bottom-[8%] max-w-lg mx-auto z-50 bg-gray-900 rounded-xl border border-gray-700 flex flex-col outline-none">
 
-          <div className="shrink-0 flex items-center gap-3 px-4 py-3 border-b border-gray-800">
+          <div className="shrink-0 flex items-center gap-2 px-3 py-3 border-b border-gray-800">
             <button
               onClick={browse.navigateUp}
               disabled={!browse.data?.parent}
-              className="shrink-0 px-2 py-1 rounded text-sm text-gray-400 hover:text-white hover:bg-gray-800 disabled:opacity-30"
+              title="Gå opp ett nivå"
+              className="shrink-0 w-7 h-7 flex items-center justify-center rounded text-gray-500 hover:text-white hover:bg-gray-800 disabled:opacity-20 transition-colors"
             >
-              ↑ Opp
+              ↑
             </button>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-white truncate" title={browse.path}>
-                {browse.path ? (browse.path.split('/').filter(Boolean).pop() ?? browse.path) : '…'}
-              </p>
-              {browse.data?.parent && (
-                <p className="text-xs text-gray-600 font-mono truncate" title={browse.data.parent}>
-                  {browse.data.parent}
-                </p>
-              )}
+              <PathBreadcrumb path={browse.path} onNavigate={browse.setPath} />
             </div>
           </div>
 
@@ -106,7 +101,7 @@ export default function DirectoryPicker({ initialPath, onSelect, trigger }: Prop
               return (
                 <div key={d.path} onClick={() => browse.setPath(d.path)}
                   className="group cursor-pointer w-full px-3 py-2 rounded-lg text-sm text-white hover:bg-gray-800 flex items-center gap-3">
-                  <span className="shrink-0 text-xs font-bold text-yellow-600 w-12">MAPPE</span>
+                  <span className="shrink-0 text-base leading-none">📁</span>
                   <span className="truncate flex-1">{d.name}</span>
                   <PinDirButton path={d.path} name={d.name} shortcutId={pinned?.id} />
                 </div>
