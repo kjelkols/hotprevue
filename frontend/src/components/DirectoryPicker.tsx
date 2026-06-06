@@ -46,7 +46,7 @@ export default function DirectoryPicker({ initialPath, onSelect, trigger }: Prop
         <Dialog.Overlay className="fixed inset-0 bg-black/60 z-40" />
         <Dialog.Content className="fixed inset-x-4 top-[8%] bottom-[8%] max-w-lg mx-auto z-50 bg-gray-900 rounded-xl border border-gray-700 flex flex-col outline-none">
 
-          <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-gray-800">
+          <div className="shrink-0 flex items-center gap-3 px-4 py-3 border-b border-gray-800">
             <button
               onClick={browse.navigateUp}
               disabled={!browse.data?.parent}
@@ -54,7 +54,16 @@ export default function DirectoryPicker({ initialPath, onSelect, trigger }: Prop
             >
               ↑ Opp
             </button>
-            <p className="flex-1 text-xs text-gray-500 font-mono truncate" title={browse.path}>{browse.path || '…'}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-white truncate" title={browse.path}>
+                {browse.path ? (browse.path.split('/').filter(Boolean).pop() ?? browse.path) : '…'}
+              </p>
+              {browse.data?.parent && (
+                <p className="text-xs text-gray-600 font-mono truncate" title={browse.data.parent}>
+                  {browse.data.parent}
+                </p>
+              )}
+            </div>
           </div>
 
           {(browse.shortcuts.length > 0 || browse.volumes.length > 0) && (
