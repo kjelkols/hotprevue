@@ -28,13 +28,12 @@ def _make_photographer(db, name="Test Photographer"):
 
 
 def _make_photo(db, photographer_id, file_path):
-    jpeg_bytes, hothash = generate_hotpreview(file_path)
+    jpeg_bytes, hothash, *_ = generate_hotpreview(file_path)
     generate_coldpreview(file_path, hothash, app_settings.coldpreview_dir)
     photo = Photo(
         hothash=hothash,
         hotpreview_b64=hotpreview_b64(jpeg_bytes),
         photographer_id=photographer_id,
-        exif_data={},
     )
     db.add(photo)
     db.flush()
@@ -73,11 +72,12 @@ def test_get_photo_detail(client, db, sample_image_path):
     assert r.status_code == 200
     detail = r.json()
     assert detail["hothash"] == photo.hothash
-    assert "exif_data" in detail
+    assert "exif_data" not in detail  # exif lives on image_files, not on photo
     assert "coldpreview_path" not in detail  # internal — never in API response
     assert detail["correction"] is None
     assert len(detail["image_files"]) == 1
     assert detail["image_files"][0]["is_master"] is True
+    assert "exif_data" in detail["image_files"][0]
 
 
 def test_get_photo_not_found(client):

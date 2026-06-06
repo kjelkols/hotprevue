@@ -66,12 +66,11 @@ def test_delete_photographer_with_photos_fails(client, db, sample_image_path):
     import uuid
     photographer_id = uuid.UUID(p["id"])
 
-    jpeg_bytes, hothash = generate_hotpreview(sample_image_path)
+    jpeg_bytes, hothash, *_ = generate_hotpreview(sample_image_path)
     db.add(Photo(
         hothash=hothash,
         hotpreview_b64=hotpreview_b64(jpeg_bytes),
         photographer_id=photographer_id,
-        exif_data={},
     ))
     db.commit()
 

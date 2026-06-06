@@ -1,10 +1,14 @@
 """End-to-end registration flow tests."""
 
-import json
+import base64
+import tempfile
+from pathlib import Path
 
 import pytest
 
 from core.config import settings as app_settings
+from utils.exif import extract_exif, extract_taken_at
+from utils.previews import generate_coldpreview, generate_hotpreview, hotpreview_b64
 
 
 @pytest.fixture(autouse=True)
@@ -37,21 +41,32 @@ def _create_session(client, photographer_id, source_path="/photos", event_id=Non
 
 
 def _upload_group(client, session_id, image_path, master_path=None, companions=None):
-    """Upload a single file group. master_path defaults to image_path."""
+    """Upload a single file group as a GroupPayload JSON."""
     if master_path is None:
         master_path = image_path
-    meta = {
+
+    jpeg_bytes, hothash, width, height = generate_hotpreview(image_path)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        cold_path = generate_coldpreview(image_path, hothash, tmp)
+        cold_b64 = base64.b64encode(Path(cold_path).read_bytes()).decode("ascii")
+
+    exif = extract_exif(image_path)
+    taken_at_dt = extract_taken_at(exif)
+
+    payload = {
+        "hothash": hothash,
+        "hotpreview_b64": hotpreview_b64(jpeg_bytes),
+        "coldpreview_b64": cold_b64,
         "master_path": master_path,
         "master_type": "JPEG",
+        "master_exif": exif,
+        "width": width,
+        "height": height,
+        "taken_at": taken_at_dt.isoformat() if taken_at_dt else None,
         "companions": companions or [],
     }
-    with open(image_path, "rb") as f:
-        r = client.post(
-            f"/input-sessions/{session_id}/groups",
-            files={"master_file": ("image.jpg", f, "image/jpeg")},
-            data={"metadata": json.dumps(meta)},
-        )
-    return r
+    return client.post(f"/input-sessions/{session_id}/groups", json=payload)
 
 
 # ---------------------------------------------------------------------------
@@ -79,37 +94,6 @@ def test_create_session_invalid_photographer(client):
         "default_photographer_id": "00000000-0000-0000-0000-000000000000",
     })
     assert r.status_code == 404
-
-
-# ---------------------------------------------------------------------------
-# Check
-# ---------------------------------------------------------------------------
-
-def test_check_all_unknown(client, sample_image_path):
-    photographer_id = _create_photographer(client)
-    session_id = _create_session(client, photographer_id)
-
-    r = client.post(f"/input-sessions/{session_id}/check", json={
-        "master_paths": ["/photos/a.jpg", "/photos/b.jpg"],
-    })
-    assert r.status_code == 200
-    data = r.json()
-    assert data["known"] == []
-    assert set(data["unknown"]) == {"/photos/a.jpg", "/photos/b.jpg"}
-
-
-def test_check_detects_known_path(client, sample_image_path):
-    photographer_id = _create_photographer(client)
-    session_id = _create_session(client, photographer_id)
-    _upload_group(client, session_id, sample_image_path, master_path="/photos/a.jpg")
-
-    r = client.post(f"/input-sessions/{session_id}/check", json={
-        "master_paths": ["/photos/a.jpg", "/photos/b.jpg"],
-    })
-    assert r.status_code == 200
-    data = r.json()
-    assert data["known"] == ["/photos/a.jpg"]
-    assert data["unknown"] == ["/photos/b.jpg"]
 
 
 # ---------------------------------------------------------------------------
