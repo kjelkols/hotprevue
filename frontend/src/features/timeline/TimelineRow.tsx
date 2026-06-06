@@ -16,7 +16,7 @@ export interface RowData {
   photos: PhotoListItem[]
   isToday: boolean
   isMajor: boolean
-  dateFrom: string   // ISO date for browse navigation
+  dateFrom: string
   dateTo: string
 }
 
@@ -33,17 +33,19 @@ export default function TimelineRow({ row, maxCount, containerWidth, pxPerDay }:
   const navigate = useNavigate()
   const { y, height, label, subLabel, count, photos, isToday, isMajor, key } = row
 
-  // Crossfade: cloud fades out, thumbnails fade in
-  const cloudOpacity = clamp01(1 - (pxPerDay - 20) / 30)   // 1→0 over pxPerDay 20–50
-  const thumbOpacity = clamp01((pxPerDay - 20) / 30)        // 0→1 over pxPerDay 20–50
-  const thumbBlur = Math.max(0, 10 * clamp01(1 - (pxPerDay - 8) / 25)) // blur fades out 8→33
+  // Crossfade: cloud fades out, thumbnails fade in over pxPerDay 20→50
+  const cloudOpacity = clamp01(1 - (pxPerDay - 20) / 30)
+  const thumbOpacity = clamp01((pxPerDay - 20) / 30)
+  const thumbBlur = Math.max(0, 10 * clamp01(1 - (pxPerDay - 8) / 25))
 
   const contentW = containerWidth - RULER_W
   const thumbSize = Math.min(Math.max(height - 4, 16), 90)
   const tiny = height < 16
 
-  // Stable jitter for micro-image cloud shape
   const jitterMax = Math.max(0, (height - thumbSize) / 2)
+
+  const tooltipLabel = subLabel ? `${subLabel} ${label}` : label
+  const tooltip = count > 0 ? `${count.toLocaleString('nb')} bilder · ${tooltipLabel}` : undefined
 
   return (
     <div
@@ -72,18 +74,21 @@ export default function TimelineRow({ row, maxCount, containerWidth, pxPerDay }:
         </span>
       </div>
 
-      {/* Content: cloud + thumbnails */}
-      <div className="relative flex-1 overflow-hidden">
-        {/* Cloud layer */}
+      {/* Content area — no overflow-hidden so cloud blur can bleed between rows */}
+      <div className="relative flex-1" title={tooltip}>
+        {/* Cloud / density layer */}
         {cloudOpacity > 0.01 && (
           <CloudDots
-            count={count} seed={key}
-            width={contentW} height={height}
+            count={count}
+            maxCount={maxCount}
+            seed={key}
+            width={contentW}
+            height={height}
             opacity={cloudOpacity}
           />
         )}
 
-        {/* Thumbnail layer */}
+        {/* Thumbnail layer — has its own overflow clip */}
         {photos.length > 0 && height >= 14 && thumbOpacity > 0.01 && (
           <div
             className="absolute inset-0 flex flex-wrap content-start gap-0.5 p-0.5 overflow-hidden"
