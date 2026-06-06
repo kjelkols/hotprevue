@@ -10,6 +10,10 @@ function msToY(ms: number, topMs: number, pxPerDay: number) {
   return (ms - topMs) * pxPerDay / DAY_MS
 }
 
+function isoDate(ms: number) {
+  return new Date(ms).toISOString().slice(0, 10)
+}
+
 export function buildRows(
   topMs: number,
   bottomMs: number,
@@ -18,11 +22,16 @@ export function buildRows(
   bucketMap: Map<string, number>,
   photosByDay: Map<string, PhotoListItem[]>,
   showThumbnails: boolean,
+  yearBounds: { minYear: number; maxYear: number } | null,
 ): RowData[] {
   const rows: RowData[] = []
   const from = topMs - BUFFER
   const to = bottomMs + BUFFER
   const todayStr = new Date().toISOString().slice(0, 10)
+
+  // Clip iteration to data range when at year/month level
+  const clipFrom = yearBounds ? Math.max(from, Date.UTC(yearBounds.minYear, 0, 1) - BUFFER) : from
+  const clipTo = yearBounds ? Math.min(to, Date.UTC(yearBounds.maxYear + 1, 0, 1) + BUFFER) : to
 
   if (granularity === 'day') {
     let d = new Date(from)
@@ -31,6 +40,7 @@ export function buildRows(
       const ms = d.getTime()
       const dateStr = d.toISOString().slice(0, 10)
       const dom = d.getUTCDate()
+      const nextDay = ms + DAY_MS
       rows.push({
         key: dateStr,
         type: 'day',
@@ -42,18 +52,21 @@ export function buildRows(
         photos: showThumbnails ? (photosByDay.get(dateStr) ?? []) : [],
         isToday: dateStr === todayStr,
         isMajor: dom === 1,
+        dateFrom: dateStr,
+        dateTo: isoDate(nextDay),
       })
       d.setUTCDate(d.getUTCDate() + 1)
     }
   } else if (granularity === 'month') {
-    let d = new Date(from)
+    let d = new Date(clipFrom)
     d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1))
-    while (d.getTime() < to) {
+    while (d.getTime() < clipTo) {
       const ms = d.getTime()
       const y = d.getUTCFullYear()
       const m = d.getUTCMonth()
       const days = new Date(Date.UTC(y, m + 1, 0)).getUTCDate()
       const key = `${y}-${m + 1}`
+      const nextMonth = Date.UTC(y, m + 1, 1)
       rows.push({
         key,
         type: 'month',
@@ -65,13 +78,15 @@ export function buildRows(
         photos: [],
         isToday: false,
         isMajor: m === 0,
+        dateFrom: `${y}-${String(m + 1).padStart(2, '0')}-01`,
+        dateTo: isoDate(nextMonth),
       })
       d.setUTCMonth(d.getUTCMonth() + 1)
     }
   } else {
-    let d = new Date(from)
+    let d = new Date(clipFrom)
     d = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
-    while (d.getTime() < to) {
+    while (d.getTime() < clipTo) {
       const ms = d.getTime()
       const y = d.getUTCFullYear()
       const leap = (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0
@@ -86,6 +101,8 @@ export function buildRows(
         photos: [],
         isToday: false,
         isMajor: true,
+        dateFrom: `${y}-01-01`,
+        dateTo: `${y + 1}-01-01`,
       })
       d.setUTCFullYear(d.getUTCFullYear() + 1)
     }

@@ -11,6 +11,7 @@ interface Props {
   containerWidth: number
   granularity: Granularity
   buckets: TimelineBucket[]
+  yearBuckets: TimelineBucket[]
   thumbnails: PhotoListItem[]
   showThumbnails: boolean
 }
@@ -36,14 +37,21 @@ function makePhotosByDay(thumbnails: PhotoListItem[]): Map<string, PhotoListItem
   return m
 }
 
-export default function TimelineRows({ topMs, bottomMs, pxPerDay, containerWidth, granularity, buckets, thumbnails, showThumbnails }: Props) {
+export default function TimelineRows({ topMs, bottomMs, pxPerDay, containerWidth, granularity, buckets, yearBuckets, thumbnails, showThumbnails }: Props) {
   const bucketMap = useMemo(() => makeBucketMap(buckets), [buckets])
   const photosByDay = useMemo(() => makePhotosByDay(thumbnails), [thumbnails])
   const maxCount = useMemo(() => Math.max(1, ...buckets.map(b => b.count)), [buckets])
 
+  const yearBounds = useMemo(() => {
+    if (yearBuckets.length === 0) return null
+    const withData = yearBuckets.filter(b => b.count > 0)
+    if (withData.length === 0) return null
+    return { minYear: withData[0].year, maxYear: withData[withData.length - 1].year }
+  }, [yearBuckets])
+
   const rows = useMemo(
-    () => buildRows(topMs, bottomMs, pxPerDay, granularity, bucketMap, photosByDay, showThumbnails),
-    [topMs, bottomMs, pxPerDay, granularity, bucketMap, photosByDay, showThumbnails]
+    () => buildRows(topMs, bottomMs, pxPerDay, granularity, bucketMap, photosByDay, showThumbnails, yearBounds),
+    [topMs, bottomMs, pxPerDay, granularity, bucketMap, photosByDay, showThumbnails, yearBounds]
   )
 
   return (
@@ -54,7 +62,7 @@ export default function TimelineRows({ topMs, bottomMs, pxPerDay, containerWidth
           row={row}
           maxCount={maxCount}
           containerWidth={containerWidth}
-          showThumbnails={showThumbnails}
+          pxPerDay={pxPerDay}
         />
       ))}
     </div>

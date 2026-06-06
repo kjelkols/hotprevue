@@ -25,7 +25,8 @@ export function useTimelineData(fromMs: number, toMs: number, pxPerDay: number) 
   }, [fromMs, toMs, pxPerDay])
 
   const gran = granularityFor(d.pxPerDay)
-  const showThumbnails = d.pxPerDay >= 60
+  // Start fetching thumbnails early to support cloud→image crossfade
+  const showThumbnails = d.pxPerDay >= 20
 
   const buf = 30 * DAY_MS
   const rangeParams = gran !== 'year'

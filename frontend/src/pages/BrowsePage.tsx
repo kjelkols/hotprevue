@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import PhotoGrid from '../features/browse/PhotoGrid'
 import PhotoTimeline from '../features/browse/PhotoTimeline'
-import ZoomTimeline from '../features/timeline/ZoomTimeline'
 import ViewToggle from '../components/ViewToggle'
 import type { View } from '../components/ViewToggle'
 import { usePhotoSource } from '../hooks/usePhotoSource'
@@ -13,9 +12,11 @@ export default function BrowsePage() {
   const sessionId = searchParams.get('session_id') ?? undefined
   const eventId = searchParams.get('event_id') ?? undefined
   const tag = searchParams.get('tag') ?? undefined
+  const takenFrom = searchParams.get('taken_from') ?? undefined
+  const takenTo = searchParams.get('taken_to') ?? undefined
   const title = searchParams.get('title') ?? tag ?? 'Utvalg'
 
-  const photoSource = usePhotoSource({ sessionId, eventId, tag })
+  const photoSource = usePhotoSource({ sessionId, eventId, tag, takenFrom, takenTo })
   const [view, setView] = useState<View>('grid')
 
   const upUrl = eventId ? `/events/${eventId}` : sessionId ? '/sessions' : tag ? '/tags' : null
@@ -29,6 +30,14 @@ export default function BrowsePage() {
             className="text-sm text-gray-300 hover:text-white transition-colors shrink-0"
           >
             ← Tilbake
+          </button>
+        )}
+        {takenFrom && (
+          <button
+            onClick={() => navigate('/timeline')}
+            className="text-sm text-gray-300 hover:text-white transition-colors shrink-0"
+          >
+            ← Tidslinje
           </button>
         )}
         <h1 className="text-xl font-semibold flex-1 truncate">{title}</h1>
@@ -45,7 +54,6 @@ export default function BrowsePage() {
             tag={tag}
           />
         )}
-        {view === 'zoom-timeline' && <ZoomTimeline />}
       </div>
     </div>
   )

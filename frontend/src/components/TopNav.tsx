@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { NavLink, Link, useLocation } from 'react-router-dom'
 
 const NAV = [
+  { to: '/timeline',    label: 'Tidslinje',    end: false },
   { to: '/events',      label: 'Events',       end: false },
   { to: '/collections', label: 'Kolleksjoner', end: false },
   { to: '/sessions',    label: 'Sesjoner',     end: false },
