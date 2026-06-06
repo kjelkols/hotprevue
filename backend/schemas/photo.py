@@ -176,3 +176,18 @@ class BatchResult(BaseModel):
 class PerceptualHashComputeResult(BaseModel):
     updated: int
     already_computed: int
+
+
+class TimelineBucket(BaseModel):
+    year: int
+    month: int | None = None
+    date: str | None = None  # YYYY-MM-DD for day granularity
+    count: int
+
+
+class TimelineEventBalloon(BaseModel):
+    id: str
+    name: str
+    from_date: str  # ISO datetime
+    to_date: str    # ISO datetime
+    count: int

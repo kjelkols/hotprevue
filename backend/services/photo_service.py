@@ -10,9 +10,10 @@ import piexif
 from fastapi import HTTPException
 from sqlalchemy.orm import Session, selectinload
 
+from models.event import Event
 from models.photo import ImageFile, Photo, PhotoCorrection
 from schemas.input_session import CheckHothashRequest, CheckHothashResponse
-from schemas.photo import PerceptualHashComputeResult
+from schemas.photo import PerceptualHashComputeResult, TimelineBucket, TimelineEventBalloon
 
 
 def check_hothashes(db: Session, data: CheckHothashRequest) -> CheckHothashResponse:
@@ -611,6 +612,72 @@ def add_companion(db: Session, hothash: str, data) -> ImageFile:
 # ---------------------------------------------------------------------------
 # Sorting
 # ---------------------------------------------------------------------------
+
+def timeline_buckets(
+    db: Session,
+    granularity: str,
+    from_date: datetime | None = None,
+    to_date: datetime | None = None,
+) -> list[TimelineBucket]:
+    from sqlalchemy import extract, func
+
+    base = db.query(Photo).filter(Photo.taken_at.isnot(None), Photo.deleted_at.is_(None))
+    if from_date:
+        base = base.filter(Photo.taken_at >= from_date)
+    if to_date:
+        base = base.filter(Photo.taken_at < to_date)
+
+    if granularity == 'year':
+        year_col = extract('year', Photo.taken_at).label('year')
+        rows = (base.with_entities(year_col, func.count(Photo.id).label('count'))
+                .group_by(year_col).order_by(year_col).all())
+        return [TimelineBucket(year=int(r.year), count=r.count) for r in rows]
+
+    if granularity == 'month':
+        year_col = extract('year', Photo.taken_at).label('year')
+        month_col = extract('month', Photo.taken_at).label('month')
+        rows = (base.with_entities(year_col, month_col, func.count(Photo.id).label('count'))
+                .group_by(year_col, month_col).order_by(year_col, month_col).all())
+        return [TimelineBucket(year=int(r.year), month=int(r.month), count=r.count) for r in rows]
+
+    # day
+    day_col = func.date_trunc('day', Photo.taken_at).label('day')
+    rows = (base.with_entities(day_col, func.count(Photo.id).label('count'))
+            .group_by(day_col).order_by(day_col).all())
+    return [TimelineBucket(year=r.day.year, month=r.day.month,
+                           date=r.day.strftime('%Y-%m-%d'), count=r.count) for r in rows]
+
+
+def timeline_events(
+    db: Session,
+    from_date: datetime | None = None,
+    to_date: datetime | None = None,
+) -> list[TimelineEventBalloon]:
+    from sqlalchemy import func
+
+    q = (db.query(
+            Event.id, Event.name,
+            func.min(Photo.taken_at).label('from_date'),
+            func.max(Photo.taken_at).label('to_date'),
+            func.count(Photo.id).label('count'),
+         )
+         .join(Photo, Photo.event_id == Event.id)
+         .filter(Photo.taken_at.isnot(None), Photo.deleted_at.is_(None)))
+    if from_date:
+        q = q.filter(Photo.taken_at >= from_date)
+    if to_date:
+        q = q.filter(Photo.taken_at < to_date)
+    rows = q.group_by(Event.id, Event.name).having(func.count(Photo.id) > 0).all()
+    return [
+        TimelineEventBalloon(
+            id=str(r.id), name=r.name,
+            from_date=r.from_date.isoformat(),
+            to_date=r.to_date.isoformat(),
+            count=r.count,
+        )
+        for r in rows
+    ]
+
 
 def _apply_sort(q, sort: str):
     from sqlalchemy import asc, desc, func, nulls_last

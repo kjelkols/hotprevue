@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import PhotoGrid from '../features/browse/PhotoGrid'
 import PhotoTimeline from '../features/browse/PhotoTimeline'
+import ZoomTimeline from '../features/timeline/ZoomTimeline'
 import ViewToggle from '../components/ViewToggle'
+import type { View } from '../components/ViewToggle'
 import { usePhotoSource } from '../hooks/usePhotoSource'
 
 export default function BrowsePage() {
@@ -14,7 +16,7 @@ export default function BrowsePage() {
   const title = searchParams.get('title') ?? tag ?? 'Utvalg'
 
   const photoSource = usePhotoSource({ sessionId, eventId, tag })
-  const [view, setView] = useState<'grid' | 'timeline'>('grid')
+  const [view, setView] = useState<View>('grid')
 
   const upUrl = eventId ? `/events/${eventId}` : sessionId ? '/sessions' : tag ? '/tags' : null
 
@@ -34,10 +36,16 @@ export default function BrowsePage() {
       </div>
 
       <div className="p-4">
-        {view === 'grid'
-          ? <PhotoGrid {...photoSource} />
-          : <PhotoTimeline key={`${sessionId}-${eventId}-${tag}`} sessionId={sessionId} eventId={eventId} tag={tag} />
-        }
+        {view === 'grid' && <PhotoGrid {...photoSource} />}
+        {view === 'timeline' && (
+          <PhotoTimeline
+            key={`${sessionId}-${eventId}-${tag}`}
+            sessionId={sessionId}
+            eventId={eventId}
+            tag={tag}
+          />
+        )}
+        {view === 'zoom-timeline' && <ZoomTimeline />}
       </div>
     </div>
   )

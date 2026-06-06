@@ -27,6 +27,8 @@ from schemas.photo import (
     PhotoListItem,
     PhotoPatch,
     PerceptualHashComputeResult,
+    TimelineBucket,
+    TimelineEventBalloon,
 )
 from services import photo_service
 
@@ -243,3 +245,22 @@ def batch_delete(data: BatchBase, db: Session = Depends(get_db)):
 @router.post("/batch/restore", response_model=BatchResult)
 def batch_restore(data: BatchBase, db: Session = Depends(get_db)):
     return BatchResult(updated=photo_service.batch_restore(db, data.hothashes))
+
+
+@router.get("/timeline", response_model=list[TimelineBucket])
+def get_timeline(
+    granularity: str = "month",
+    from_date: datetime | None = None,
+    to_date: datetime | None = None,
+    db: Session = Depends(get_db),
+):
+    return photo_service.timeline_buckets(db, granularity, from_date, to_date)
+
+
+@router.get("/timeline/events", response_model=list[TimelineEventBalloon])
+def get_timeline_events(
+    from_date: datetime | None = None,
+    to_date: datetime | None = None,
+    db: Session = Depends(get_db),
+):
+    return photo_service.timeline_events(db, from_date, to_date)

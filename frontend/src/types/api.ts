@@ -428,4 +428,21 @@ export interface AiSearchResult {
   score: number
 }
 
+// ─── Zoom-tidslinje ───────────────────────────────────────────────────────────
+
+export interface TimelineBucket {
+  year: number
+  month: number | null
+  date: string | null  // YYYY-MM-DD for day granularity
+  count: number
+}
+
+export interface TimelineEventBalloon {
+  id: string
+  name: string
+  from_date: string   // ISO datetime
+  to_date: string     // ISO datetime
+  count: number
+}
+
 
