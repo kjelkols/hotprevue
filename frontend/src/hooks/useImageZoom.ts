@@ -75,6 +75,7 @@ export function useImageZoom(
           midY: (e.touches[0].clientY + e.touches[1].clientY) / 2,
         }
       } else if (e.touches.length === 1) {
+        e.preventDefault()
         const t = e.touches[0]
         ts.current = scaleRef.current > MIN
           ? { type: 'pan', startX: t.clientX, startY: t.clientY, ox: offsetRef.current.x, oy: offsetRef.current.y }
