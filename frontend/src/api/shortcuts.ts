@@ -5,7 +5,7 @@ export function listShortcuts(): Promise<Shortcut[]> {
   return apiFetch('/shortcuts')
 }
 
-export function createShortcut(data: { name: string; path: string }): Promise<Shortcut> {
+export function createShortcut(data: { name: string; path: string; is_default?: boolean }): Promise<Shortcut> {
   return apiFetch('/shortcuts', { method: 'POST', body: JSON.stringify(data) })
 }
 

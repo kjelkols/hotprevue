@@ -138,7 +138,7 @@ export default function MachineSetupDialog({ onComplete }: Props) {
       // Seed hjemmekatalog-snarvei via agenten — feiler stille
       try {
         const home = await browseDirectory('')
-        await createShortcut({ name: 'Hjemmeområde', path: home.path })
+        await createShortcut({ name: 'Hjemmeområde', path: home.path, is_default: true })
       } catch {
         // Agenten er ikke tilgjengelig — snarvei kan legges til manuelt
       }

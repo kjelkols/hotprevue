@@ -355,6 +355,7 @@ export interface Shortcut {
   name: string
   path: string
   position: number
+  is_default: boolean
   created_at: string
 }
 

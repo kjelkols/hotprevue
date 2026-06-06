@@ -1,16 +1,14 @@
 /**
- * DirectoryPicker — modal for å velge en katalog som KILDE.
- * Viser mapper og bildefiler (som kontekst). Ingen mappeopprettelse.
- *
- * Bruk: StepSetup (kildekatalaog for skanning), CopySection (destinasjon for
- * kortkopiering), SettingsPage (snarveg-sti).
- *
- * Se docs/decisions/015-folder-browser-architecture.md for fremtidig plan (Alternativ C).
+ * DirectoryPicker — modal for å velge en katalog som kilde.
+ * Snarveier (pinnede kataloger) vises som pills øverst.
+ * Pin-ikon dukker opp ved hover på katalogradene.
  */
 import { useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
+import { useQueryClient, useMutation } from '@tanstack/react-query'
 import { useBrowse } from '../hooks/useBrowse'
-import PinButton from './PinButton'
+import { deleteShortcut } from '../api/shortcuts'
+import PinDirButton from './PinDirButton'
 
 interface Props {
   initialPath?: string
@@ -21,6 +19,12 @@ interface Props {
 export default function DirectoryPicker({ initialPath, onSelect, trigger }: Props) {
   const [open, setOpen] = useState(false)
   const browse = useBrowse({ initialPath, enabled: open })
+
+  const qc = useQueryClient()
+  const delMut = useMutation({
+    mutationFn: deleteShortcut,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['shortcuts'] }),
+  })
 
   function handleOpenChange(next: boolean) {
     if (next) browse.reset()
@@ -51,16 +55,31 @@ export default function DirectoryPicker({ initialPath, onSelect, trigger }: Prop
               ↑ Opp
             </button>
             <p className="flex-1 text-xs text-gray-500 font-mono truncate" title={browse.path}>{browse.path || '…'}</p>
-            <PinButton path={browse.path} />
           </div>
 
           {(browse.shortcuts.length > 0 || browse.volumes.length > 0) && (
             <div className="shrink-0 flex gap-1.5 flex-wrap px-3 py-2 border-b border-gray-800">
               {browse.shortcuts.map(s => (
-                <button key={s.id} onClick={() => browse.setPath(s.path)} title={s.path}
-                  className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${browse.path === s.path ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white'}`}>
-                  {s.name}
-                </button>
+                <div key={s.id} className="group flex items-center gap-0.5">
+                  <button
+                    onClick={() => browse.setPath(s.path)}
+                    title={s.path}
+                    className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors
+                      ${browse.path === s.path ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white'}`}
+                  >
+                    {s.name}
+                  </button>
+                  {!s.is_default && (
+                    <button
+                      onClick={() => delMut.mutate(s.id)}
+                      disabled={delMut.isPending}
+                      title={`Fjern «${s.name}»`}
+                      className="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-red-400 text-xs px-0.5 transition-all"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
               ))}
               {browse.volumes.map(v => (
                 <button key={v.path} onClick={() => browse.setPath(v.path)} title={v.path}
@@ -73,16 +92,20 @@ export default function DirectoryPicker({ initialPath, onSelect, trigger }: Prop
 
           <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
             {browse.isLoading && <p className="py-8 text-center text-sm text-gray-600">Laster…</p>}
-            {browse.data?.dirs.map(d => (
-              <button key={d.path} onClick={() => browse.setPath(d.path)}
-                className="w-full text-left px-3 py-2 rounded-lg text-sm text-white hover:bg-gray-800 flex items-center gap-3">
-                <span className="shrink-0 text-xs font-bold text-yellow-600 w-12">MAPPE</span>
-                <span className="truncate flex-1">{d.name}</span>
-                {d.image_count > 0 && (
-                  <span className="shrink-0 text-xs text-gray-500">{d.image_count}</span>
-                )}
-              </button>
-            ))}
+            {browse.data?.dirs.map(d => {
+              const pinned = browse.shortcuts.find(s => s.path === d.path)
+              return (
+                <div key={d.path} onClick={() => browse.setPath(d.path)}
+                  className="group cursor-pointer w-full px-3 py-2 rounded-lg text-sm text-white hover:bg-gray-800 flex items-center gap-3">
+                  <span className="shrink-0 text-xs font-bold text-yellow-600 w-12">MAPPE</span>
+                  <span className="truncate flex-1">{d.name}</span>
+                  {d.image_count > 0 && (
+                    <span className="shrink-0 text-xs text-gray-500 group-hover:hidden">{d.image_count}</span>
+                  )}
+                  <PinDirButton path={d.path} name={d.name} shortcutId={pinned?.id} />
+                </div>
+              )
+            })}
             {browse.data?.files.map(f => (
               <div key={f.path} className="px-3 py-1.5 flex items-center gap-3 text-sm text-gray-500">
                 <span className="shrink-0 text-xs font-bold text-gray-700 w-12">{f.type}</span>

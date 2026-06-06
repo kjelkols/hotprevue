@@ -23,6 +23,7 @@ def create(db: Session, machine_id: uuid.UUID, data: ShortcutCreate) -> Shortcut
         name=data.name,
         path=data.path,
         position=max_pos,
+        is_default=data.is_default,
     )
     db.add(shortcut)
     db.commit()
@@ -34,7 +35,7 @@ def seed_default(db: Session, machine_id: uuid.UUID, home_path: str) -> None:
     """Create the default 'Hjemmeområde' shortcut if none exist for this machine."""
     existing = db.query(Shortcut).filter(Shortcut.machine_id == machine_id).first()
     if existing is None:
-        db.add(Shortcut(machine_id=machine_id, name="Hjemmeområde", path=home_path, position=0))
+        db.add(Shortcut(machine_id=machine_id, name="Hjemmeområde", path=home_path, position=0, is_default=True))
         db.commit()
 
 
@@ -51,6 +52,8 @@ def patch(db: Session, shortcut_id: uuid.UUID, machine_id: uuid.UUID, data: Shor
 
 def delete(db: Session, shortcut_id: uuid.UUID, machine_id: uuid.UUID) -> None:
     shortcut = _get_or_404(db, shortcut_id, machine_id)
+    if shortcut.is_default:
+        raise HTTPException(status_code=409, detail="Standardsnarveier kan ikke slettes")
     pos = shortcut.position
     db.delete(shortcut)
     # Compact positions above the deleted item

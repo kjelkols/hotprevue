@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict
 class ShortcutCreate(BaseModel):
     name: str
     path: str
+    is_default: bool = False
 
 
 class ShortcutPatch(BaseModel):
@@ -22,4 +23,5 @@ class ShortcutOut(BaseModel):
     name: str
     path: str
     position: int
+    is_default: bool
     created_at: datetime
