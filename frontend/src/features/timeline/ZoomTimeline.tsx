@@ -61,7 +61,7 @@ export default function ZoomTimeline() {
 
   const data = useTimelineData(topMs, bottomMs, pxPerDay)
 
-  // Auto-center once per session: skip if the restored view already shows data
+  // Auto-center once per session: show full data span at appropriate zoom
   useEffect(() => {
     if (autoCentered.current) return
     if (data.isLoadingYears) return
@@ -69,18 +69,13 @@ export default function ZoomTimeline() {
     if (withData.length === 0) return
     autoCentered.current = true
 
-    const ppd = ppdRef.current
-    const top = topRef.current
-    const viewTo = top + (hRef.current * DAY_MS) / ppd
-    const hasDataInView = withData.some(b =>
-      Date.UTC(b.year + 1, 0, 1) >= top && Date.UTC(b.year, 0, 1) <= viewTo
-    )
-    if (hasDataInView) return
-
-    // Scroll to show the most recent data year at month granularity
+    const minYear = withData[0].year
     const maxYear = withData[withData.length - 1].year
-    setTopMs(Date.UTC(maxYear, 0, 1) - 90 * DAY_MS)
-    setPxPerDay(2)
+    const totalDays = (maxYear + 1 - minYear) * 365.25
+    const margin = 60 * DAY_MS  // 2 months padding on each side
+    const newPpd = clamp((hRef.current - 20) / (totalDays + 120), MIN_PPD, MAX_PPD)
+    setTopMs(Date.UTC(minYear, 0, 1) - margin)
+    setPxPerDay(newPpd)
   }, [data.yearBuckets, data.isLoadingYears])
 
   function zoom(factor: number) {
