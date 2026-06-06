@@ -1,13 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
-import { registerGroup, completeSession } from '../../api/inputSessions'
+import { registerGroup, completeSession, createSession } from '../../api/inputSessions'
+import { createEvent } from '../../api/events'
 import { processFile } from '../../api/agent'
 import type { FileGroup, ProcessResult } from '../../types/api'
-import type { ResolvedEntry } from './registrationTypes'
+import type { FolderMapping, ResolvedEntry } from './registrationTypes'
 
 interface Props {
-  sessionId: string
   unknownGroups: FileGroup[]
-  resolvedEntries: ResolvedEntry[]
+  folderMappings: FolderMapping[]
+  sessionName: string
+  photographerId: string
+  dirPath: string
+  recursive: boolean
   onDone: (result: ProcessResult) => void
 }
 
@@ -29,7 +33,7 @@ function resolveEventId(masterPath: string, entries: ResolvedEntry[]): string | 
   return best?.eventId ?? null
 }
 
-export default function StepUpload({ sessionId, unknownGroups, resolvedEntries, onDone }: Props) {
+export default function StepUpload({ unknownGroups, folderMappings, sessionName, photographerId, dirPath, recursive, onDone }: Props) {
   const [progress, setProgress] = useState<Progress>({
     done: 0, total: unknownGroups.length, registered: 0, duplicates: 0, errors: 0,
   })
@@ -44,6 +48,34 @@ export default function StepUpload({ sessionId, unknownGroups, resolvedEntries, 
   }, [])
 
   async function runUpload() {
+    // Create events and session before starting the upload loop
+    const resolvedEntries: ResolvedEntry[] = []
+    let sessionId: string
+    try {
+      for (const mapping of folderMappings) {
+        let eventId: string | null = null
+        if (mapping.existingEventId) {
+          eventId = mapping.existingEventId
+        } else if (mapping.eventName) {
+          const event = await createEvent({ name: mapping.eventName })
+          eventId = event.id
+        }
+        resolvedEntries.push({ folderPath: mapping.folderPath, eventId })
+      }
+      const session = await createSession({
+        name: sessionName,
+        source_path: dirPath,
+        default_photographer_id: photographerId,
+        default_event_id: null,
+        recursive,
+        notes: null,
+      })
+      sessionId = session.id
+    } catch {
+      setFailed(true)
+      return
+    }
+
     for (const group of unknownGroups) {
       setCurrentFile(group.master_path.split(/[\\/]/).pop() ?? group.master_path)
       try {

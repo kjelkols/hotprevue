@@ -1,20 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
-import { createEvent } from '../../api/events'
-import { createSession } from '../../api/inputSessions'
 import { lookupFolderEvents } from '../../api/system'
-import type { FileGroup, ScanResult } from '../../types/api'
 import NamingOptionsPanel from './NamingOptionsPanel'
 import {
   computeFolderEntries,
   DEFAULT_NAMING_OPTIONS,
   type AnalyzeResult,
+  type FolderMapping,
   type NamingOptions,
-  type ResolvedEntry,
 } from './registrationTypes'
 
 interface Props {
   result: AnalyzeResult
-  onDone: (sessionId: string, scan: ScanResult, unknownGroups: FileGroup[], resolvedEntries: ResolvedEntry[]) => void
+  onDone: (sessionName: string, mappings: FolderMapping[]) => void
   onBack: () => void
 }
 
@@ -30,7 +27,6 @@ export default function StepFolderMap({ result, onDone, onBack }: Props) {
 
   const [options, setOptions] = useState<NamingOptions>(DEFAULT_NAMING_OPTIONS)
   const [sessionName, setSessionName] = useState(defaultSessionName)
-  const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [lookupLoading, setLookupLoading] = useState(false)
   const [existingEvents, setExistingEvents] = useState<Record<string, { id: string; name: string } | null>>({})
@@ -93,43 +89,21 @@ export default function StepFolderMap({ result, onDone, onBack }: Props) {
     setEventNames(prev => ({ ...prev, [relPath]: name }))
   }
 
-  async function handleStart() {
+  function handleStart() {
     if (!sessionName.trim()) { setError('Oppgi et navn for registreringen'); return }
 
-    setBusy(true)
-    setError('')
-    try {
-      const resolvedEntries: ResolvedEntry[] = []
-      for (const entry of baseEntries) {
-        const name = (eventNames[entry.relPath] ?? '').trim()
-        const existing = existingEvents[entry.folderPath]
-        let eventId: string | null = null
-
-        if (existing && name === existing.name) {
-          eventId = existing.id              // reuse existing event
-        } else if (name) {
-          const event = await createEvent({ name })
-          eventId = event.id
-        }
-
-        resolvedEntries.push({ folderPath: entry.folderPath, eventId })
+    const mappings: FolderMapping[] = baseEntries.map(entry => {
+      const name = (eventNames[entry.relPath] ?? '').trim()
+      const existing = existingEvents[entry.folderPath]
+      const reuseExisting = !!existing && name === existing.name
+      return {
+        folderPath: entry.folderPath,
+        eventName: name,
+        existingEventId: reuseExisting ? existing.id : null,
       }
+    })
 
-      const session = await createSession({
-        name: sessionName.trim(),
-        source_path: dirPath,
-        default_photographer_id: photographerId,
-        default_event_id: null,
-        recursive,
-        notes: null,
-      })
-
-      onDone(session.id, scan, unknownGroups, resolvedEntries)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Noe gikk galt')
-    } finally {
-      setBusy(false)
-    }
+    onDone(sessionName.trim(), mappings)
   }
 
   return (
@@ -226,10 +200,10 @@ export default function StepFolderMap({ result, onDone, onBack }: Props) {
         </button>
         <button
           onClick={handleStart}
-          disabled={busy || lookupLoading}
+          disabled={lookupLoading}
           className="flex-1 rounded-xl bg-blue-600 py-3 font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
         >
-          {busy ? 'Oppretter events og sesjon…' : `Start registrering (${unknownGroups.length} bilder) →`}
+          {`Neste: bekreft (${unknownGroups.length} bilder) →`}
         </button>
       </div>
     </div>

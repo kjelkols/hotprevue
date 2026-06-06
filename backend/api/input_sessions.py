@@ -5,8 +5,6 @@ from sqlalchemy.orm import Session
 
 from database.session import get_db
 from schemas.input_session import (
-    CheckHothashRequest,
-    CheckHothashResponse,
     GroupPayload,
     GroupResult,
     InputSessionCreate,
@@ -44,12 +42,6 @@ def get_session_photos(session_id: uuid.UUID, db: Session = Depends(get_db)):
 @router.get("/{session_id}/errors", response_model=list[SessionErrorOut])
 def get_session_errors(session_id: uuid.UUID, db: Session = Depends(get_db)):
     return input_session_service.list_errors(db, session_id)
-
-
-@router.post("/{session_id}/check-hothashes", response_model=CheckHothashResponse)
-def check_hothashes(session_id: uuid.UUID, data: CheckHothashRequest, db: Session = Depends(get_db)):
-    input_session_service.get_or_404(db, session_id)
-    return input_session_service.check_hothashes(db, data)
 
 
 @router.post("/{session_id}/groups", response_model=GroupResult, status_code=201)

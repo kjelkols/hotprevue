@@ -1,7 +1,5 @@
 import { apiFetch } from './client'
 import type {
-  CheckResponse,
-  CompanionFile,
   GroupResult,
   InputSession,
   InputSessionCreate,
@@ -17,47 +15,6 @@ export function createSession(data: InputSessionCreate): Promise<InputSession> {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
-  })
-}
-
-export function checkHothashes(sessionId: string, hothashes: string[]): Promise<CheckResponse> {
-  return apiFetch<CheckResponse>(`/input-sessions/${sessionId}/check-hothashes`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ hothashes })
-  })
-}
-
-export function uploadGroup(
-  sessionId: string,
-  masterPath: string,
-  masterType: string,
-  fileBytes: Uint8Array,
-  companions: CompanionFile[]
-): Promise<GroupResult> {
-  const form = new FormData()
-  const ext = masterPath.split('.').pop() ?? 'jpg'
-  form.append('master_file', new Blob([fileBytes.buffer as ArrayBuffer]), `file.${ext}`)
-  form.append(
-    'metadata',
-    JSON.stringify({ master_path: masterPath, master_type: masterType, companions })
-  )
-  return apiFetch<GroupResult>(`/input-sessions/${sessionId}/groups`, {
-    method: 'POST',
-    body: form
-  })
-}
-
-export function uploadGroupByPath(
-  sessionId: string,
-  masterPath: string,
-  masterType: string,
-  companions: CompanionFile[]
-): Promise<GroupResult> {
-  return apiFetch<GroupResult>(`/input-sessions/${sessionId}/groups-by-path`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ master_path: masterPath, master_type: masterType, companions }),
   })
 }
 

@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import type { FileGroup, ProcessResult, ScanResult } from '../../types/api'
-import type { AnalyzeResult, ResolvedEntry } from './registrationTypes'
+import type { ProcessResult } from '../../types/api'
+import type { AnalyzeResult, FolderMapping } from './registrationTypes'
 import StepSetup from './StepSetup'
 import StepFolderMap from './StepFolderMap'
 import StepScan from './StepScan'
@@ -16,10 +16,8 @@ interface Props {
 export default function RegistrationFlow({ onClose }: Props) {
   const [step, setStep] = useState<Step>('setup')
   const [analyzeResult, setAnalyzeResult] = useState<AnalyzeResult | null>(null)
-  const [sessionId, setSessionId] = useState('')
-  const [scanResult, setScanResult] = useState<ScanResult | null>(null)
-  const [unknownGroups, setUnknownGroups] = useState<FileGroup[]>([])
-  const [resolvedEntries, setResolvedEntries] = useState<ResolvedEntry[]>([])
+  const [sessionName, setSessionName] = useState('')
+  const [folderMappings, setFolderMappings] = useState<FolderMapping[]>([])
   const [result, setResult] = useState<ProcessResult | null>(null)
 
   function handleSetupDone(ar: AnalyzeResult) {
@@ -27,16 +25,9 @@ export default function RegistrationFlow({ onClose }: Props) {
     setStep('foldermap')
   }
 
-  function handleFolderMapDone(
-    id: string,
-    scan: ScanResult,
-    unknown: FileGroup[],
-    entries: ResolvedEntry[],
-  ) {
-    setSessionId(id)
-    setScanResult(scan)
-    setUnknownGroups(unknown)
-    setResolvedEntries(entries)
+  function handleFolderMapDone(name: string, mappings: FolderMapping[]) {
+    setSessionName(name)
+    setFolderMappings(mappings)
     setStep('scan')
   }
 
@@ -71,19 +62,22 @@ export default function RegistrationFlow({ onClose }: Props) {
             onBack={() => setStep('setup')}
           />
         )}
-        {step === 'scan' && scanResult && (
+        {step === 'scan' && analyzeResult && (
           <StepScan
-            scanResult={scanResult}
-            unknownGroups={unknownGroups}
+            scanResult={analyzeResult.scan}
+            unknownGroups={analyzeResult.unknownGroups}
             onConfirm={handleScanConfirmed}
             onBack={() => setStep('foldermap')}
           />
         )}
-        {step === 'upload' && (
+        {step === 'upload' && analyzeResult && (
           <StepUpload
-            sessionId={sessionId}
-            unknownGroups={unknownGroups}
-            resolvedEntries={resolvedEntries}
+            unknownGroups={analyzeResult.unknownGroups}
+            folderMappings={folderMappings}
+            sessionName={sessionName}
+            photographerId={analyzeResult.photographerId}
+            dirPath={analyzeResult.dirPath}
+            recursive={analyzeResult.recursive}
             onDone={handleUploadDone}
           />
         )}

@@ -12,8 +12,6 @@ from core.config import settings as app_settings
 from models.input_session import InputSession, SessionError
 from models.photo import DuplicateFile, ImageFile, Photo
 from schemas.input_session import (
-    CheckHothashRequest,
-    CheckHothashResponse,
     GroupPayload,
     GroupResult,
     InputSessionCreate,
@@ -67,12 +65,6 @@ def delete(db: Session, session_id: uuid.UUID) -> None:
     s = get_or_404(db, session_id)
     db.delete(s)
     db.commit()
-
-
-def check_hothashes(db: Session, data: CheckHothashRequest) -> CheckHothashResponse:
-    """Return which hothashes are already registered and which are new."""
-    from services import photo_service
-    return photo_service.check_hothashes(db, data)
 
 
 def register_group(

@@ -22,6 +22,12 @@ export interface ResolvedEntry {
   eventId: string | null
 }
 
+export interface FolderMapping {
+  folderPath: string
+  eventName: string
+  existingEventId: string | null
+}
+
 export interface NamingOptions {
   stripDatePrefix: boolean      // YYYY-MM-DD_ / YYYY_MM_DD_
   stripCompactDate: boolean     // YYYYMMDD_
@@ -114,10 +120,3 @@ function findBestDepth(relDirs: string[]): number {
   return bestDepth
 }
 
-export function deriveFolderName(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/æ/g, 'ae').replace(/ø/g, 'o').replace(/å/g, 'aa')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-}
