@@ -36,6 +36,7 @@ def list_photos(
     event_id: uuid.UUID | None = None,
     session_id: uuid.UUID | None = None,
     tags: list[str] | None = None,
+    kind_ids: list[uuid.UUID] | None = None,
     category_id: uuid.UUID | None = None,
     in_stream: bool | None = None,
     rating_min: int | None = None,
@@ -65,6 +66,8 @@ def list_photos(
     if tags:
         for tag in tags:
             q = q.filter(Photo.tags.contains([tag]))
+    if kind_ids:
+        q = q.filter(Photo.kind_id.in_(kind_ids))
     if category_id:
         q = q.filter(Photo.category_id == category_id)
     if in_stream is True:

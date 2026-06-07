@@ -97,6 +97,8 @@ _DATA_TABLES = (
     "events", "categories", "photographers", "system_settings",
 )
 
+# kinds are configuration — not truncated between tests (default kind seeded by migration)
+
 
 @pytest.fixture(autouse=True)
 def clean_db(database_url):
@@ -130,6 +132,17 @@ def client(database_url, clean_db):
 
     app.dependency_overrides.clear()
     engine.dispose()
+
+
+@pytest.fixture
+def default_kind_id(database_url):
+    """Return the UUID of the default kind (seeded by migration, never truncated)."""
+    from sqlalchemy import text
+    engine = create_engine(database_url)
+    with engine.connect() as conn:
+        row = conn.execute(text("SELECT id FROM kinds WHERE is_default = true LIMIT 1")).fetchone()
+    engine.dispose()
+    return row[0]
 
 
 @pytest.fixture

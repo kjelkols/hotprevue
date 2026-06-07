@@ -16,8 +16,13 @@ def _make_photographer(db):
     return p
 
 
+def _default_kind_id(db):
+    from models.kind import Kind
+    return db.query(Kind).filter(Kind.is_default == True).first().id
+
+
 def _make_event(db, name):
-    e = Event(name=name)
+    e = Event(name=name, kind_id=_default_kind_id(db))
     db.add(e)
     db.commit()
     db.refresh(e)
@@ -30,6 +35,7 @@ def _make_photo(db, photographer_id, file_path, event_id=None):
         hotpreview_b64="dGVzdA==",
         photographer_id=photographer_id,
         event_id=event_id,
+        kind_id=_default_kind_id(db),
     )
     db.add(photo)
     db.flush()

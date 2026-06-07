@@ -11,6 +11,7 @@ class EventCreate(BaseModel):
     start_date: dt_date | None = None
     end_date: dt_date | None = None
     location: str | None = None
+    kind_id: uuid.UUID | None = None
 
     @model_validator(mode='after')
     def check_dates(self):
@@ -26,6 +27,7 @@ class EventPatch(BaseModel):
     end_date: dt_date | None = None
     location: str | None = None
     cover_hothash: str | None = None
+    kind_id: uuid.UUID | None = None
 
     @model_validator(mode='after')
     def check_dates(self):
@@ -44,5 +46,6 @@ class EventOut(BaseModel):
     end_date: dt_date | None
     location: str | None
     cover_hothash: str | None
+    kind_id: uuid.UUID
     created_at: datetime
     photo_count: int = 0

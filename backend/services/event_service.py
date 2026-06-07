@@ -11,16 +11,23 @@ from schemas.event import EventCreate, EventOut, EventPatch
 
 
 def create(db: Session, data: EventCreate) -> Event:
-    event = Event(**data.model_dump())
+    from services.kind_service import get_default
+    fields = data.model_dump()
+    if fields.get("kind_id") is None:
+        fields["kind_id"] = get_default(db).id
+    event = Event(**fields)
     db.add(event)
     db.commit()
     db.refresh(event)
     return event
 
 
-def list_events(db: Session) -> list[EventOut]:
+def list_events(db: Session, kind_ids: list[uuid.UUID] | None = None) -> list[EventOut]:
     counts = _photo_counts(db)
-    events = db.query(Event).order_by(Event.name).all()
+    q = db.query(Event)
+    if kind_ids:
+        q = q.filter(Event.kind_id.in_(kind_ids))
+    events = q.order_by(Event.name).all()
     return [_to_event_out(e, counts) for e in events]
 
 

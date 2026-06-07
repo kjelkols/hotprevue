@@ -11,6 +11,7 @@ const NAV = [
   { to: '/ai-search',   label: 'AI-søk',       end: false },
   { to: '/sted',        label: 'Sted',         end: false },
   { to: '/fotografer',  label: 'Fotografer',   end: false },
+  { to: '/kinds',       label: 'Kinds',        end: false },
 ] as const
 
 const EXTRA_NAV = [

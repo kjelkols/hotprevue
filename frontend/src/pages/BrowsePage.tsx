@@ -5,6 +5,8 @@ import PhotoTimeline from '../features/browse/PhotoTimeline'
 import ViewToggle from '../components/ViewToggle'
 import type { View } from '../components/ViewToggle'
 import { usePhotoSource } from '../hooks/usePhotoSource'
+import KindFilterBar from '../features/kinds/KindFilterBar'
+import useKindFilterStore from '../stores/useKindFilterStore'
 
 export default function BrowsePage() {
   const navigate = useNavigate()
@@ -16,7 +18,8 @@ export default function BrowsePage() {
   const takenTo = searchParams.get('taken_to') ?? undefined
   const title = searchParams.get('title') ?? tag ?? 'Utvalg'
 
-  const photoSource = usePhotoSource({ sessionId, eventId, tag, takenFrom, takenTo })
+  const selectedKindIds = useKindFilterStore(s => s.selectedKindIds)
+  const photoSource = usePhotoSource({ sessionId, eventId, tag, takenFrom, takenTo, kindIds: selectedKindIds.length > 0 ? selectedKindIds : undefined })
   const [view, setView] = useState<View>('grid')
 
   const upUrl = eventId ? `/events/${eventId}` : sessionId ? '/sessions' : tag ? '/tags' : null
@@ -43,6 +46,7 @@ export default function BrowsePage() {
         <h1 className="text-xl font-semibold flex-1 truncate">{title}</h1>
         <ViewToggle view={view} onChange={setView} />
       </div>
+      <KindFilterBar />
 
       <div className="p-4">
         {view === 'grid' && <PhotoGrid {...photoSource} />}

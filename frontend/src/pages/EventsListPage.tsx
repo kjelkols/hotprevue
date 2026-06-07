@@ -3,14 +3,17 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { listEvents } from '../api/events'
 import EventCreateDialog from '../features/events/EventCreateDialog'
+import KindFilterBar from '../features/kinds/KindFilterBar'
 import { formatEventDate } from '../lib/formatDate'
+import useKindFilterStore from '../stores/useKindFilterStore'
 
 export default function EventsListPage() {
   const navigate = useNavigate()
   const [createOpen, setCreateOpen] = useState(false)
+  const selectedKindIds = useKindFilterStore(s => s.selectedKindIds)
   const { data: events = [], isLoading, isError } = useQuery({
-    queryKey: ['events'],
-    queryFn: listEvents,
+    queryKey: ['events', selectedKindIds],
+    queryFn: () => listEvents(selectedKindIds.length > 0 ? selectedKindIds : undefined),
   })
 
   return (
@@ -24,6 +27,7 @@ export default function EventsListPage() {
           + Nytt event
         </button>
       </div>
+      <KindFilterBar />
 
       <div className="p-4 max-w-2xl mx-auto">
         {isLoading && <p className="text-gray-300 py-8 text-center">Laster…</p>}

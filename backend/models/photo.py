@@ -37,6 +37,11 @@ class Photo(Base):
     focal_length: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     tags: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
+    kind_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("kinds.id"),
+        nullable=False,
+    )
     category_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("categories.id", ondelete="SET NULL"),

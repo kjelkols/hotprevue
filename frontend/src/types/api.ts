@@ -48,6 +48,17 @@ export interface Tag {
   photo_count: number
 }
 
+export interface KindOut {
+  id: string
+  name: string
+  description: string | null
+  color: string | null
+  hidden_by_default: boolean
+  sort_order: number
+  is_default: boolean
+  created_at: string
+}
+
 export interface EventNode {
   id: string
   name: string
@@ -56,6 +67,7 @@ export interface EventNode {
   end_date: string | null
   location: string | null
   cover_hothash: string | null
+  kind_id: string
   created_at: string
   photo_count: number
 }
@@ -171,6 +183,7 @@ export interface PhotoListItem {
   taken_at_accuracy: string
   rating: number | null
   tags: string[]
+  kind_id: string
   category_id: string | null
   event_id: string | null
   photographer_id: string

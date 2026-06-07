@@ -1,7 +1,7 @@
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, String, Text, func
+from sqlalchemy import Date, DateTime, ForeignKey, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -18,4 +18,9 @@ class Event(Base):
     end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     location: Mapped[str | None] = mapped_column(String, nullable=True)
     cover_hothash: Mapped[str | None] = mapped_column(String, nullable=True)
+    kind_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("kinds.id"),
+        nullable=False,
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())

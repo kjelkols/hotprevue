@@ -44,6 +44,7 @@ class PhotoListItem(BaseModel):
     taken_at_accuracy: str
     rating: int | None
     tags: list[str]
+    kind_id: uuid.UUID
     category_id: uuid.UUID | None
     event_id: uuid.UUID | None
     photographer_id: uuid.UUID
@@ -106,6 +107,7 @@ class PhotoPatch(BaseModel):
     location_accuracy: str | None = None
     rating: int | None = None
     tags: list[str] | None = None
+    kind_id: uuid.UUID | None = None
     category_id: uuid.UUID | None = None
     event_id: uuid.UUID | None = None
     photographer_id: uuid.UUID | None = None

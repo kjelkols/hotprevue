@@ -103,6 +103,9 @@ def register_group(
         photographer_id = payload.photographer_id or s.default_photographer_id
         event_id = payload.event_id if payload.event_id is not None else s.default_event_id
 
+        from models.kind import Kind
+        default_kind = db.query(Kind).filter(Kind.is_default == True).first()
+
         photo = Photo(
             hothash=payload.hothash,
             hotpreview_b64=payload.hotpreview_b64,
@@ -132,6 +135,7 @@ def register_group(
             input_session_id=session_id,
             registered_by_machine_id=payload.machine_id,
             event_id=event_id,
+            kind_id=default_kind.id if default_kind else None,
         )
         db.add(photo)
         db.flush()

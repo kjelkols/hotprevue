@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from database.session import get_db
@@ -17,8 +17,11 @@ def create_event(data: EventCreate, db: Session = Depends(get_db)):
 
 
 @router.get("", response_model=list[EventOut])
-def list_events(db: Session = Depends(get_db)):
-    return event_service.list_events(db)
+def list_events(
+    db: Session = Depends(get_db),
+    kind_id: list[uuid.UUID] = Query(default=[]),
+):
+    return event_service.list_events(db, kind_ids=kind_id or None)
 
 
 @router.get("/{event_id}", response_model=EventOut)

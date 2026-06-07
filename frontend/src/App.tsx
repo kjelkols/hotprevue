@@ -20,6 +20,7 @@ import SearchPage from './pages/SearchPage'
 import SettingsPage from './pages/SettingsPage'
 import LocationEditorPage from './pages/LocationEditorPage'
 import PhotographersPage from './pages/PhotographersPage'
+import KindsPage from './pages/KindsPage'
 import PreorganiseringPage from './pages/PreorganiseringPage'
 import AiSearchPage from './pages/AiSearchPage'
 import TimelinePage from './pages/TimelinePage'
@@ -82,6 +83,7 @@ export default function App() {
           <Route path="/settings"        element={<SettingsPage />} />
           <Route path="/sted"            element={<LocationEditorPage />} />
           <Route path="/fotografer"        element={<PhotographersPage />} />
+          <Route path="/kinds"             element={<KindsPage />} />
           <Route path="/preorganisering"   element={<PreorganiseringPage />} />
           <Route path="/ai-search"         element={<AiSearchPage />} />
           <Route path="/timeline"          element={<TimelinePage />} />

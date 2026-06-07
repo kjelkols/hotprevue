@@ -27,13 +27,17 @@ def _make_photographer(db, name="Test Photographer"):
     return p
 
 
-def _make_photo(db, photographer_id, file_path):
+def _make_photo(db, photographer_id, file_path, kind_id=None):
+    from models.kind import Kind
+    if kind_id is None:
+        kind_id = db.query(Kind).filter(Kind.is_default == True).first().id
     jpeg_bytes, hothash, *_ = generate_hotpreview(file_path)
     generate_coldpreview(file_path, hothash, app_settings.coldpreview_dir)
     photo = Photo(
         hothash=hothash,
         hotpreview_b64=hotpreview_b64(jpeg_bytes),
         photographer_id=photographer_id,
+        kind_id=kind_id,
     )
     db.add(photo)
     db.flush()
@@ -134,10 +138,13 @@ def test_list_photos_excludes_deleted_by_default(client, db, sample_image_path):
 
 def _make_photo_with_hash(db, photographer_id, hothash):
     """Create a photo row with a specific hothash — no real image file needed."""
+    from models.kind import Kind
+    kind_id = db.query(Kind).filter(Kind.is_default == True).first().id
     photo = Photo(
         hothash=hothash,
         hotpreview_b64="dGVzdA==",
         photographer_id=photographer_id,
+        kind_id=kind_id,
     )
     db.add(photo)
     db.commit()

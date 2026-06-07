@@ -66,11 +66,14 @@ def test_delete_photographer_with_photos_fails(client, db, sample_image_path):
     import uuid
     photographer_id = uuid.UUID(p["id"])
 
+    from models.kind import Kind
+    kind_id = db.query(Kind).filter(Kind.is_default == True).first().id
     jpeg_bytes, hothash, *_ = generate_hotpreview(sample_image_path)
     db.add(Photo(
         hothash=hothash,
         hotpreview_b64=hotpreview_b64(jpeg_bytes),
         photographer_id=photographer_id,
+        kind_id=kind_id,
     ))
     db.commit()
 

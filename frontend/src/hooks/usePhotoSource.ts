@@ -8,6 +8,7 @@ export interface PhotoSourceParams {
   sessionId?: string
   eventId?: string
   tag?: string
+  kindIds?: string[]
   takenFrom?: string   // ISO datetime — filter by date range
   takenTo?: string     // ISO datetime
   logic?: 'AND' | 'OR'
@@ -40,7 +41,7 @@ export function usePhotoSource(params: PhotoSourceParams): PhotoSourceResult {
   const query = useInfiniteQuery({
     queryKey: isSearch
       ? ['search-results', { logic: params.logic, criteria: params.criteria, dateFilter: params.dateFilter }]
-      : ['photos', { sessionId: params.sessionId, eventId: params.eventId, tag: params.tag, takenFrom: params.takenFrom, takenTo: params.takenTo }],
+      : ['photos', { sessionId: params.sessionId, eventId: params.eventId, tag: params.tag, kindIds: params.kindIds, takenFrom: params.takenFrom, takenTo: params.takenTo }],
     queryFn: ({ pageParam }) =>
       isSearch
         ? executeSearch({
@@ -56,6 +57,7 @@ export function usePhotoSource(params: PhotoSourceParams): PhotoSourceResult {
             sessionId: params.sessionId,
             eventId: params.eventId,
             tag: params.tag,
+            kindIds: params.kindIds,
             taken_after: params.takenFrom,
             taken_before: params.takenTo,
             limit,
