@@ -7,7 +7,7 @@ const BACKEND = process.env.VITE_BACKEND_URL ?? 'http://localhost:8000'
 // Alle API-ruter proxyes til backend i dev-modus.
 const API_ROUTES = [
   '/admin', '/ai', '/collections', '/events', '/file-copy-operations',
-  '/input-sessions', '/machines', '/photographers', '/photos', '/searches',
+  '/input-sessions', '/kinds', '/machines', '/photographers', '/photos', '/searches',
   '/settings', '/shortcuts', '/stats', '/system', '/tags',
   '/text-items', '/health', '/api',
 ]
