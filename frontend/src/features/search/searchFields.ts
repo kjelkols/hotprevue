@@ -47,6 +47,15 @@ export const SEARCH_FIELDS: FieldDef[] = [
     ],
   },
   {
+    field: 'tags',
+    label: 'Tags',
+    operators: [
+      { operator: 'any_of', label: 'En av' },
+      { operator: 'all_of', label: 'Alle av' },
+      { operator: 'none_of', label: 'Ingen av' },
+    ],
+  },
+  {
     field: 'camera_make',
     label: 'Kamerafabrikat',
     operators: [

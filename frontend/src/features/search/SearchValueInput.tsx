@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { listPhotographers } from '../../api/photographers'
 import { listEvents } from '../../api/events'
+import TagMultiSelect from './TagMultiSelect'
 
 interface Props {
   field: string
@@ -58,6 +59,15 @@ export default function SearchValueInput({ field, operator, value, onChange }: P
         <option value="">– Velg –</option>
         {photographers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
       </select>
+    )
+  }
+
+  if (field === 'tags') {
+    return (
+      <TagMultiSelect
+        value={Array.isArray(value) ? (value as string[]) : []}
+        onChange={onChange}
+      />
     )
   }
 

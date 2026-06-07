@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from models.photo import Photo
 from models.saved_search import SavedSearch
+from models.tag import PhotoTag
 from schemas.saved_search import SavedSearchCreate, SavedSearchPatch, SearchCriterion
 
 
@@ -207,6 +208,29 @@ def _criterion_to_clause(c: SearchCriterion):
             return Photo.camera_model == value
         if op == "contains" and value:
             return Photo.camera_model.ilike(f"%{value}%")
+
+    elif field == "tags":
+        if not isinstance(value, list) or not value:
+            return None
+        tag_ids = [uuid.UUID(v) for v in value]
+        if op == "any_of":
+            return Photo.id.in_(
+                db.query(PhotoTag.photo_id).filter(PhotoTag.tag_id.in_(tag_ids))
+            )
+        if op == "all_of":
+            from sqlalchemy import func, select
+            sub = (
+                select(PhotoTag.photo_id)
+                .where(PhotoTag.tag_id.in_(tag_ids))
+                .group_by(PhotoTag.photo_id)
+                .having(func.count(PhotoTag.tag_id.distinct()) == len(tag_ids))
+                .scalar_subquery()
+            )
+            return Photo.id.in_(sub)
+        if op == "none_of":
+            return Photo.id.not_in(
+                db.query(PhotoTag.photo_id).filter(PhotoTag.tag_id.in_(tag_ids))
+            )
 
     return None
 
