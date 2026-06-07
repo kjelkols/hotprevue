@@ -1,6 +1,6 @@
 # ADR-035: Tags som entitetsmodell med forvaltnings-UI
 
-**Status:** Delvis implementert — fjerning fullført, ny modell planlagt  
+**Status:** Implementert  
 **Dato:** 2026-06-07
 
 ---
@@ -180,7 +180,7 @@ frontend/src/
   #              features/browse/PhotoTimeline.tsx, features/search/TimelineDayView.tsx
 ```
 
-## Fase 2: Ny entitetsmodell — Planlagt
+## Fase 2: Ny entitetsmodell — Implementert 2026-06-07
 
 ```
 backend/
