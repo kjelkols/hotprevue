@@ -99,7 +99,7 @@ lib/
 ```
 Side (EventPage / BrowsePage / SearchPage)
   │
-  ├── usePhotoSource({ eventId / sessionId / tag / criteria / … })
+  ├── usePhotoSource({ eventId / sessionId / criteria / … })
   │     ├── useQuery(['settings']) → photo_limit, infinite_scroll
   │     └── useInfiniteQuery → photos[], hasMore, loadMore, isFetchingMore
   │
@@ -112,7 +112,7 @@ Side (EventPage / BrowsePage / SearchPage)
   ├── view === 'grid'  → <PhotoGrid {...source} />
   │     └── gridVariant === 'dato' → groupByDate(photos) med dato-headere
   │
-  └── view === 'timeline' → <PhotoTimeline key={…} sessionId/eventId/tag/criteria />
+  └── view === 'timeline' → <PhotoTimeline key={…} sessionId/eventId/criteria />
         └── dag-klikk → <TimelineDayView …>
               └── usePhotoSource({ …, dateFilter }) → <PhotoGrid />
 ```
@@ -121,7 +121,7 @@ Side (EventPage / BrowsePage / SearchPage)
 
 | Modus | Props | API-kall |
 |---|---|---|
-| Browse | `sessionId` / `eventId` / `tag` | `GET /photos` |
+| Browse | `sessionId` / `eventId` | `GET /photos` |
 | Søk | `criteria` + `logic` | `POST /searches/execute` |
 | Tidslinje-dag | + `dateFilter` | `POST /searches/execute` med `date_filter` |
 

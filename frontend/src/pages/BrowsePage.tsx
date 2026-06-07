@@ -13,16 +13,15 @@ export default function BrowsePage() {
   const [searchParams] = useSearchParams()
   const sessionId = searchParams.get('session_id') ?? undefined
   const eventId = searchParams.get('event_id') ?? undefined
-  const tag = searchParams.get('tag') ?? undefined
   const takenFrom = searchParams.get('taken_from') ?? undefined
   const takenTo = searchParams.get('taken_to') ?? undefined
-  const title = searchParams.get('title') ?? tag ?? 'Utvalg'
+  const title = searchParams.get('title') ?? 'Utvalg'
 
   const selectedKindIds = useKindFilterStore(s => s.selectedKindIds)
-  const photoSource = usePhotoSource({ sessionId, eventId, tag, takenFrom, takenTo, kindIds: selectedKindIds.length > 0 ? selectedKindIds : undefined })
+  const photoSource = usePhotoSource({ sessionId, eventId, takenFrom, takenTo, kindIds: selectedKindIds.length > 0 ? selectedKindIds : undefined })
   const [view, setView] = useState<View>('grid')
 
-  const upUrl = eventId ? `/events/${eventId}` : sessionId ? '/sessions' : tag ? '/tags' : null
+  const upUrl = eventId ? `/events/${eventId}` : sessionId ? '/sessions' : null
 
   return (
     <div className="min-h-full bg-gray-950 text-white">
@@ -52,10 +51,9 @@ export default function BrowsePage() {
         {view === 'grid' && <PhotoGrid {...photoSource} />}
         {view === 'timeline' && (
           <PhotoTimeline
-            key={`${sessionId}-${eventId}-${tag}`}
+            key={`${sessionId}-${eventId}`}
             sessionId={sessionId}
             eventId={eventId}
-            tag={tag}
           />
         )}
       </div>

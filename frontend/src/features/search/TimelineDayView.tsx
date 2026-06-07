@@ -6,7 +6,6 @@ import type { SearchCriterion } from '../../types/api'
 interface Props {
   sessionId?: string
   eventId?: string
-  tag?: string
   logic?: 'AND' | 'OR'
   criteria?: SearchCriterion[]
   year: number
@@ -16,11 +15,11 @@ interface Props {
 }
 
 export default function TimelineDayView({
-  sessionId, eventId, tag, logic, criteria,
+  sessionId, eventId, logic, criteria,
   year, month, day, onBack,
 }: Props) {
   const dateStr = toIsoDate(year, month, day)
-  const source = usePhotoSource({ sessionId, eventId, tag, criteria, logic, dateFilter: dateStr })
+  const source = usePhotoSource({ sessionId, eventId, criteria, logic, dateFilter: dateStr })
 
   return (
     <div>

@@ -43,11 +43,6 @@ export interface BrowseResult {
 
 // ─── Backend API types ────────────────────────────────────────────────────────
 
-export interface Tag {
-  name: string
-  photo_count: number
-}
-
 export interface KindOut {
   id: string
   name: string
@@ -182,7 +177,6 @@ export interface PhotoListItem {
   taken_at: string | null
   taken_at_accuracy: string
   rating: number | null
-  tags: string[]
   kind_id: string
   category_id: string | null
   event_id: string | null

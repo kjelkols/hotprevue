@@ -22,14 +22,6 @@ export default function AssignButton() {
       >
         Samling
       </button>
-      <div className="w-px bg-gray-600" />
-      <button
-        type="button"
-        onClick={() => open('tag')}
-        className="px-3 py-1.5 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
-      >
-        Tag
-      </button>
     </div>
     </div>
   )

@@ -35,7 +35,6 @@ def list_photos(
     photographer_id: uuid.UUID | None = None,
     event_id: uuid.UUID | None = None,
     session_id: uuid.UUID | None = None,
-    tags: list[str] | None = None,
     kind_ids: list[uuid.UUID] | None = None,
     category_id: uuid.UUID | None = None,
     in_stream: bool | None = None,
@@ -63,9 +62,6 @@ def list_photos(
         q = q.filter(Photo.event_id == event_id)
     if session_id:
         q = q.filter(Photo.input_session_id == session_id)
-    if tags:
-        for tag in tags:
-            q = q.filter(Photo.tags.contains([tag]))
     if kind_ids:
         q = q.filter(Photo.kind_id.in_(kind_ids))
     if category_id:
@@ -347,8 +343,6 @@ def _build_gps_ifd(lat: float, lng: float) -> dict:
 def patch_photo(db: Session, hothash: str, data) -> Photo:
     photo = get_by_hothash(db, hothash)
     updates = data.model_dump(exclude_unset=True)
-    if "tags" in updates and updates["tags"] is not None:
-        updates["tags"] = [t.lower() for t in updates["tags"]]
     for field, value in updates.items():
         setattr(photo, field, value)
     db.commit()
@@ -432,35 +426,6 @@ def empty_trash(db: Session) -> int:
 
 def _get_batch(db: Session, hothashes: list[str]) -> list[Photo]:
     return db.query(Photo).filter(Photo.hothash.in_(hothashes)).all()
-
-
-def batch_tags_add(db: Session, hothashes: list[str], tags: list[str]) -> int:
-    from sqlalchemy import func as sa_func
-    normalized = [t.lower() for t in tags]
-    photos = _get_batch(db, hothashes)
-    for photo in photos:
-        existing = set(photo.tags or [])
-        photo.tags = list(existing | set(normalized))
-    db.commit()
-    return len(photos)
-
-
-def batch_tags_remove(db: Session, hothashes: list[str], tags: list[str]) -> int:
-    normalized = set(t.lower() for t in tags)
-    photos = _get_batch(db, hothashes)
-    for photo in photos:
-        photo.tags = [t for t in (photo.tags or []) if t not in normalized]
-    db.commit()
-    return len(photos)
-
-
-def batch_tags_set(db: Session, hothashes: list[str], tags: list[str]) -> int:
-    normalized = [t.lower() for t in tags]
-    photos = _get_batch(db, hothashes)
-    for photo in photos:
-        photo.tags = normalized
-    db.commit()
-    return len(photos)
 
 
 def batch_rating(db: Session, hothashes: list[str], rating: int | None) -> int:

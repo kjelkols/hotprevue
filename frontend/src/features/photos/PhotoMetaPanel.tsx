@@ -106,17 +106,6 @@ export default function PhotoMetaPanel({ photo }: Props) {
         )}
       </dl>
 
-      {photo.tags.length > 0 && (
-        <div>
-          <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5">Tags</p>
-          <div className="flex flex-wrap gap-1">
-            {photo.tags.map(tag => (
-              <span key={tag} className="bg-gray-700 text-gray-100 rounded px-2 py-0.5 text-xs">{tag}</span>
-            ))}
-          </div>
-        </div>
-      )}
-
       <PhotoLocationMap photo={photo} />
 
       <PhotoMetaQuality photo={photo} />

@@ -18,7 +18,7 @@ Tray-et er *ikke* et flytende vindu. Det er en fast bunnlinje som skyver innhold
 
 - **N bilder valgt** — tekst, alltid synlig
 - **Vis utvalg ↑** — åpner SelectionModal
-- **Legg til i…** — åpner popover med valg: Event / Samling / Tag
+- **Legg til i…** — åpner popover med valg: Event / Samling
 - **✕ Tøm** — tømmer utvalget (`clear()`)
 
 Bunnlinjen er alltid montert i `App.tsx`, utenfor `<Routes>`. Den rendrer `null` når `selected.size === 0`.
@@ -34,7 +34,6 @@ Tray-et har ingen avhengighet til NavigationStore eller noen global mål-tilstan
 | Vis utvalg | Åpner SelectionModal |
 | Legg til i… → Event | Åpner EventPickerModal |
 | Legg til i… → Samling | Åpner CollectionPickerModal |
-| Legg til i… → Tag | Åpner TagPickerModal |
 | Tøm | Tøm utvalg uten handling |
 
 Se `photo-assignment.md` for fullstendig spec for picker-modalene.
@@ -81,5 +80,4 @@ src/features/assignment/
   AssignButton.tsx        — "Legg til i…"-knapp med popover
   EventPickerModal.tsx
   CollectionPickerModal.tsx
-  TagPickerModal.tsx
 ```

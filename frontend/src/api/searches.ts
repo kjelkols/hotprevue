@@ -51,7 +51,6 @@ export function executeSearch(req: ExecuteSearchRequest): Promise<PhotoListItem[
 export function fetchTimeline(req: {
   sessionId?: string
   eventId?: string
-  tag?: string
   logic?: 'AND' | 'OR'
   criteria?: SearchCriterion[]
 }): Promise<TimelineYear[]> {
@@ -62,7 +61,6 @@ export function fetchTimeline(req: {
       criteria: req.criteria ?? [],
       session_id: req.sessionId ?? null,
       event_id: req.eventId ?? null,
-      tags: req.tag ? [req.tag] : [],
     }),
   })
 }

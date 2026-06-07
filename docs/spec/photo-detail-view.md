@@ -42,7 +42,6 @@ Følgende er spesifisert i `frontend.md` og `context-menu.md`, men ikke implemen
 - Forrige/neste-navigasjon
 - Counter (3 av 47)
 - Rating (redigerbar)
-- Tags (redigerbar)
 - Filmmaker / kontaktarkrad
 - Korreksjonspanel (rotasjon, eksponering, crop)
 - "Åpne original i eksternt program"
@@ -232,7 +231,6 @@ Dette isolerer navigasjonslogikken fra layoutkomponenten. Sidepaneler, header og
 | Felt | Komponent | API |
 |---|---|---|
 | Rating | Stjernekomponent (1–5 + tøm) | `PATCH /photos/{hothash}` |
-| Tags | Tag-chips med add/remove | `PATCH /photos/{hothash}` |
 | Event | Dropdown | `PATCH /photos/{hothash}` |
 | Dato (manuell) | Dato-input med kildeindikator | `PATCH /photos/{hothash}` |
 

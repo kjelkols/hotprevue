@@ -175,7 +175,6 @@ class PhotoListItem(BaseModel):
     taken_at: datetime | None
     taken_at_accuracy: str
     rating: int | None
-    tags: list[str]
     # ... øvrige liste-felt
 
 class PhotoDetail(PhotoListItem):
@@ -206,7 +205,6 @@ backend/
     input_sessions.py
     photographers.py
     categories.py
-    tags.py
     duplicates.py
     settings.py
   models/

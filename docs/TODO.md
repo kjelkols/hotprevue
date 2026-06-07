@@ -16,7 +16,6 @@ Sist oppdatert: 2026-02-27 (sesjon 7)
 
 - [ ] `POST /collections/{id}/clone` — klon collection (foto deles, text_items kopieres dypt)
 - [ ] `GET/PATCH /settings` — SystemSettings
-- [ ] `GET /tags` — distinkte tags med prefiks-filtrering og valgfri count
 - [ ] Category — CRUD
 - [ ] `GET /duplicates`, `DELETE /duplicates/{id}` — liste og fjern duplikater
 - [ ] PhotoCorrection — GET/PUT/DELETE
@@ -92,7 +91,7 @@ Sist oppdatert: 2026-02-27 (sesjon 7)
 - [x] Test-bilder lastet opp til GitHub Releases (test-assets-v1)
 - [x] PATCH /photos/{hothash} — oppdater metadata på enkeltbilde
 - [x] Soft delete, restore, empty-trash på photos
-- [x] Batch-endepunkter: tags/add, tags/remove, tags/set, rating, event, category, photographer, taken-at, taken-at-offset, location, delete, restore
+- [x] Batch-endepunkter: rating, event, category, photographer, taken-at, taken-at-offset, location, delete, restore
 - [x] Collection — CRUD + items (legg til, batch, rekkefølge, oppdater innhold, fjern)
 - [x] CollectionItem: migrering 0003 (notes, card_data — erstattet av text_items i 0004)
 - [x] spec/collection-presentation.md — Collection som presentasjonsmedium, visningsmodus, eksportarkitektur (oppdatert 2026-02-27)

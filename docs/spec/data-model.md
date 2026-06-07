@@ -80,7 +80,6 @@ InputSession ───────┤─ default_event_id ───────�
 | `height` | int (nullable) | Faktisk sensorhøyde i piksler (fra RAW) eller bildehøyde |
 | `dct_perceptual_hash` | bigint (nullable) | DCT-basert perceptual hash (pHash) — 64 bit. Se `docs/decisions/004-perceptual-hash.md`. |
 | `difference_hash` | bigint (nullable) | Difference hash (dHash) — 64 bit. Se `docs/decisions/004-perceptual-hash.md`. |
-| `tags` | TEXT[] | Fritekstetiketter. GIN-indeksert. Normalisert til lowercase ved skriving. |
 | `category_id` | UUID FK (nullable) | Brukerdefinert kategori. Null = ingen kategori, alltid i strømmen. |
 | `rating` | int (nullable) | 1–5 |
 | `photographer_id` | UUID FK | Aldri null |

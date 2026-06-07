@@ -52,19 +52,6 @@ export default function SearchValueInput({ field, operator, value, onChange }: P
     )
   }
 
-  if (field === 'tags') {
-    const tagStr = Array.isArray(value) ? (value as string[]).join(', ') : (value as string) ?? ''
-    return (
-      <input
-        type="text"
-        className={`${cls} min-w-32`}
-        placeholder="tag1, tag2, …"
-        value={tagStr}
-        onChange={e => onChange(e.target.value.split(',').map(t => t.trim()).filter(Boolean))}
-      />
-    )
-  }
-
   if (field === 'photographer_id') {
     return (
       <select className={cls} value={(value as string) ?? ''} onChange={e => onChange(e.target.value)}>

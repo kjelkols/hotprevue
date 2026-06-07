@@ -39,7 +39,6 @@ def search_timeline(req: TimelineRequest, db: Session = Depends(get_db)):
         db, req.logic, req.criteria,
         session_id=req.session_id,
         event_id=req.event_id,
-        tags=req.tags or None,
     )
 
 

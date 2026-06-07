@@ -20,7 +20,6 @@ Opererer på Photos sine *metadata*. Bilder er uordnede. Avkryssingstilstand akt
 |---|---|---|
 | Sett event | Event (ett bilde tilhører maks ett event) | `POST /photos/batch/event` |
 | Legg til i samling | Collection (ved InsertionPoint eller slutten) | `POST /collections/{id}/items/batch` |
-| Legg til tag | Tag(s) — additivt, eksisterende berøres ikke | `POST /photos/batch/tags/add` |
 | Sett fotograf | Fotograf | `POST /photos/batch/photographer` |
 | Vurder | Rating 1–5 eller fjern | `POST /photos/batch/rating` |
 | Slett | Soft delete | `POST /photos/batch/delete` |
@@ -76,7 +75,6 @@ på utvalg        "Legg til i…"
 |---|---|
 | Sett event… | EventPickerModal |
 | Legg til i samling… | CollectionPickerModal |
-| Legg til tag… | TagPickerModal |
 | Sett fotograf… | PhotographerPickerModal |
 | Vurder → | Undermeny: ★ / ★★ / ★★★ / ★★★★ / ★★★★★ / Fjern |
 | Slett | Bekreftelsesdialog |
@@ -85,7 +83,7 @@ Se `context-menu.md` for kontekstmeny-arkitektur og CollectionView sin separate 
 
 ### 2. SelectionTray — "Legg til i…"-knapp (BrowseView)
 
-Bunnlinjen viser "Legg til i…"-knapp når `selected.size > 0`. Knappen åpner en popover med tre valg: Event, Samling, Tag. Hvert valg åpner tilsvarende picker-modal.
+Bunnlinjen viser "Legg til i…"-knapp når `selected.size > 0`. Knappen åpner en popover med to valg: Event, Samling. Hvert valg åpner tilsvarende picker-modal.
 
 SelectionTray er ikke tilgjengelig i CollectionView.
 
@@ -124,18 +122,14 @@ Alle tre modalene følger samme mønster:
 - Innsetting skjer ved InsertionPoint hvis brukeren er inne i den aktuelle CollectionView, ellers på slutten
 - Semantikk: bilder *legges til* — ett bilde kan være i mange samlinger
 
-### TagPickerModal
-
-- Viser eksisterende tags fra `GET /tags` + fritekst for nye
-- Operasjon: `POST /photos/batch/tags/add` med `{ hothashes, tags: string[] }`
-- Semantikk: tags legges til additivt — eksisterende tags berøres ikke
+> **Merk:** TagPickerModal er fjernet (ADR-035, fase 1). Ny tags-tildeling planlagt i fase 2.
 
 ---
 
 ## Etter handling
 
 1. Utvalget tømmes (`useSelectionStore.clear()`)
-2. Relevante queries invalideres: `['photos']`, og `['events']` / `['collections']` / `['tags']`
+2. Relevante queries invalideres: `['photos']`, og `['events']` / `['collections']`
 3. Modal lukkes
 4. Brukeren forblir i samme visning
 
@@ -147,7 +141,6 @@ Alle tre modalene følger samme mønster:
 |---|---|
 | `src/features/assignment/EventPickerModal.tsx` | Modal med event-liste og søk |
 | `src/features/assignment/CollectionPickerModal.tsx` | Modal med samlings-liste og søk |
-| `src/features/assignment/TagPickerModal.tsx` | Modal med tag-liste og fritekst |
 | `src/features/assignment/AssignButton.tsx` | "Legg til i…"-knapp med popover (til SelectionTray) |
 | `src/features/selection/SelectionTray.tsx` | Bunnlinje — ingen NavigationStore-avhengighet |
 

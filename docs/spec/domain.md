@@ -127,17 +127,12 @@ En ordnet gruppe Photos der rekkefølgen er viktig. Mange-til-mange: ett Photo k
 
 ## Tags
 
-Et sett med fritekstetiketter på et Photo — f.eks. `solnedgang`, `fjell`, `familie`. Et Photo kan ha mange tags. Tags er rene strenger uten egne attributter.
+> **Merk:** Den gamle `ARRAY(String)`-implementasjonen er fjernet (ADR-035, fase 1).
+> Ny entitetsmodell med `tags`- og `photo_tags`-tabell er planlagt (ADR-035, fase 2).
 
-**Normalisering:** Tags skrives alltid som lowercase og trimmet for whitespace. `"Solnedgang "` → `"solnedgang"`. Normalisering skjer i backend ved skriving.
+Et sett med fritekstetiketter på et Photo — f.eks. `solnedgang`, `fjell`, `familie`. Et Photo kan ha mange tags. Tags er et søkeverktøy på tvers av alle andre organiseringsmekanismer.
 
-**Lagring:** `TEXT[]` på Photo med PostgreSQL GIN-indeks. GIN (Generalized Inverted Index) indekserer hver enkelt tag og gir meget rask søking uten å skanne hele tabellen — standard praksis for tag-søk i store bildesamlinger.
-
-**Autocomplete:** `GET /tags` returnerer alle distinkte tags i bruk, med valgfri prefiks-filtrering. Bygges fra `unnest(tags)` — ingen egen Tag-tabell.
-
-**Filtrering:** `GET /photos?tags=solnedgang&tags=fjell` — standard er AND (Photos som har *alle* angitte tags). OR-støtte kan legges til via `?tag_operator=or` uten breaking changes.
-
-**Hotprevue Global:** Tags publiseres som string-array. `"solnedgang"` fra én bruker og `"solnedgang"` fra en annen bruker er samme tag globalt — sømløs sammenslåing uten koordinering.
+**Planlagt datamodell:** Egne tabeller `tags (id, name, slug)` og `photo_tags (photo_id, tag_id)` med trigram-indeks for likhetsøk ved oppretting. Se ADR-035 for full spesifikasjon.
 
 ## Category
 

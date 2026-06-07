@@ -14,7 +14,6 @@ import RegisterPage from './pages/RegisterPage'
 import SessionsListPage from './pages/SessionsListPage'
 import EventsListPage from './pages/EventsListPage'
 import EventPage from './pages/EventPage'
-import TagsPage from './pages/TagsPage'
 import SavedSearchesPage from './pages/SavedSearchesPage'
 import SearchPage from './pages/SearchPage'
 import SettingsPage from './pages/SettingsPage'
@@ -28,7 +27,6 @@ import ContextMenuOverlay from './components/ui/ContextMenuOverlay'
 import SelectionTray from './features/selection/SelectionTray'
 import EventPickerModal from './features/assignment/EventPickerModal'
 import CollectionPickerModal from './features/assignment/CollectionPickerModal'
-import TagPickerModal from './features/assignment/TagPickerModal'
 import useSelectionStore from './stores/useSelectionStore'
 import useContextMenuStore from './stores/useContextMenuStore'
 
@@ -76,7 +74,6 @@ export default function App() {
           <Route path="/sessions"        element={<SessionsListPage />} />
           <Route path="/events"          element={<EventsListPage />} />
           <Route path="/events/:id"      element={<EventPage />} />
-          <Route path="/tags"            element={<TagsPage />} />
           <Route path="/searches"        element={<SavedSearchesPage />} />
           <Route path="/searches/new"    element={<SearchPage />} />
           <Route path="/searches/:id"    element={<SearchPage />} />
@@ -94,7 +91,6 @@ export default function App() {
       <SelectionTray />
       <EventPickerModal />
       <CollectionPickerModal />
-      <TagPickerModal />
     </HashRouter>
   )
 }

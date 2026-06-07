@@ -17,7 +17,6 @@ from schemas.photo import (
     BatchPhotographer,
     BatchRating,
     BatchResult,
-    BatchTags,
     BatchTakenAt,
     BatchTakenAtOffset,
     CompanionCreate,
@@ -47,7 +46,6 @@ def list_photos(
     photographer_id: uuid.UUID | None = None,
     event_id: uuid.UUID | None = None,
     session_id: uuid.UUID | None = None,
-    tags: list[str] = Query(default=[]),
     kind_id: list[uuid.UUID] = Query(default=[]),
     category_id: uuid.UUID | None = None,
     in_stream: bool | None = None,
@@ -66,7 +64,6 @@ def list_photos(
         photographer_id=photographer_id,
         event_id=event_id,
         session_id=session_id,
-        tags=tags or None,
         kind_ids=kind_id or None,
         category_id=category_id,
         in_stream=in_stream,
@@ -204,21 +201,6 @@ def empty_trash(db: Session = Depends(get_db)):
 # ---------------------------------------------------------------------------
 # Batch endpoints
 # ---------------------------------------------------------------------------
-
-@router.post("/batch/tags/add", response_model=BatchResult)
-def batch_tags_add(data: BatchTags, db: Session = Depends(get_db)):
-    return BatchResult(updated=photo_service.batch_tags_add(db, data.hothashes, data.tags))
-
-
-@router.post("/batch/tags/remove", response_model=BatchResult)
-def batch_tags_remove(data: BatchTags, db: Session = Depends(get_db)):
-    return BatchResult(updated=photo_service.batch_tags_remove(db, data.hothashes, data.tags))
-
-
-@router.post("/batch/tags/set", response_model=BatchResult)
-def batch_tags_set(data: BatchTags, db: Session = Depends(get_db)):
-    return BatchResult(updated=photo_service.batch_tags_set(db, data.hothashes, data.tags))
-
 
 @router.post("/batch/rating", response_model=BatchResult)
 def batch_rating(data: BatchRating, db: Session = Depends(get_db)):

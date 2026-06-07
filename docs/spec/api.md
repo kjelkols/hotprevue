@@ -20,7 +20,7 @@ Teknisk API-dokumentasjon genereres automatisk fra kjørende backend (se `script
 |---|---|---|
 | `GET` | `/photos` | List photos (filtrering via query-params) |
 | `GET` | `/photos/{hothash}` | Hent ett photo med full metadata |
-| `PATCH` | `/photos/{hothash}` | Oppdater metadata (taken_at, tags, rating, event, photographer, osv.) |
+| `PATCH` | `/photos/{hothash}` | Oppdater metadata (taken_at, rating, event, photographer, osv.) |
 | `GET` | `/photos/{hothash}/coldpreview` | Hent coldpreview-bilde (JPEG, med korreksjon hvis den finnes) |
 | `PATCH` | `/photos/{hothash}/correction` | Delvis oppdatering av visningskorreksjoner (oppretter rad om nødvendig) |
 | `DELETE` | `/photos/{hothash}/correction` | Fjern alle visningskorreksjoner |
@@ -58,14 +58,6 @@ Returnerer `409 Conflict` hvis stien allerede er registrert.
 ### Photos — batch
 
 Alle batch-endepunkter tar `hothashes: []` + operasjonsspesifikke felt. Kjøres best-effort — gyldige photos oppdateres, ugyldige rapporteres i responsen.
-
-**Tags:**
-
-| Metode | Sti | Beskrivelse |
-|---|---|---|
-| `POST` | `/photos/batch/tags/add` | Legg til tags (merger med eksisterende) |
-| `POST` | `/photos/batch/tags/remove` | Fjern spesifikke tags |
-| `POST` | `/photos/batch/tags/set` | Erstatt alle tags |
 
 **Metadata:**
 
@@ -206,13 +198,7 @@ Avvises med `409 Conflict` hvis eventen har child-events.
 
 ### Tags
 
-| Metode | Sti | Beskrivelse |
-|---|---|---|
-| `GET` | `/tags` | List alle distinkte tags i bruk |
-
-**Parametere:**
-- `q` (string, valgfri) — prefiks-filtrering for autocomplete
-- `with_count` (bool, valgfri) — inkluder antall Photos per tag
+> **Merk:** Tags-endepunkter er fjernet (ADR-035, fase 1). Ny entitetsmodell planlagt i fase 2.
 
 ### Categories
 

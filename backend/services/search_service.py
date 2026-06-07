@@ -21,7 +21,6 @@ def _base_query(
     criteria: list[SearchCriterion],
     session_id=None,
     event_id=None,
-    tags: list[str] | None = None,
 ):
     q = db.query(Photo).filter(Photo.deleted_at.is_(None))
     f = _build_filters(criteria, logic)
@@ -31,9 +30,6 @@ def _base_query(
         q = q.filter(Photo.input_session_id == session_id)
     if event_id is not None:
         q = q.filter(Photo.event_id == event_id)
-    if tags:
-        for tag in tags:
-            q = q.filter(Photo.tags.contains([tag]))
     return q
 
 
@@ -74,7 +70,6 @@ def timeline(
     criteria: list[SearchCriterion],
     session_id=None,
     event_id=None,
-    tags: list[str] | None = None,
 ) -> list[dict]:
     """Return a year→month→day tree for all dated photos matching the criteria.
 
@@ -84,7 +79,7 @@ def timeline(
     Cover photo per node = newest photo in that node (taken_at DESC).
     Grouping uses UTC dates from the stored taken_at value.
     """
-    q = _base_query(db, logic, criteria, session_id=session_id, event_id=event_id, tags=tags)
+    q = _base_query(db, logic, criteria, session_id=session_id, event_id=event_id)
 
     # Lightweight fetch: only 3 columns, no ORM overhead for corrections etc.
     rows = (
@@ -186,15 +181,6 @@ def _criterion_to_clause(c: SearchCriterion):
             return Photo.taken_at <= _parse_dt(value)
         if op == "between" and isinstance(value, list) and len(value) == 2:
             return Photo.taken_at.between(_parse_dt(value[0]), _parse_dt(value[1]))
-
-    elif field == "tags":
-        if op == "any_of" and value:
-            return Photo.tags.overlap(value)
-        if op == "all_of" and value:
-            return Photo.tags.contains(value)
-        if op == "none_of" and value:
-            from sqlalchemy import not_
-            return not_(Photo.tags.overlap(value))
 
     elif field == "photographer_id":
         if op == "eq" and value:

@@ -111,7 +111,6 @@ Kontekstmenyens innhold avhenger av hvilken visningskontekst brukeren er i. Brow
 | Åpne | ✓ | Naviger til `/photos/:hothash` |
 | Sett event… | | EventPickerModal for dette bildet |
 | Legg til i samling… | | CollectionPickerModal for dette bildet |
-| Legg til tag… | | TagPickerModal for dette bildet |
 | Slett | | Soft delete med bekreftelse |
 
 ### Batch-meny (BrowseView — utvalg)
@@ -122,7 +121,6 @@ Vises ved høyreklikk innenfor utvalg. Se `photo-assignment.md` for fullstendig 
 |---|---|
 | Sett event… | EventPickerModal |
 | Legg til i samling… | CollectionPickerModal |
-| Legg til tag… | TagPickerModal |
 | Sett fotograf… | PhotographerPickerModal |
 | Vurder → | Undermeny: ★ / ★★ / ★★★ / ★★★★ / ★★★★★ / Fjern |
 | Slett | Bekreftelsesdialog → soft-delete |
@@ -192,8 +190,7 @@ Utløses av "Åpne" i kontekstmenyen (default-valg). Kan også nås via direkte 
 │                         │ Kamera                 │
 │    coldpreview          │ Eksponering            │
 │    (object-contain,     │ Brennvidde             │
-│     full høyde)         │ Tags                   │
-│                         │ Event                  │
+│     full høyde)         │ Event                  │
 │                         │ Fotograf               │
 │                         │ Kategori               │
 │                         │ Rating                 │
@@ -227,7 +224,6 @@ Vises når ett eller flere bilder er valgt og brukeren høyreklikker innenfor ut
 |---|---|
 | Sett event… | Åpner EventPickerModal |
 | Legg til i samling… | Åpner CollectionPickerModal |
-| Legg til tag… | Åpner TagPickerModal |
 | Sett fotograf… | Åpner PhotographerPickerModal |
 | Vurder → | Undermeny: ★ / ★★ / ★★★ / ★★★★ / ★★★★★ / Fjern vurdering |
 | Slett | Bekreftelsesdialog → soft-delete |

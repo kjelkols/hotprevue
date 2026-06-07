@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy import BigInteger, Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text, func
-from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base
@@ -36,7 +36,6 @@ class Photo(Base):
     aperture: Mapped[float | None] = mapped_column(Float, nullable=True)
     focal_length: Mapped[float | None] = mapped_column(Float, nullable=True)
 
-    tags: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
     kind_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("kinds.id"),
@@ -134,10 +133,6 @@ class Photo(Base):
         uselist=False,
         cascade="all, delete-orphan",
     )
-
-
-# GIN index on tags array for efficient tag filtering
-Index("ix_photos_tags_gin", Photo.__table__.c.tags, postgresql_using="gin")
 
 
 class ImageFile(Base):

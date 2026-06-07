@@ -43,7 +43,6 @@ class PhotoListItem(BaseModel):
     taken_at: datetime | None
     taken_at_accuracy: str
     rating: int | None
-    tags: list[str]
     kind_id: uuid.UUID
     category_id: uuid.UUID | None
     event_id: uuid.UUID | None
@@ -106,7 +105,6 @@ class PhotoPatch(BaseModel):
     location_source: int | None = None
     location_accuracy: str | None = None
     rating: int | None = None
-    tags: list[str] | None = None
     kind_id: uuid.UUID | None = None
     category_id: uuid.UUID | None = None
     event_id: uuid.UUID | None = None
@@ -133,10 +131,6 @@ class CorrectionPatch(BaseModel):
 
 class BatchBase(BaseModel):
     hothashes: list[str]
-
-
-class BatchTags(BatchBase):
-    tags: list[str]
 
 
 class BatchRating(BatchBase):

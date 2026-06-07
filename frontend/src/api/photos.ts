@@ -8,7 +8,6 @@ export function listPhotos(params: {
   hothashes?: string[]
   sessionId?: string
   eventId?: string
-  tag?: string
   kindIds?: string[]
   taken_after?: string
   taken_before?: string
@@ -19,7 +18,6 @@ export function listPhotos(params: {
   if (params.sort) q.set('sort', params.sort)
   if (params.sessionId) q.set('session_id', params.sessionId)
   if (params.eventId) q.set('event_id', params.eventId)
-  if (params.tag) q.append('tags', params.tag)
   if (params.kindIds) {
     for (const id of params.kindIds) q.append('kind_id', id)
   }
@@ -55,13 +53,6 @@ export function assignEvent(hothashes: string[], eventId: string | null): Promis
   return apiFetch<{ updated: number }>('/photos/batch/event', {
     method: 'POST',
     body: JSON.stringify({ hothashes, event_id: eventId }),
-  })
-}
-
-export function batchTagsAdd(hothashes: string[], tags: string[]): Promise<{ updated: number }> {
-  return apiFetch<{ updated: number }>('/photos/batch/tags/add', {
-    method: 'POST',
-    body: JSON.stringify({ hothashes, tags }),
   })
 }
 

@@ -54,7 +54,6 @@ class TimelineRequest(BaseModel):
     criteria: list[SearchCriterion] = []
     session_id: uuid.UUID | None = None
     event_id: uuid.UUID | None = None
-    tags: list[str] = []
 
 
 class TimelineDay(BaseModel):

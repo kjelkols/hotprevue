@@ -14,17 +14,16 @@ interface DaySelection {
 export interface PhotoTimelineProps {
   sessionId?: string
   eventId?: string
-  tag?: string
   logic?: 'AND' | 'OR'
   criteria?: SearchCriterion[]
 }
 
-export default function PhotoTimeline({ sessionId, eventId, tag, logic, criteria }: PhotoTimelineProps) {
+export default function PhotoTimeline({ sessionId, eventId, logic, criteria }: PhotoTimelineProps) {
   const [selectedDay, setSelectedDay] = useState<DaySelection | null>(null)
 
   const { data: years = [], isLoading, isError } = useQuery({
-    queryKey: ['timeline', { sessionId, eventId, tag, logic, criteria }],
-    queryFn: () => fetchTimeline({ sessionId, eventId, tag, logic, criteria }),
+    queryKey: ['timeline', { sessionId, eventId, logic, criteria }],
+    queryFn: () => fetchTimeline({ sessionId, eventId, logic, criteria }),
   })
 
   if (selectedDay) {
@@ -32,7 +31,6 @@ export default function PhotoTimeline({ sessionId, eventId, tag, logic, criteria
       <TimelineDayView
         sessionId={sessionId}
         eventId={eventId}
-        tag={tag}
         logic={logic}
         criteria={criteria}
         year={selectedDay.year}
