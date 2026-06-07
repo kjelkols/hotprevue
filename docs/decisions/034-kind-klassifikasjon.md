@@ -1,7 +1,8 @@
 # ADR-034: Kind — faglig og administrativ klassifikasjon
 
-**Status:** Planlagt  
-**Dato:** 2026-06-07
+**Status:** Implementert  
+**Dato:** 2026-06-07  
+**Sist oppdatert:** 2026-06-07
 
 ---
 
@@ -128,23 +129,28 @@ Følger samme mønster som fotograf-administrasjon:
 
 ---
 
-## Filer (planlagt)
+## Filer
 
 ```
 backend/
-  models/kind.py              # Kind-modell
-  schemas/kind.py             # KindIn, KindOut
-  api/kinds.py                # CRUD-endepunkter
-  services/kind_service.py    # Forretningslogikk inkl. slett-med-nullstilling
-  alembic/versions/xxx_add_kinds.py
+  models/kind.py
+  schemas/kind.py
+  api/kinds.py
+  services/kind_service.py
+  alembic/versions/b2d4e6f8a012_adr034_kind_klassifikasjon.py
 
 frontend/src/
-  api/kinds.ts                # fetch-wrappers
-  types/api.ts                # KindOut, oppdater EventOut og PhotoOut
+  api/kinds.ts
+  types/api.ts                # KindOut lagt til, kind_id på EventNode og PhotoListItem
+  stores/useKindFilterStore.ts
   features/kinds/
-    KindsAdminPage.tsx        # Admin-liste
-    KindForm.tsx              # Legg til / rediger
-    KindFilterBar.tsx         # Checkboks-filter (brukes i event- og fotovisninger)
-  pages/
-    SettingsPage.tsx          # Ny «Kinds»-fane
+    KindDialog.tsx
+    KindFilterBar.tsx
+  pages/KindsPage.tsx
+  components/TopNav.tsx       # /kinds lagt til nav
+  App.tsx                     # /kinds-rute lagt til
+  pages/EventsListPage.tsx    # KindFilterBar integrert
+  pages/BrowsePage.tsx        # KindFilterBar integrert
+  hooks/usePhotoSource.ts     # kindIds-parameter lagt til
+  vite.config.ts              # /kinds lagt til proxy-liste
 ```
