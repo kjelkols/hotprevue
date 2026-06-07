@@ -42,7 +42,10 @@ export default function TagList({ tags, selection, tagMap }: Props) {
       if (state === 'all') await removeTagFromPhotos(tagId, selection)
       else await addTagToPhotos(tagId, selection)
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tags', 'tagsForPhotos'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tags'] })
+      queryClient.invalidateQueries({ queryKey: ['tagsForPhotos'] })
+    },
   })
 
   if (tags.length === 0) {
