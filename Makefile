@@ -17,9 +17,9 @@ DIST_EXCLUDES := \
 
 # ─── Utvikling ────────────────────────────────────────────────────────────────
 
-# Start backend med pgserver (lokal PostgreSQL, ingen Docker)
+# Start backend mot lokal PostgreSQL via Unix-socket
 dev-backend:
-	cd backend && HOTPREVUE_SERVER=local uv run uvicorn main:app --host 0.0.0.0 --port 8000
+	cd backend && DATABASE_URL="postgresql+psycopg2:///hotprevue?host=/run/postgresql" uv run uvicorn main:app --host 0.0.0.0 --port 8000
 
 # Start Vite dev-server med hot-reload (tilgjengelig på nettverket via 0.0.0.0)
 dev-frontend:
