@@ -42,7 +42,7 @@ export default function TimelineRow({ row, maxCount, containerWidth, pxPerDay }:
   const thumbSize = Math.min(Math.max(height - 4, 16), 90)
   const tiny = height < 16
 
-  const jitterMax = Math.max(0, (height - thumbSize) / 2)
+  const jitterMax = Math.min(Math.max(0, (height - thumbSize) / 2), 12)
 
   const tooltipLabel = subLabel ? `${subLabel} ${label}` : label
   const tooltip = count > 0 ? `${count.toLocaleString('nb')} bilder · ${tooltipLabel}` : undefined
