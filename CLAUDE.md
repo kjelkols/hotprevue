@@ -28,7 +28,7 @@ Two separate components with clearly defined responsibilities:
 - State: React Query (server), Zustand (client). UI primitives: Radix UI
 - Structure: `src/api/`, `src/types/`, `src/components/ui/`, `src/features/`, `src/pages/`, `src/stores/`, `src/hooks/`, `src/lib/`
 
-**Tests:** `/tests` — pytest-based.
+**Tests:** `backend/tests/` — pytest-based.
 
 **Database:** pgserver (embedded PostgreSQL) for local installs. `HOTPREVUE_SERVER=local` activates local mode. External PostgreSQL for server installs. See ADR-009.
 
@@ -53,7 +53,7 @@ src/
   stores/        Zustand — kun global UI-tilstand (se tabell under)
   hooks/         usePhotoSource.ts — universell bildehenting
   features/      Domenemapper:
-    assignment/    EventPickerModal, CollectionPickerModal, TagPickerModal, AssignButton
+    assignment/    EventPickerModal, CollectionPickerModal, AssignButton
     browse/        PhotoGrid, PhotoThumbnail, PhotoTimeline
     collection/    CollectionGrid, CollectionItemCell, TextCard
     search/        SearchCriteriaBuilder, TimelineDayNode, …
@@ -71,7 +71,7 @@ src/
 |-----|----------|---------------|
 | `useSelectionStore` | `selected: Set<string>` (hothashes) | `toggle(h)`, `clear()` |
 | `useContextMenuStore` | `open`, `position`, `items` | `openContextMenu({items, position})`, `closeContextMenu()` |
-| `useAssignmentStore` | `modal: 'event'\|'collection'\|'tag'\|null` | `open(modal)`, `close()` |
+| `useAssignmentStore` | `modal: 'event'\|'collection'\|null` | `open(modal)`, `close()` |
 | `useSessionStore` | Aktiv sesjon (registreringsflyt) | — |
 | `useViewStore` | Grid-størrelse og visningsvalg | — |
 | `useLocationEditorStore` | Kart-editorstate | — |
@@ -83,7 +83,6 @@ src/
 <SelectionTray />        // vises når selected.size > 0
 <EventPickerModal />     // åpner når modal === 'event'
 <CollectionPickerModal />
-<TagPickerModal />
 ```
 
 Escape-tast: lukker kontekstmeny først, deretter tømmer utvalg.
@@ -111,7 +110,7 @@ Ingen global navigasjonstilstand. `useNavigationStore` og `SourceTargetPanel` er
 3. PickerModal åpner (via `useAssignmentStore.open(modal)`)
 4. Modal henter liste, bruker velger mål, kaller batch-API
 
-Batch-API i `api/photos.ts`: `assignEvent`, `batchTagsAdd`, `batchRating`, `batchPhotographer`, `batchDelete`.
+Batch-API i `api/photos.ts`: `assignEvent`, `batchRating`, `batchPhotographer`, `batchDelete`.
 Collection-batch: `addCollectionItemsBatch` i `api/collections.ts`.
 
 ### To verdener
@@ -128,14 +127,13 @@ Collection-batch: `addCollectionItemsBatch` i `api/collections.ts`.
 
 ```
 /                       HomePage
-/browse                 BrowsePage  (?session_id= / ?event_id= / ?tag=)
+/browse                 BrowsePage  (?session_id= / ?event_id=)
 /photos/:hothash        PhotoDetailPage
 /collections            CollectionsListPage
 /collections/:id        CollectionPage
 /collections/:id/present  CollectionPresentPage   (ingen AppLayout)
 /sessions               SessionsListPage
 /events / /events/:id   EventsListPage / EventPage
-/tags                   TagsPage
 /searches               SavedSearchesPage
 /searches/new / /:id    SearchPage
 /settings               SettingsPage
@@ -149,7 +147,7 @@ Collection-batch: `addCollectionItemsBatch` i `api/collections.ts`.
 Universell datahook. Brukes av PhotoGrid, PhotoTimeline og SearchPage.
 
 ```ts
-usePhotoSource({ sessionId?, eventId?, tag?, logic?, criteria?, enabled? })
+usePhotoSource({ sessionId?, eventId?, logic?, criteria?, enabled? })
 // → { photos, isLoading, isError, hasMore, loadMore, isFetchingMore, infiniteScroll }
 ```
 
@@ -241,6 +239,9 @@ make dev-frontend   # cd frontend && npm run dev:web  → http://<server-ip>:517
 
 # Kjør Alembic-migrasjoner (lokal PostgreSQL via Unix socket):
 bash scripts/alembic-upgrade.sh
+
+# Første gangs oppsett — opprett testdatabase (én gang per maskin):
+createdb hotprevue_test
 
 # Kjør tester (lokal PostgreSQL):
 bash scripts/run-tests.sh

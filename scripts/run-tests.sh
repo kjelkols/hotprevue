@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 # run-tests.sh — kjør backend-tester mot lokal PostgreSQL.
 # Bruk: bash scripts/run-tests.sh [pytest-args]
+#
+# Krav (én gang per maskin):
+#   createdb hotprevue_test
+#
+# Alternativt: sett TEST_DATABASE_URL til en eksisterende PostgreSQL-database.
 
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 DATA_DIR="${HOTPREVUE_DATA_DIR:-$HOME/.local/share/hotprevue}"
@@ -11,4 +16,4 @@ TEST_DB_URL="postgresql+psycopg2:///${DB_NAME}_test?host=/run/postgresql"
 cd "$REPO/backend" && \
   DATABASE_URL="$TEST_DB_URL" \
   TEST_DATABASE_URL="$TEST_DB_URL" \
-  uv run pytest "${@:-tests/ -v}"
+  uv run pytest "${@:-tests/}" -v
