@@ -212,13 +212,12 @@ def _criterion_to_clause(c: SearchCriterion):
     elif field == "tags":
         if not isinstance(value, list) or not value:
             return None
+        from sqlalchemy import func, select
         tag_ids = [uuid.UUID(v) for v in value]
         if op == "any_of":
-            return Photo.id.in_(
-                db.query(PhotoTag.photo_id).filter(PhotoTag.tag_id.in_(tag_ids))
-            )
+            sub = select(PhotoTag.photo_id).where(PhotoTag.tag_id.in_(tag_ids)).scalar_subquery()
+            return Photo.id.in_(sub)
         if op == "all_of":
-            from sqlalchemy import func, select
             sub = (
                 select(PhotoTag.photo_id)
                 .where(PhotoTag.tag_id.in_(tag_ids))
@@ -228,9 +227,8 @@ def _criterion_to_clause(c: SearchCriterion):
             )
             return Photo.id.in_(sub)
         if op == "none_of":
-            return Photo.id.not_in(
-                db.query(PhotoTag.photo_id).filter(PhotoTag.tag_id.in_(tag_ids))
-            )
+            sub = select(PhotoTag.photo_id).where(PhotoTag.tag_id.in_(tag_ids)).scalar_subquery()
+            return Photo.id.not_in(sub)
 
     return None
 
