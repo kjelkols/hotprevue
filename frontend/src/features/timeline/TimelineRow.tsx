@@ -44,8 +44,17 @@ export default function TimelineRow({ row, maxCount, containerWidth, pxPerDay }:
 
   const jitterMax = Math.min(Math.max(0, (height - thumbSize) / 2), 12)
 
-  const tooltipLabel = subLabel ? `${subLabel} ${label}` : label
-  const tooltip = count > 0 ? `${count.toLocaleString('nb')} bilder · ${tooltipLabel}` : undefined
+  // Tooltip: full date context regardless of what the ruler label shows
+  const MONTHS = ['jan','feb','mar','apr','mai','jun','jul','aug','sep','okt','nov','des']
+  const fullDateLabel = (() => {
+    const d = new Date(row.dateFrom)
+    if (row.type === 'day') return `${d.getUTCDate()}. ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`
+    if (row.type === 'month') return `${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`
+    return String(d.getUTCFullYear())
+  })()
+  const tooltip = count > 0
+    ? `${count.toLocaleString('nb')} bilder · ${fullDateLabel}`
+    : fullDateLabel
 
   return (
     <div

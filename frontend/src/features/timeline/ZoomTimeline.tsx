@@ -1,12 +1,25 @@
 import { useEffect, useRef, useState } from 'react'
-import { useTimelineData, DAY_MS } from './useTimelineData'
+import { useTimelineData, DAY_MS, granularityFor } from './useTimelineData'
 import TimelineRows from './TimelineRows'
+import { RULER_W } from './TimelineRow'
 import useTimelineStore from '../../stores/useTimelineStore'
 
 const MIN_PPD = 0.05
 const MAX_PPD = 500
+const MONTHS = ['jan','feb','mar','apr','mai','jun','jul','aug','sep','okt','nov','des']
 
 function clamp(v: number, lo: number, hi: number) { return Math.max(lo, Math.min(hi, v)) }
+
+function formatAnchor(ms: number, pxPerDay: number): string {
+  const d = new Date(ms)
+  const gran = granularityFor(pxPerDay)
+  const y = d.getUTCFullYear()
+  const m = MONTHS[d.getUTCMonth()]
+  const day = d.getUTCDate()
+  if (gran === 'day') return `${day}. ${m} ${y}`
+  if (gran === 'month') return `${m} ${y}`
+  return String(y)
+}
 
 export default function ZoomTimeline() {
   const ref = useRef<HTMLDivElement>(null)
@@ -72,7 +85,7 @@ export default function ZoomTimeline() {
     const minYear = withData[0].year
     const maxYear = withData[withData.length - 1].year
     const totalDays = (maxYear + 1 - minYear) * 365.25
-    const margin = 60 * DAY_MS  // 2 months padding on each side
+    const margin = 60 * DAY_MS
     const newPpd = clamp((hRef.current - 20) / (totalDays + 120), MIN_PPD, MAX_PPD)
     setTopMs(Date.UTC(minYear, 0, 1) - margin)
     setPxPerDay(newPpd)
@@ -86,6 +99,8 @@ export default function ZoomTimeline() {
     setPxPerDay(newPpd)
   }
 
+  const anchorLabel = formatAnchor(topMs, pxPerDay)
+
   return (
     <div
       ref={ref}
@@ -97,11 +112,27 @@ export default function ZoomTimeline() {
           <div className="text-gray-500 text-sm animate-pulse">Laster tidslinje…</div>
         </div>
       )}
+
+      {/* Sticky time anchor — always shows current date at top of viewport */}
+      <div
+        className="absolute top-0 left-0 z-20 pointer-events-none flex items-end pb-1 px-2"
+        style={{
+          width: RULER_W,
+          height: 28,
+          background: 'linear-gradient(to bottom, rgba(3,7,18,0.95) 60%, transparent)',
+        }}
+      >
+        <span className="text-xs font-semibold text-blue-300 leading-none truncate">
+          {anchorLabel}
+        </span>
+      </div>
+
       <div className="absolute top-2 right-3 z-10 flex items-center gap-1.5">
         <span className="text-xs text-gray-700 mr-1">Ctrl+rull = zoom</span>
         <button onClick={() => zoom(1.7)} className="rounded bg-gray-800 px-2 py-0.5 text-sm text-gray-400 hover:text-white font-mono">+</button>
         <button onClick={() => zoom(1 / 1.7)} className="rounded bg-gray-800 px-2 py-0.5 text-sm text-gray-400 hover:text-white font-mono">−</button>
       </div>
+
       {!data.isLoadingYears && (
         <TimelineRows
           topMs={topMs}
