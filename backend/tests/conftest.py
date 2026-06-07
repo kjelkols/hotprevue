@@ -92,9 +92,9 @@ def run_migrations(database_url):
 
 _DATA_TABLES = (
     "photo_corrections", "image_files", "duplicate_files",
-    "collection_items", "session_errors",
+    "collection_items", "session_errors", "photo_tags",
     "photos", "input_sessions", "collections",
-    "events", "categories", "photographers", "system_settings",
+    "events", "categories", "photographers", "system_settings", "tags",
 )
 
 # kinds are configuration — not truncated between tests (default kind seeded by migration)
