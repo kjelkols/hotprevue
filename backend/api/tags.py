@@ -43,17 +43,22 @@ def merge_tags(source_id: uuid.UUID, target_id: uuid.UUID, db: Session = Depends
 from pydantic import BaseModel
 
 
-class PhotoIdList(BaseModel):
-    photo_ids: list[uuid.UUID]
+class HothashList(BaseModel):
+    hothashes: list[str]
+
+
+@router.post("/for-photos", response_model=dict[str, list[str]])
+def tags_for_photos(body: HothashList, db: Session = Depends(get_db)):
+    return tag_service.tags_for_photos(db, body.hothashes)
 
 
 @router.post("/{tag_id}/add-to-photos", response_model=dict)
-def add_tag_to_photos(tag_id: uuid.UUID, body: PhotoIdList, db: Session = Depends(get_db)):
-    added = tag_service.add_tag_to_photos(db, tag_id, body.photo_ids)
+def add_tag_to_photos(tag_id: uuid.UUID, body: HothashList, db: Session = Depends(get_db)):
+    added = tag_service.add_tag_to_photos(db, tag_id, body.hothashes)
     return {"added": added}
 
 
 @router.post("/{tag_id}/remove-from-photos", response_model=dict)
-def remove_tag_from_photos(tag_id: uuid.UUID, body: PhotoIdList, db: Session = Depends(get_db)):
-    removed = tag_service.remove_tag_from_photos(db, tag_id, body.photo_ids)
+def remove_tag_from_photos(tag_id: uuid.UUID, body: HothashList, db: Session = Depends(get_db)):
+    removed = tag_service.remove_tag_from_photos(db, tag_id, body.hothashes)
     return {"removed": removed}

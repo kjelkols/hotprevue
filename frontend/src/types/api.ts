@@ -43,6 +43,26 @@ export interface BrowseResult {
 
 // ─── Backend API types ────────────────────────────────────────────────────────
 
+export interface TagOut {
+  id: string
+  name: string
+  slug: string
+  created_at: string
+  photo_count: number
+}
+
+export interface TagSimilar {
+  id: string
+  name: string
+  photo_count: number
+  similarity: number
+}
+
+export interface TagMergeResult {
+  target: TagOut
+  merged_photo_count: number
+}
+
 export interface KindOut {
   id: string
   name: string

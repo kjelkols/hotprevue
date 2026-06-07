@@ -133,15 +133,30 @@ def merge(db: Session, source_id: uuid.UUID, target_id: uuid.UUID) -> TagMergeRe
     )
 
 
-def set_tags_on_photo(db: Session, photo_id: uuid.UUID, tag_ids: list[uuid.UUID]) -> None:
-    db.execute(delete(PhotoTag).where(PhotoTag.photo_id == photo_id))
-    for tid in tag_ids:
-        db.add(PhotoTag(photo_id=photo_id, tag_id=tid))
-    db.commit()
+def tags_for_photos(db: Session, hothashes: list[str]) -> dict[str, list[str]]:
+    """Returner {hothash: [tag_id, ...]} for et sett hothashes."""
+    from models.photo import Photo
+
+    rows = (
+        db.query(Photo.hothash, PhotoTag.tag_id)
+        .join(PhotoTag, PhotoTag.photo_id == Photo.id)
+        .filter(Photo.hothash.in_(hothashes))
+        .all()
+    )
+    result: dict[str, list[str]] = {h: [] for h in hothashes}
+    for hothash, tag_id in rows:
+        result[hothash].append(str(tag_id))
+    return result
 
 
-def add_tag_to_photos(db: Session, tag_id: uuid.UUID, photo_ids: list[uuid.UUID]) -> int:
+def add_tag_to_photos(db: Session, tag_id: uuid.UUID, hothashes: list[str]) -> int:
+    from models.photo import Photo
+
     get_or_404(db, tag_id)
+    photo_ids = [
+        row[0]
+        for row in db.query(Photo.id).filter(Photo.hothash.in_(hothashes)).all()
+    ]
     added = 0
     for pid in photo_ids:
         exists = db.query(PhotoTag).filter(PhotoTag.photo_id == pid, PhotoTag.tag_id == tag_id).first()
@@ -152,7 +167,13 @@ def add_tag_to_photos(db: Session, tag_id: uuid.UUID, photo_ids: list[uuid.UUID]
     return added
 
 
-def remove_tag_from_photos(db: Session, tag_id: uuid.UUID, photo_ids: list[uuid.UUID]) -> int:
+def remove_tag_from_photos(db: Session, tag_id: uuid.UUID, hothashes: list[str]) -> int:
+    from models.photo import Photo
+
+    photo_ids = [
+        row[0]
+        for row in db.query(Photo.id).filter(Photo.hothash.in_(hothashes)).all()
+    ]
     result = db.execute(
         delete(PhotoTag).where(PhotoTag.tag_id == tag_id, PhotoTag.photo_id.in_(photo_ids))
     )

@@ -14,8 +14,8 @@ def _create(client, name: str) -> dict:
     return r.json()
 
 
-def _make_photo(db, kind_id):
-    """Insert a minimal photo row and return its id."""
+def _make_photo(db, kind_id) -> str:
+    """Insert a minimal photo row and return its hothash."""
     import uuid as _uuid
     from models.photo import Photo
     from models.photographer import Photographer
@@ -24,16 +24,16 @@ def _make_photo(db, kind_id):
     db.add(photographer)
     db.flush()
 
+    hothash = _uuid.uuid4().hex
     photo = Photo(
-        hothash=_uuid.uuid4().hex,
+        hothash=hothash,
         hotpreview_b64="",
         kind_id=kind_id,
         photographer_id=photographer.id,
     )
     db.add(photo)
     db.commit()
-    db.refresh(photo)
-    return photo.id
+    return hothash
 
 
 # ---------------------------------------------------------------------------
@@ -117,7 +117,7 @@ def test_add_tag_to_photos(client, db, default_kind_id):
     p1 = _make_photo(db, default_kind_id)
     p2 = _make_photo(db, default_kind_id)
 
-    r = client.post(f"/tags/{tag['id']}/add-to-photos", json={"photo_ids": [str(p1), str(p2)]})
+    r = client.post(f"/tags/{tag['id']}/add-to-photos", json={"hothashes": [p1, p2]})
     assert r.status_code == 200
     assert r.json()["added"] == 2
 
@@ -126,8 +126,8 @@ def test_add_tag_to_photos_idempotent(client, db, default_kind_id):
     tag = _create(client, "Idempotent")
     p = _make_photo(db, default_kind_id)
 
-    client.post(f"/tags/{tag['id']}/add-to-photos", json={"photo_ids": [str(p)]})
-    r = client.post(f"/tags/{tag['id']}/add-to-photos", json={"photo_ids": [str(p)]})
+    client.post(f"/tags/{tag['id']}/add-to-photos", json={"hothashes": [p]})
+    r = client.post(f"/tags/{tag['id']}/add-to-photos", json={"hothashes": [p]})
     assert r.status_code == 200
     assert r.json()["added"] == 0
 
@@ -136,8 +136,8 @@ def test_remove_tag_from_photos(client, db, default_kind_id):
     tag = _create(client, "Fjernes")
     p = _make_photo(db, default_kind_id)
 
-    client.post(f"/tags/{tag['id']}/add-to-photos", json={"photo_ids": [str(p)]})
-    r = client.post(f"/tags/{tag['id']}/remove-from-photos", json={"photo_ids": [str(p)]})
+    client.post(f"/tags/{tag['id']}/add-to-photos", json={"hothashes": [p]})
+    r = client.post(f"/tags/{tag['id']}/remove-from-photos", json={"hothashes": [p]})
     assert r.status_code == 200
     assert r.json()["removed"] == 1
 
@@ -147,7 +147,7 @@ def test_photo_count_reflects_assignments(client, db, default_kind_id):
     p1 = _make_photo(db, default_kind_id)
     p2 = _make_photo(db, default_kind_id)
 
-    client.post(f"/tags/{tag['id']}/add-to-photos", json={"photo_ids": [str(p1), str(p2)]})
+    client.post(f"/tags/{tag['id']}/add-to-photos", json={"hothashes": [p1, p2]})
 
     tags = client.get("/tags").json()
     entry = next(t for t in tags if t["id"] == tag["id"])
@@ -164,8 +164,8 @@ def test_merge_moves_photos_to_target(client, db, default_kind_id):
     p1 = _make_photo(db, default_kind_id)
     p2 = _make_photo(db, default_kind_id)
 
-    client.post(f"/tags/{source['id']}/add-to-photos", json={"photo_ids": [str(p1)]})
-    client.post(f"/tags/{target['id']}/add-to-photos", json={"photo_ids": [str(p2)]})
+    client.post(f"/tags/{source['id']}/add-to-photos", json={"hothashes": [p1]})
+    client.post(f"/tags/{target['id']}/add-to-photos", json={"hothashes": [p2]})
 
     r = client.post(f"/tags/{source['id']}/merge-into/{target['id']}")
     assert r.status_code == 200
@@ -190,8 +190,8 @@ def test_merge_handles_overlap(client, db, default_kind_id):
     target = _create(client, "Dup2")
     p = _make_photo(db, default_kind_id)
 
-    client.post(f"/tags/{source['id']}/add-to-photos", json={"photo_ids": [str(p)]})
-    client.post(f"/tags/{target['id']}/add-to-photos", json={"photo_ids": [str(p)]})
+    client.post(f"/tags/{source['id']}/add-to-photos", json={"hothashes": [p]})
+    client.post(f"/tags/{target['id']}/add-to-photos", json={"hothashes": [p]})
 
     r = client.post(f"/tags/{source['id']}/merge-into/{target['id']}")
     assert r.status_code == 200
