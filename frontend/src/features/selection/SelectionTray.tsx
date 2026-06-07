@@ -2,6 +2,8 @@ import { useState } from 'react'
 import useSelectionStore from '../../stores/useSelectionStore'
 import AssignButton from '../assignment/AssignButton'
 import SelectionModal from './SelectionModal'
+import TagManagerButton from '../tags/TagManagerButton'
+import TagApplyButtons from '../tags/TagApplyButtons'
 
 export default function SelectionTray() {
   const selected = useSelectionStore(s => s.selected)
@@ -27,6 +29,11 @@ export default function SelectionTray() {
         </button>
 
         <div className="flex-1" />
+
+        <TagManagerButton />
+        <TagApplyButtons />
+
+        <div className="w-px bg-gray-700 h-5 shrink-0" />
 
         <AssignButton />
 

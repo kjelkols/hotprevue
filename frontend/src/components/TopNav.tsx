@@ -11,7 +11,6 @@ const NAV = [
   { to: '/sted',        label: 'Sted',         end: false },
   { to: '/fotografer',  label: 'Fotografer',   end: false },
   { to: '/kinds',       label: 'Kinds',        end: false },
-  { to: '/tags',        label: 'Tags',         end: false },
 ] as const
 
 const EXTRA_NAV = [
