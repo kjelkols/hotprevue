@@ -1,6 +1,6 @@
 # ADR-023: Søkarkitektur
 
-**Status:** Forslag  
+**Status:** Delvis implementert  
 **Dato:** 2026-06-04
 
 ## Kontekst
@@ -162,9 +162,23 @@ bilder på under 100 ms. Live oppdatering er riktig og enklere.
 spesifisere. At de må navigere til en separat søkeside, skrive inn kriteriene
 og komme tilbake, er unødvendig friksjon.
 
+## Implementeringsstatus (per 2026-06-07)
+
+| Del | Status |
+|-----|--------|
+| Pkt. 5 — Live søk, 400ms debounce, ingen «Kjør»-knapp | ✓ Implementert (via ADR-026) |
+| Pkt. 2 — Søkefelt: rating, taken_at, photographer, event, camera | ✓ Implementert (6 av 13 felt) |
+| Pkt. 1 — OR-grupper (`group`-egenskap på SearchCriterion) | ✗ Ikke implementert |
+| Pkt. 2 — Manglende felt: tags, collection, location, orientation, quality, EXIF, face | ✗ Ikke implementert |
+| Pkt. 3 — AI-søk integrert som postprosesseringssteg | ✗ Ikke implementert |
+| Pkt. 4 — Dynamiske album (pinned, last_run_at, last_count, ai_query) | ✗ Ikke implementert |
+| Pkt. 6 — Kontekstuell filtrering i BrowsePage | ✗ Ikke implementert |
+
+---
+
 ## Konsekvenser
 
-### Hva som må implementeres
+### Hva som gjenstår
 
 **Backend:**
 1. Migrering: `group`-kolonne på `searches`-kriterie-JSON (eller separat

@@ -1,6 +1,6 @@
 # ADR-026: Søkeside-redesign — splittet layout med alltid-synlige kriterier
 
-**Status:** Forslag  
+**Status:** Implementert  
 **Dato:** 2026-06-05  
 **Avhenger av:** ADR-025 (QuickView)
 
