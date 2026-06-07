@@ -62,3 +62,6 @@ Hva innebærer denne beslutningen fremover?
 | 027 | UI-utseende — temabytte og tekststørrelse | Utkast |
 | 028 | Visningskorreksjoner (PhotoCorrection) | Implementert |
 | 029 | UI for visningskorreksjoner | Planlagt |
+| 030 | Nedlasting og deling | Implementert |
+| 031 | Mobilstøtte | Delvis implementert |
+| 032 | Nettverksarkitektur uten Tailscale | Under vurdering |
