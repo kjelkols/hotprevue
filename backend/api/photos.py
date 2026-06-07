@@ -90,6 +90,25 @@ def compute_perceptual_hashes_for_all(db: Session = Depends(get_db)):
     return photo_service.compute_perceptual_hashes_for_all(db)
 
 
+@router.get("/timeline", response_model=list[TimelineBucket])
+def get_timeline(
+    granularity: str = "month",
+    from_date: datetime | None = None,
+    to_date: datetime | None = None,
+    db: Session = Depends(get_db),
+):
+    return photo_service.timeline_buckets(db, granularity, from_date, to_date)
+
+
+@router.get("/timeline/events", response_model=list[TimelineEventBalloon])
+def get_timeline_events(
+    from_date: datetime | None = None,
+    to_date: datetime | None = None,
+    db: Session = Depends(get_db),
+):
+    return photo_service.timeline_events(db, from_date, to_date)
+
+
 @router.get("/{hothash}", response_model=PhotoDetail)
 def get_photo(hothash: str, db: Session = Depends(get_db)):
     photo = photo_service.get_by_hothash(db, hothash)
@@ -245,22 +264,3 @@ def batch_delete(data: BatchBase, db: Session = Depends(get_db)):
 @router.post("/batch/restore", response_model=BatchResult)
 def batch_restore(data: BatchBase, db: Session = Depends(get_db)):
     return BatchResult(updated=photo_service.batch_restore(db, data.hothashes))
-
-
-@router.get("/timeline", response_model=list[TimelineBucket])
-def get_timeline(
-    granularity: str = "month",
-    from_date: datetime | None = None,
-    to_date: datetime | None = None,
-    db: Session = Depends(get_db),
-):
-    return photo_service.timeline_buckets(db, granularity, from_date, to_date)
-
-
-@router.get("/timeline/events", response_model=list[TimelineEventBalloon])
-def get_timeline_events(
-    from_date: datetime | None = None,
-    to_date: datetime | None = None,
-    db: Session = Depends(get_db),
-):
-    return photo_service.timeline_events(db, from_date, to_date)

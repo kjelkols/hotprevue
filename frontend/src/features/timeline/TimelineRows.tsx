@@ -56,11 +56,7 @@ export default function TimelineRows({ topMs, bottomMs, pxPerDay, containerWidth
 
   return (
     <div className="relative w-full h-full overflow-hidden">
-      {/* Debug */}
-      <div className="absolute bottom-2 left-24 z-20 text-xs text-yellow-500 font-mono pointer-events-none">
-        buckets:{buckets.length} maxCount:{maxCount} gran:{granularity} rows:{rows.length}
-      </div>
-      {rows.map(row => (
+{rows.map(row => (
         <TimelineRow
           key={row.key}
           row={row}
