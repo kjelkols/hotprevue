@@ -98,51 +98,45 @@ POST /tags/{source_id}/merge-into/{target_id}
 
 ---
 
-## Tags-fane
+## Tags-UI — implementert design
 
-### To lag i samme panel
+### Tag-sett (clipboard-modell)
 
-Fanen viser alltid hele tag-listen. Tresinnstilstanden er aktiv når bilder er valgt:
+Tildeling skjer via et globalt **tag-sett** — en samling aktive tags som fungerer
+som et clipboard. Settet bevares på tvers av navigasjon (Zustand + localStorage).
 
-| Ikon | Betyr |
-|------|-------|
-| ✓ fylt | Alle valgte bilder har taggen |
-| – dash | Noen valgte bilder har taggen (mixed) |
-| □ tom | Ingen valgte bilder har taggen |
+**Flyt:**
+1. Bruker velger bilder i Browse/Event (checkboxes → SelectionTray vises)
+2. Klikk **«⊞ Tag-sett»** i SelectionTray → navigerer til Tags-siden
+3. Tags-siden viser alle tags som avkryssingsbokser — huk av for å legge i settet
+4. Aktivt sett vises som chips øverst med × for å fjerne enkeltvis
+5. Klikk **«Legg til»** eller **«Fjern»** i SelectionTray for å applisere på utvalget
+6. Inline feedback: «✓ Kjørvika lagt til 4 bilder» — forsvinner etter 3 sekunder
+7. **← Tilbake** fører tilbake til forrige side
 
-Klikk på ✓ eller – → fjern fra alle valgte  
-Klikk på □ → legg til på alle valgte
+SelectionTray er synlig mens brukeren er på Tags-siden, slik at tildeling kan
+skje direkte derfra uten å navigere tilbake.
 
-**Lag 1 — Forvaltning** (alltid synlig):
-Liste over alle tags med antall bilder, søkefelt, rename, slett og merge.
+### Tags-siden — dobbelt formål
 
-**Lag 2 — Tildeling** (aktiveres når bilder er valgt):
-Samme liste med tresinnstilstand. Endringer skjer umiddelbart (én tag ad gangen,
-ingen «Lagre»-knapp) — én API-kall per toggle.
+Siden brukes til både å konfigurere tag-settet og forvalte tags:
 
-### Oppretting: advare uten å blokkere
-
-1. Bruker skriver i «Ny tag»-feltet
-2. Feltet viser løpende likhetsforslag mens brukeren skriver: «portrett (42 bilder)», «portrettfoto (8 bilder)»
-3. Bruker kan velge eksisterende tag fra listen eller fortsette og opprette ny
-4. Slug-kollisjon avvises av databasen — UI viser feil med lenke til eksisterende tag
-
-Brukeren blokkeres aldri, men har alltid informasjonen til å ta et bevisst valg.
+- **Avkryssingsboks** per tag = «er i aktivt sett» (ikke direkte tildeling til bilder)
+- **Hover-handlinger**: rename (inline), slett, merge
+- **«Ny tag»-felt** øverst med debounced likhetsforslag (pg_trgm, > 0.3 likhet)
+- Tags-fanen er fjernet fra navigasjonsmenyen — inngangsporten er Tag-sett-knappen
 
 ### Sammenslåing
 
-Primærmekanisme: kontekstmeny på en tag → «Slå sammen med…» → søk etter måltag
-→ bekreftelsesdialog som viser «portrett (12 bilder) slås inn i portretter (42 bilder).
-54 bilder vil ha taggen portretter.»
+Merge-knapp (hover) → dialog med søkefelt for måltag → bekreftelse viser
+«portrett (12 bilder) slås inn i portretter (42 bilder)». Atomisk transaksjon
+i backend. Kildetag slettes, måltag beholder alle koblinger.
 
-Merge-retning vises eksplisitt — kildetag forsvinner, måltag beholder alt.
+### Oppretting
 
-### Inspect fra utvalg
-
-«Last fra utvalg»-knapp i tildeling-laget: tresinnstilstanden reflekterer
-nåværende tags på valgte bilder. Brukeren kan deretter endre valg og applisere
-samme tag-sett på et nytt utvalg. Panelet er «låst» til snapshot-tilstanden
-fra det opprinnelige utvalget til brukeren velger «Nullstill» eller lukker.
+Ny tag-feltet viser løpende likhetsforslag mens brukeren skriver.
+Slug-kollisjon returnerer 409 — UI viser feilmelding.
+Brukeren blokkeres aldri fra å opprette ny tag.
 
 ---
 
@@ -184,30 +178,37 @@ frontend/src/
 
 ```
 backend/
-  models/tag.py                      # Tag, PhotoTag
-  schemas/tag.py                     # TagOut, TagIn, TagMergeResult
-  api/tags.py                        # list, create, rename, delete, merge
-  services/tag_service.py            # merge-logikk, likhetsøk
-  alembic/versions/xxx_tag_entity.py # oppretter tags + photo_tags, pg_trgm-indeks
+  models/tag.py                           # Tag, PhotoTag
+  schemas/tag.py                          # TagOut, TagCreate, TagRename, TagSimilar, TagMergeResult
+  api/tags.py                             # list, similar, create, rename, delete, merge,
+                                          # for-photos, add-to-photos, remove-from-photos
+  services/tag_service.py                 # merge-logikk, likhetsøk, hothash-basert batch
+  alembic/versions/a1b2c3d4e035_...py    # oppretter tags + photo_tags, pg_trgm-indeks
+  tests/api/test_tags.py                  # 21 tester (CRUD, batch, merge, similar)
 
 frontend/src/
-  api/tags.ts                        # listTags, createTag, renameTag, deleteTag, mergeTags
-  types/api.ts                       # Tag, oppdater PhotoListItem
+  api/tags.ts                        # alle API-kall inkl. tagsForPhotos, add/remove-to-photos
+  types/api.ts                       # TagOut, TagSimilar, TagMergeResult
+  stores/useTagSetStore.ts           # Zustand + localStorage — aktivt tag-sett (clipboard)
   features/tags/
-    TagsPanel.tsx                    # Kombinert forvaltning + tildeling (≤100 linjer)
-    TagList.tsx                      # Virtualisert liste med tresinnstilstand
-    TagCreateInput.tsx               # Input med likhetsforslag
+    TagsPanel.tsx                    # Tags-side: sett-konfigurasjon + forvaltning
+    TagList.tsx                      # Liste med avkryssingsbokser (sett-medlemskap) + hover-mgmt
+    TagCreateInput.tsx               # Input med debounced likhetsforslag
     TagMergeDialog.tsx               # Bekreftelsesdialog for merge
-  pages/
-    TagsPage.tsx                     # Wrapper med AppLayout
+    TagManagerButton.tsx             # Knapp i SelectionTray → navigerer til /tags
+    TagApplyButtons.tsx              # Legg til / Fjern + inline feedback
+  pages/TagsPage.tsx                 # Wrapper med AppLayout
 ```
+
+**Batch-API bruker hothashes** konsistent med resten av API-et (ikke photo-UUIDs).
 
 ---
 
 ## Konsekvenser
 
-**Gevinst:** Rename, slett og merge er rene enkeltoperasjoner. Likhetsøk ved
-oppretting hindrer fragmentering over tid. Tags-fanen gir full oversikt og kontroll.
+**Gevinst:** Clipboard-modellen skiller «hvilke tags» fra «hvilke bilder» — brukeren
+setter opp tag-settet én gang og bruker det på mange utvalg. Rename, slett og merge
+er atomiske operasjoner. Likhetsøk hindrer fragmentering over tid.
 
 **Kostnad:** Én join i alle spørringer der tags inngår i filtrering. Migrasjonen
 berører `photos`-tabellen og alle relaterte API-endepunkter. Engangsarbeid.
