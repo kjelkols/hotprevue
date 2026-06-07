@@ -63,12 +63,7 @@ export default function SearchValueInput({ field, operator, value, onChange }: P
   }
 
   if (field === 'tags') {
-    return (
-      <TagMultiSelect
-        value={Array.isArray(value) ? (value as string[]) : []}
-        onChange={onChange}
-      />
-    )
+    return <TagMultiSelect onChange={onChange} />
   }
 
   if (field === 'event_id') {
