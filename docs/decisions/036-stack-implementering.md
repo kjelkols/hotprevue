@@ -42,13 +42,15 @@ created_at  TIMESTAMPTZ NOT NULL  DEFAULT now()
 | Metode | Endepunkt | Beskrivelse |
 |--------|-----------|-------------|
 | `POST` | `/stacks` | Opprett stack av ett eller flere bilder |
+| `POST` | `/stacks/remove-photos` | Fjern utvalgte bilder fra sine stacks (ikke cover) |
+| `POST` | `/stacks/dissolve` | Oppløs stack via cover-bilde(r) |
 | `GET` | `/stacks` | List alle stacks med coverbilde og antall |
 | `GET` | `/stacks/{stack_id}` | Hent alle bilder i en stack |
-| `POST` | `/stacks/{stack_id}/photos` | Legg til ett bilde |
+| `POST` | `/stacks/{stack_id}/photos/{hothash}` | Legg til ett bilde |
 | `POST` | `/stacks/{stack_id}/photos/batch` | Legg til flere bilder (best-effort) |
 | `DELETE` | `/stacks/{stack_id}/photos/{hothash}` | Fjern bilde fra stack |
 | `PUT` | `/stacks/{stack_id}/cover/{hothash}` | Sett coverbilde |
-| `DELETE` | `/stacks/{stack_id}` | Slett stack og løs opp alle bilder |
+| `DELETE` | `/stacks/{stack_id}` | Oppløs stack og frigjør alle bilder |
 
 **Regler:**
 - Et bilde kan kun tilhøre én stack. Forsøk på å legge til et bilde som allerede
