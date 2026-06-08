@@ -1,6 +1,6 @@
 # ADR-036: Stack-implementering
 
-**Status:** Implementert. «Ekspander stack»-modus gjenstår.  
+**Status:** Implementert.  
 **Dato:** 2026-06-08
 
 ---
@@ -154,15 +154,14 @@ bilder som bare kepper seg annerledes.
 
 For vanlige bilder viser tooltip klokkeslett og 📍 GPS-merke hvis koordinater finnes.
 
-**Ekspandert (via toggle «Ekspander stack» i verktøylinja):**
+**Ekspandert (via «Ekspander stack»-knapp i verktøylinja):**
 
 - Alle bilder i alle stacks vises, inkl. ikke-cover-bilder
-- Stack-tilhørighet: subtle border/bakgrunn per stack (ulik farge per stack)
-- Cover-bildet: `cover`-badge
-- Hover på ikke-cover-bilde → tooltip med stackens cover-thumbnail
+- Stack-tilhørighet: farget ring per stack — fargen velges deterministisk fra `stack_id`-hash
+- Cover-bildet: «Cover»-badge, ingen kortstokk-effekt
 - Utvalg velger individuelle bilder
 
-Togglen lagres i `useViewStore` og tømmer utvalget når den skifter tilstand.
+Knappen lagres i `useViewStore` (persistert) og tømmer utvalget ved skifte.
 
 ### Kontekstmeny
 
@@ -215,14 +214,14 @@ frontend/src/
   types/api.ts                          # StackOut, StackDetail
   hooks/usePhotoSource.ts               # leser stacksCollapsed fra useViewStore
   stores/useViewStore.ts                # stacksCollapsed (default true, persistert)
+  components/
+    ViewToggle.tsx                      # «Ekspander stack»-knapp
   features/browse/
-    PhotoGrid.tsx                       # henter listStacks(), sender stackCount til thumbnails
-    PhotoThumbnail.tsx                  # kortstokk-effekt, hover-trigger, kontekstmeny
+    PhotoGrid.tsx                       # henter listStacks(), sender stackCount + stackColor til thumbnails
+    PhotoThumbnail.tsx                  # kortstokk-effekt, hover-trigger, ring i ekspandert modus, kontekstmeny
     PhotoTooltip.tsx                    # tooltip: klokkeslett/GPS + stack-miniatyrbilder
 ```
 
 ### TODO
 
-- **«Ekspander stack»-toggle** i verktøylinja: setter `stacksCollapsed = false`,
-  viser alle stack-bilder med farget border/bakgrunn per stack.
 - **Fase 2:** «Merk stack» og «Sett som cover» i ekspandert modus.
