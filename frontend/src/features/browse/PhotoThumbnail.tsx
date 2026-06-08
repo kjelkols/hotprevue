@@ -59,9 +59,10 @@ interface Props {
   photo: PhotoListItem
   orderedHashes: string[]
   stackCount?: number
+  stackColor?: string
 }
 
-export default function PhotoThumbnail({ photo, orderedHashes, stackCount }: Props) {
+export default function PhotoThumbnail({ photo, orderedHashes, stackCount, stackColor }: Props) {
   const navigate = useNavigate()
   const location = useLocation()
   const [correctionOpen, setCorrectionOpen] = useState(false)
@@ -163,6 +164,8 @@ export default function PhotoThumbnail({ photo, orderedHashes, stackCount }: Pro
   }
 
   const isStackCover = photo.is_stack_cover && !!photo.stack_id
+  const showCardDeck = isStackCover && !stackColor
+  const showStackBadge = isStackCover && !stackColor && stackCount != null
   const thumbRef = useRef<HTMLDivElement>(null)
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [tooltipAnchor, setTooltipAnchor] = useState<DOMRect | null>(null)
@@ -189,12 +192,12 @@ export default function PhotoThumbnail({ photo, orderedHashes, stackCount }: Pro
     <>
       <div
         ref={thumbRef}
-        className="relative"
+        className={`relative ${stackColor ? `ring-2 ${stackColor} rounded` : ''}`}
         style={{ overflow: 'visible' }}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
-        {isStackCover && (
+        {showCardDeck && (
           <>
             <div className="absolute inset-0 rounded bg-gray-600" style={{ transform: 'translate(5px, 4px) rotate(2deg)', zIndex: 0 }} />
             <div className="absolute inset-0 rounded bg-gray-700" style={{ transform: 'translate(2.5px, 2px) rotate(1deg)', zIndex: 1 }} />
@@ -211,9 +214,14 @@ export default function PhotoThumbnail({ photo, orderedHashes, stackCount }: Pro
             onContextMenu={handleContextMenu}
             bottomOverlay={formatDate(photo.taken_at)}
           />
-          {isStackCover && stackCount != null && (
+          {showStackBadge && (
             <div className="absolute top-1 right-1 bg-black/80 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded z-10 pointer-events-none">
               ×{stackCount}
+            </div>
+          )}
+          {stackColor && photo.is_stack_cover && (
+            <div className="absolute top-1 left-1 bg-black/80 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded z-10 pointer-events-none">
+              Cover
             </div>
           )}
         </div>

@@ -7,6 +7,22 @@ import useViewStore from '../../stores/useViewStore'
 import { listStacks } from '../../api/stacks'
 import type { PhotoListItem } from '../../types/api'
 
+const STACK_COLORS = [
+  'ring-blue-400',
+  'ring-green-400',
+  'ring-yellow-400',
+  'ring-pink-400',
+  'ring-purple-400',
+  'ring-orange-400',
+  'ring-teal-400',
+  'ring-red-400',
+]
+
+function stackIdToColorClass(stackId: string): string {
+  const num = parseInt(stackId.replace(/-/g, '').slice(0, 8), 16)
+  return STACK_COLORS[num % STACK_COLORS.length]
+}
+
 interface Props {
   photos: PhotoListItem[]
   isLoading: boolean
@@ -28,9 +44,10 @@ export default function PhotoGrid({
 }: Props) {
   const selectAll = useSelectionStore(s => s.selectAll)
   const gridVariant = useViewStore(s => s.gridVariant)
+  const stacksCollapsed = useViewStore(s => s.stacksCollapsed)
   const sentinelRef = useRef<HTMLDivElement>(null)
 
-  const hasStacks = photos.some(p => p.is_stack_cover && p.stack_id)
+  const hasStacks = photos.some(p => p.stack_id)
   const { data: stacks } = useQuery({
     queryKey: ['stacks'],
     queryFn: listStacks,
@@ -93,6 +110,7 @@ export default function PhotoGrid({
                     photo={photo}
                     orderedHashes={orderedHashes}
                     stackCount={photo.stack_id ? stackCountMap.get(photo.stack_id) : undefined}
+                    stackColor={!stacksCollapsed && photo.stack_id ? stackIdToColorClass(photo.stack_id) : undefined}
                   />
                 ))}
               </div>
@@ -107,6 +125,7 @@ export default function PhotoGrid({
               photo={photo}
               orderedHashes={orderedHashes}
               stackCount={photo.stack_id ? stackCountMap.get(photo.stack_id) : undefined}
+              stackColor={!stacksCollapsed && photo.stack_id ? stackIdToColorClass(photo.stack_id) : undefined}
             />
           ))}
         </div>
