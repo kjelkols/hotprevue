@@ -1,6 +1,6 @@
 # ADR-036: Stack-implementering
 
-**Status:** Backend implementert. UI under implementasjon.  
+**Status:** Implementert. «Ekspander stack»-modus gjenstår.  
 **Dato:** 2026-06-08
 
 ---
@@ -145,10 +145,14 @@ bilder som bare kepper seg annerledes.
 
 **Kollapset (standard):**
 
-- Cover-thumbnail med 2–3 forskjøvede «kort» bak (CSS transform — kortstokk-effekt)
-- Antall-badge, f.eks. `×4`
-- Hover (~350 ms) → popover med mikro-thumbnails (~48×48 px) og antall — kun lesing
+- Cover-thumbnail med 2 forskjøvede «kort» bak (CSS transform — kortstokk-effekt)
+- `×N`-badge øverst til høyre
+- Hover (~350 ms) → tooltip med «Stack · N bilder» + 20px-miniatyrbilder av alle
+  bilder i stacken (maks 12, deretter +N). Stack-detaljene hentes lazy via
+  `GET /stacks/{id}` og caches av React Query.
 - Klikk → velger stacken (cover-hothash som proxy)
+
+For vanlige bilder viser tooltip klokkeslett og 📍 GPS-merke hvis koordinater finnes.
 
 **Ekspandert (via toggle «Ekspander stack» i verktøylinja):**
 
@@ -183,11 +187,11 @@ Cover-hothash brukes som proxy for stacken i kollapset modus.
   utvalget og merker alle bilder i stacken
 - **«Sett som cover»** — høyreklikk på ikke-cover-bilde i ekspandert modus
 
-### Hover-popover
+### Hover-tooltip
 
-Popoveren viser de øvrige bildenes hotpreviews. For god responsivitet utvides
-`StackOut` med `member_hotpreviews_b64: string[]` slik at alle previews er
-tilgjengelige uten ekstra API-kall ved hover.
+Tooltip rendres via `ReactDOM.createPortal` til `document.body` og posisjoneres
+over thumbnail-anker med viewport-klemping. Stack-detaljene hentes via eksisterende
+`GET /stacks/{id}` — enkel implementasjon, god nok responsivitet med React Query-cache.
 
 ---
 
@@ -199,7 +203,7 @@ tilgjengelige uten ekstra API-kall ved hover.
 backend/
   models/stack.py
   schemas/stack.py
-  api/stacks.py
+  api/stacks.py                         # stacks_collapsed-parameter
   services/stack_service.py
   alembic/versions/a2b3c4d5e036_adr036_stacks.py
   alembic/versions/b3c4d5e6f037_drop_stack_kind.py
@@ -207,17 +211,18 @@ backend/
 
 frontend/src/
   api/stacks.ts
-  types/api.ts                  # StackOut, StackDetail
+  api/photos.ts                         # stacksCollapsed-parameter
+  types/api.ts                          # StackOut, StackDetail
+  hooks/usePhotoSource.ts               # leser stacksCollapsed fra useViewStore
+  stores/useViewStore.ts                # stacksCollapsed (default true, persistert)
   features/browse/
-    PhotoGrid.tsx               # grid-visning
-    PhotoThumbnail.tsx          # stack-indikator (statisk, hover og kontekstmeny kommer)
+    PhotoGrid.tsx                       # henter listStacks(), sender stackCount til thumbnails
+    PhotoThumbnail.tsx                  # kortstokk-effekt, hover-trigger, kontekstmeny
+    PhotoTooltip.tsx                    # tooltip: klokkeslett/GPS + stack-miniatyrbilder
 ```
 
 ### TODO
 
-- **Browse-filtrering:** `GET /photos` returnerer alle bilder inkludert ikke-cover
-  stack-bilder. Krever `stacks_collapsed`-parameter i `list_photos` og `usePhotoSource`.
-- **Kortstokk-visning:** Kollapset stack-thumbnail med CSS-korteffekt.
-- **Hover-popover:** `member_hotpreviews_b64` i `StackOut`, popover-komponent.
-- **«Ekspander stack»-toggle** i verktøylinja, farging per stack i ekspandert modus.
-- **Kontekstmeny med utvalgsanalyse:** Opprett / Legg til i stack / Fjern / Oppløs.
+- **«Ekspander stack»-toggle** i verktøylinja: setter `stacksCollapsed = false`,
+  viser alle stack-bilder med farget border/bakgrunn per stack.
+- **Fase 2:** «Merk stack» og «Sett som cover» i ekspandert modus.
