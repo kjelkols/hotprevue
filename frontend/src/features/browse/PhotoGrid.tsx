@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { groupByDate } from '../../lib/groupByDate'
 import PhotoThumbnail from './PhotoThumbnail'
-import StackExpander from './StackExpander'
 import useSelectionStore from '../../stores/useSelectionStore'
 import useViewStore from '../../stores/useViewStore'
 import type { PhotoListItem } from '../../types/api'
@@ -28,14 +27,8 @@ export default function PhotoGrid({
   const selectAll = useSelectionStore(s => s.selectAll)
   const gridVariant = useViewStore(s => s.gridVariant)
   const sentinelRef = useRef<HTMLDivElement>(null)
-  const [expandedStackId, setExpandedStackId] = useState<string | null>(null)
-
-  function handleToggleStack(stackId: string) {
-    setExpandedStackId(prev => prev === stackId ? null : stackId)
-  }
 
   const grouped = gridVariant === 'dato'
-
   const orderedHashes = photos.map(p => p.hothash)
 
   useEffect(() => {
@@ -84,46 +77,26 @@ export default function PhotoGrid({
                 <div className="flex-1 h-px bg-gray-800" />
               </div>
               <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-1 select-none">
-                {group.photos.flatMap(photo => {
-                  const isExpanded = expandedStackId === photo.stack_id && photo.is_stack_cover
-                  return [
-                    <PhotoThumbnail
-                      key={photo.hothash}
-                      photo={photo}
-                      orderedHashes={orderedHashes}
-                      onToggleStack={photo.is_stack_cover && photo.stack_id ? handleToggleStack : undefined}
-                      isStackExpanded={isExpanded}
-                    />,
-                    ...(isExpanded ? [
-                      <div key={`stack-${photo.stack_id}`} className="col-span-full">
-                        <StackExpander stackId={photo.stack_id!} onClose={() => setExpandedStackId(null)} />
-                      </div>
-                    ] : []),
-                  ]
-                })}
+                {group.photos.map(photo => (
+                  <PhotoThumbnail
+                    key={photo.hothash}
+                    photo={photo}
+                    orderedHashes={orderedHashes}
+                  />
+                ))}
               </div>
             </div>
           ))}
         </div>
       ) : (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-1 select-none">
-          {photos.flatMap(photo => {
-            const isExpanded = expandedStackId === photo.stack_id && photo.is_stack_cover
-            return [
-              <PhotoThumbnail
-                key={photo.hothash}
-                photo={photo}
-                orderedHashes={orderedHashes}
-                onToggleStack={photo.is_stack_cover && photo.stack_id ? handleToggleStack : undefined}
-                isStackExpanded={isExpanded}
-              />,
-              ...(isExpanded ? [
-                <div key={`stack-${photo.stack_id}`} className="col-span-full">
-                  <StackExpander stackId={photo.stack_id!} onClose={() => setExpandedStackId(null)} />
-                </div>
-              ] : []),
-            ]
-          })}
+          {photos.map(photo => (
+            <PhotoThumbnail
+              key={photo.hothash}
+              photo={photo}
+              orderedHashes={orderedHashes}
+            />
+          ))}
         </div>
       )}
 

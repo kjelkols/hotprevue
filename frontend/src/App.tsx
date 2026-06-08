@@ -29,7 +29,6 @@ import ToastOverlay from './components/ui/ToastOverlay'
 import SelectionTray from './features/selection/SelectionTray'
 import EventPickerModal from './features/assignment/EventPickerModal'
 import CollectionPickerModal from './features/assignment/CollectionPickerModal'
-import StackCreateModal from './features/stacks/StackCreateModal'
 import useSelectionStore from './stores/useSelectionStore'
 import useContextMenuStore from './stores/useContextMenuStore'
 
@@ -96,7 +95,6 @@ export default function App() {
       <SelectionTray />
       <EventPickerModal />
       <CollectionPickerModal />
-      <StackCreateModal />
     </HashRouter>
   )
 }

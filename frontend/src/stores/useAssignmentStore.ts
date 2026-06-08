@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export type AssignModal = 'event' | 'collection' | 'stack'
+export type AssignModal = 'event' | 'collection'
 
 interface AssignmentStore {
   modal: AssignModal | null

@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { PhotoListItem } from '../../types/api'
 import { updateCorrection } from '../../api/photos'
-import { removePhotosFromStacks, dissolveStack } from '../../api/stacks'
+import { createStack, removePhotosFromStacks, dissolveStack } from '../../api/stacks'
 import { getBaseUrl } from '../../api/client'
 import useToastStore from '../../stores/useToastStore'
 import useSelectionStore from '../../stores/useSelectionStore'
@@ -27,11 +27,9 @@ const actionBtn = 'w-6 h-6 rounded bg-black/75 text-white text-base leading-none
 interface Props {
   photo: PhotoListItem
   orderedHashes: string[]
-  onToggleStack?: (stackId: string) => void
-  isStackExpanded?: boolean
 }
 
-export default function PhotoThumbnail({ photo, orderedHashes, onToggleStack, isStackExpanded }: Props) {
+export default function PhotoThumbnail({ photo, orderedHashes }: Props) {
   const navigate = useNavigate()
   const location = useLocation()
   const [correctionOpen, setCorrectionOpen] = useState(false)
@@ -62,6 +60,16 @@ export default function PhotoThumbnail({ photo, orderedHashes, onToggleStack, is
       return String(err)
     }
   }
+
+  const createStackMut = useMutation({
+    mutationFn: (hothashes: string[]) => createStack(hothashes),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['photos'] })
+      qc.invalidateQueries({ queryKey: ['stacks'] })
+      useSelectionStore.getState().clear()
+    },
+    onError: (err) => showToast(parseApiError(err)),
+  })
 
   const removeFromStackMut = useMutation({
     mutationFn: (hothashes: string[]) => removePhotosFromStacks(hothashes),
@@ -116,7 +124,7 @@ export default function PhotoThumbnail({ photo, orderedHashes, onToggleStack, is
           { id: 'event',      label: `Sett event… (${selectedCount})`,         action: () => openAssignment('event') },
           { id: 'collection', label: `Legg til i samling… (${selectedCount})`,  action: () => openAssignment('collection') },
           { id: 'tag',        label: `Legg til tag… (${selectedCount})`,        action: () => openAssignment('tag') },
-          { id: 'stack',      label: `Opprett stack (${selectedCount})`,        action: () => openAssignment('stack') },
+          { id: 'stack',      label: `Opprett stack (${selectedCount})`,        action: () => createStackMut.mutate(selectedHashes) },
           { id: 'unstack',    label: `Fjern fra stack`,                         action: () => removeFromStackMut.mutate(selectedHashes) },
           { id: 'dissolve',   label: `Oppløs stack`,                            action: () => dissolveMut.mutate(selectedHashes) },
           { type: 'separator' },
@@ -147,20 +155,16 @@ export default function PhotoThumbnail({ photo, orderedHashes, onToggleStack, is
     })
   }
 
-  const isStackCover = photo.is_stack_cover && !!photo.stack_id
-
-  const stackIndicator = isStackCover ? (
-    <button
-      onClick={e => { e.stopPropagation(); onToggleStack?.(photo.stack_id!) }}
-      title={isStackExpanded ? 'Lukk stack' : 'Åpne stack'}
-      className="absolute bottom-1 right-1 flex items-center gap-0.5 bg-black/75 hover:bg-black/90 text-white text-[10px] px-1.5 py-0.5 rounded z-10"
+  const stackIndicator = photo.is_stack_cover && photo.stack_id ? (
+    <div
+      className="absolute bottom-1 right-1 flex items-center gap-0.5 bg-black/75 text-white text-[10px] px-1.5 py-0.5 rounded z-10 pointer-events-none"
     >
       <svg viewBox="0 0 16 16" className="w-3 h-3 fill-current" aria-hidden>
         <rect x="1" y="9" width="14" height="2.5" rx="1" />
         <rect x="2" y="5.5" width="12" height="2.5" rx="1" />
         <rect x="3" y="2" width="10" height="2.5" rx="1" />
       </svg>
-    </button>
+    </div>
   ) : null
 
   const rotateActions = (
@@ -193,4 +197,3 @@ export default function PhotoThumbnail({ photo, orderedHashes, onToggleStack, is
     </>
   )
 }
-
