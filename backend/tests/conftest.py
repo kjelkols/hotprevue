@@ -94,7 +94,7 @@ _DATA_TABLES = (
     "photo_corrections", "image_files", "duplicate_files",
     "collection_items", "session_errors", "photo_tags",
     "photos", "input_sessions", "collections",
-    "events", "categories", "photographers", "system_settings", "tags",
+    "events", "categories", "photographers", "system_settings", "tags", "stacks",
 )
 
 # kinds are configuration — not truncated between tests (default kind seeded by migration)

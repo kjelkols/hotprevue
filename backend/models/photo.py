@@ -67,8 +67,19 @@ class Photo(Base):
         ForeignKey("events.id", ondelete="SET NULL"),
         nullable=True,
     )
-    stack_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True, index=True)
+    stack_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("stacks.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     is_stack_cover: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+    stack: Mapped["Stack | None"] = relationship(  # noqa: F821
+        "Stack",
+        back_populates="photos",
+        foreign_keys=[stack_id],
+    )
 
     width: Mapped[int | None] = mapped_column(Integer, nullable=True)
     height: Mapped[int | None] = mapped_column(Integer, nullable=True)

@@ -228,6 +228,34 @@ export interface PhotoListItem {
   focal_length: number | null
 }
 
+// ─── Stacks ───────────────────────────────────────────────────────────────────
+
+export type StackKind = 'selection' | 'burst' | 'panorama' | 'hdr' | 'focus'
+
+export const STACK_KIND_LABELS: Record<StackKind, string> = {
+  selection: 'Utvalg',
+  burst:     'Burst',
+  panorama:  'Panorama',
+  hdr:       'HDR',
+  focus:     'Fokus-stacking',
+}
+
+export interface StackOut {
+  id: string
+  kind: StackKind
+  created_at: string
+  photo_count: number
+  cover_hothash: string | null
+  cover_hotpreview_b64: string | null
+}
+
+export interface StackDetail {
+  id: string
+  kind: StackKind
+  created_at: string
+  photos: PhotoListItem[]
+}
+
 // ─── Photo detail ─────────────────────────────────────────────────────────────
 
 export interface ImageFileInfo {

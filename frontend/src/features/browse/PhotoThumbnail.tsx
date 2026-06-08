@@ -25,9 +25,11 @@ const actionBtn = 'w-6 h-6 rounded bg-black/75 text-white text-base leading-none
 interface Props {
   photo: PhotoListItem
   orderedHashes: string[]
+  onToggleStack?: (stackId: string) => void
+  isStackExpanded?: boolean
 }
 
-export default function PhotoThumbnail({ photo, orderedHashes }: Props) {
+export default function PhotoThumbnail({ photo, orderedHashes, onToggleStack, isStackExpanded }: Props) {
   const navigate = useNavigate()
   const location = useLocation()
   const [correctionOpen, setCorrectionOpen] = useState(false)
@@ -82,6 +84,7 @@ export default function PhotoThumbnail({ photo, orderedHashes }: Props) {
           { id: 'event',      label: `Sett event… (${selectedCount})`,        action: () => openAssignment('event') },
           { id: 'collection', label: `Legg til i samling… (${selectedCount})`, action: () => openAssignment('collection') },
           { id: 'tag',        label: `Legg til tag… (${selectedCount})`,       action: () => openAssignment('tag') },
+          { id: 'stack',      label: `Opprett stack (${selectedCount})`,       action: () => openAssignment('stack') },
           { type: 'separator' },
           { id: 'open', label: 'Åpne dette bildet', action: () => navigate(`/photos/${photo.hothash}`) },
         ],
@@ -104,6 +107,22 @@ export default function PhotoThumbnail({ photo, orderedHashes }: Props) {
     })
   }
 
+  const isStackCover = photo.is_stack_cover && !!photo.stack_id
+
+  const stackIndicator = isStackCover ? (
+    <button
+      onClick={e => { e.stopPropagation(); onToggleStack?.(photo.stack_id!) }}
+      title={isStackExpanded ? 'Lukk stack' : 'Åpne stack'}
+      className="absolute bottom-1 right-1 flex items-center gap-0.5 bg-black/75 hover:bg-black/90 text-white text-[10px] px-1.5 py-0.5 rounded z-10"
+    >
+      <svg viewBox="0 0 16 16" className="w-3 h-3 fill-current" aria-hidden>
+        <rect x="1" y="9" width="14" height="2.5" rx="1" />
+        <rect x="2" y="5.5" width="12" height="2.5" rx="1" />
+        <rect x="3" y="2" width="10" height="2.5" rx="1" />
+      </svg>
+    </button>
+  ) : null
+
   const rotateActions = (
     <>
       <button onClick={rotateCCW} title="Rotér mot klokken" className={actionBtn}>↺</button>
@@ -113,16 +132,19 @@ export default function PhotoThumbnail({ photo, orderedHashes }: Props) {
 
   return (
     <>
-      <ThumbnailShell
-        imageData={photo.hotpreview_b64}
-        isSelected={isSelected}
-        correction={photo.has_correction ? photo : null}
-        actions={rotateActions}
-        onClick={handleClick}
-        onDoubleClick={handleDoubleClick}
-        onContextMenu={handleContextMenu}
-        bottomOverlay={formatDate(photo.taken_at)}
-      />
+      <div className="relative">
+        <ThumbnailShell
+          imageData={photo.hotpreview_b64}
+          isSelected={isSelected}
+          correction={photo.has_correction ? photo : null}
+          actions={rotateActions}
+          onClick={handleClick}
+          onDoubleClick={handleDoubleClick}
+          onContextMenu={handleContextMenu}
+          bottomOverlay={formatDate(photo.taken_at)}
+        />
+        {stackIndicator}
+      </div>
       <PhotoCorrectionDialog
         hothash={photo.hothash}
         open={correctionOpen}
@@ -131,3 +153,4 @@ export default function PhotoThumbnail({ photo, orderedHashes }: Props) {
     </>
   )
 }
+

@@ -57,8 +57,9 @@ import models.saved_search  # noqa: F401
 import models.ai  # noqa: F401
 import models.kind  # noqa: F401
 import models.tag  # noqa: F401
+import models.stack  # noqa: F401
 
-from api import admin, ai, collections, events, file_copy, input_sessions, kinds, machines, photographers, photos, searches, settings as settings_api, shortcuts, stats, system, tags, text_items  # noqa: E402
+from api import admin, ai, collections, events, file_copy, input_sessions, kinds, machines, photographers, photos, searches, settings as settings_api, shortcuts, stacks, stats, system, tags, text_items  # noqa: E402
 app.include_router(ai.router)
 app.include_router(admin.router)
 app.include_router(kinds.router)
@@ -76,6 +77,7 @@ app.include_router(settings_api.router)
 app.include_router(file_copy.router)
 app.include_router(shortcuts.router)
 app.include_router(searches.router)
+app.include_router(stacks.router)
 
 # Frontend serveres som statiske filer.
 # Prioritet: HOTPREVUE_FRONTEND_DIR env-var → frontend/dist/ ved siden av backend/
