@@ -3,8 +3,9 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { PhotoListItem } from '../../types/api'
 import { updateCorrection } from '../../api/photos'
-import { removePhotosFromStacks } from '../../api/stacks'
+import { removePhotosFromStacks, dissolveStack } from '../../api/stacks'
 import { getBaseUrl } from '../../api/client'
+import useToastStore from '../../stores/useToastStore'
 import useSelectionStore from '../../stores/useSelectionStore'
 import useContextMenuStore from '../../stores/useContextMenuStore'
 import useAssignmentStore from '../../stores/useAssignmentStore'
@@ -50,12 +51,34 @@ export default function PhotoThumbnail({ photo, orderedHashes, onToggleStack, is
     mutationFn: (rotation: number | null) => updateCorrection(photo.hothash, { rotation }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['photos'] }),
   })
+  const showToast = useToastStore(s => s.show)
+
+  function parseApiError(err: unknown): string {
+    try {
+      const msg = (err as Error).message
+      const json = JSON.parse(msg.slice(msg.indexOf(' ') + 1))
+      return json?.detail ?? msg
+    } catch {
+      return String(err)
+    }
+  }
+
   const removeFromStackMut = useMutation({
     mutationFn: (hothashes: string[]) => removePhotosFromStacks(hothashes),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['photos'] })
       qc.invalidateQueries({ queryKey: ['stacks'] })
     },
+    onError: (err) => showToast(parseApiError(err)),
+  })
+
+  const dissolveMut = useMutation({
+    mutationFn: (hothashes: string[]) => dissolveStack(hothashes),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['photos'] })
+      qc.invalidateQueries({ queryKey: ['stacks'] })
+    },
+    onError: (err) => showToast(parseApiError(err)),
   })
 
   function rotateCCW(e: React.MouseEvent) {
@@ -90,11 +113,12 @@ export default function PhotoThumbnail({ photo, orderedHashes, onToggleStack, is
       openContextMenu({
         position: { x: e.clientX, y: e.clientY },
         items: [
-          { id: 'event',      label: `Sett event… (${selectedCount})`,        action: () => openAssignment('event') },
-          { id: 'collection', label: `Legg til i samling… (${selectedCount})`, action: () => openAssignment('collection') },
-          { id: 'tag',        label: `Legg til tag… (${selectedCount})`,       action: () => openAssignment('tag') },
-          { id: 'stack',      label: `Opprett stack (${selectedCount})`,       action: () => openAssignment('stack') },
-          { id: 'unstack',    label: `Fjern fra stack (${selectedCount})`,     action: () => removeFromStackMut.mutate(selectedHashes) },
+          { id: 'event',      label: `Sett event… (${selectedCount})`,         action: () => openAssignment('event') },
+          { id: 'collection', label: `Legg til i samling… (${selectedCount})`,  action: () => openAssignment('collection') },
+          { id: 'tag',        label: `Legg til tag… (${selectedCount})`,        action: () => openAssignment('tag') },
+          { id: 'stack',      label: `Opprett stack (${selectedCount})`,        action: () => openAssignment('stack') },
+          { id: 'unstack',    label: `Fjern fra stack`,                         action: () => removeFromStackMut.mutate(selectedHashes) },
+          { id: 'dissolve',   label: `Oppløs stack`,                            action: () => dissolveMut.mutate(selectedHashes) },
           { type: 'separator' },
           { id: 'open', label: 'Åpne dette bildet', action: () => navigate(`/photos/${photo.hothash}`) },
         ],
@@ -106,14 +130,19 @@ export default function PhotoThumbnail({ photo, orderedHashes, onToggleStack, is
     openContextMenu({
       position: { x: e.clientX, y: e.clientY },
       items: [
-        { id: 'open',    label: 'Åpne',                isDefault: true, action: () => navigate(`/photos/${photo.hothash}`) },
-        { id: 'correct', label: 'Korriger bilde…',     action: () => setCorrectionOpen(true) },
-        { id: 'download', label: 'Last ned (full)',     action: () => { window.location.href = `${getBaseUrl()}/photos/${photo.hothash}/download` } },
+        { id: 'open',     label: 'Åpne',             isDefault: true, action: () => navigate(`/photos/${photo.hothash}`) },
+        { id: 'correct',  label: 'Korriger bilde…',  action: () => setCorrectionOpen(true) },
+        { id: 'download', label: 'Last ned (full)',   action: () => { window.location.href = `${getBaseUrl()}/photos/${photo.hothash}/download` } },
         { type: 'separator' },
         { id: 'event',      label: 'Sett event…',         action: () => openAssignment('event') },
         { id: 'collection', label: 'Legg til i samling…', action: () => openAssignment('collection') },
         { id: 'tag',        label: 'Legg til tag…',       action: () => openAssignment('tag') },
-        ...(photo.stack_id ? [{ id: 'unstack', label: 'Fjern fra stack', action: () => removeFromStackMut.mutate([photo.hothash]) }] : []),
+        ...(photo.stack_id && !photo.is_stack_cover
+          ? [{ id: 'unstack',  label: 'Fjern fra stack', action: () => removeFromStackMut.mutate([photo.hothash]) }]
+          : []),
+        ...(photo.stack_id && photo.is_stack_cover
+          ? [{ id: 'dissolve', label: 'Oppløs stack',    action: () => dissolveMut.mutate([photo.hothash]) }]
+          : []),
       ],
     })
   }

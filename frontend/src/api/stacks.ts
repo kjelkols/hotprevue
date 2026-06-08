@@ -52,3 +52,10 @@ export function removePhotosFromStacks(hothashes: string[]): Promise<void> {
     body: JSON.stringify({ hothashes }),
   })
 }
+
+export function dissolveStack(hothashes: string[]): Promise<void> {
+  return apiFetch<void>('/stacks/dissolve', {
+    method: 'POST',
+    body: JSON.stringify({ hothashes }),
+  })
+}

@@ -25,6 +25,7 @@ import PreorganiseringPage from './pages/PreorganiseringPage'
 import AiSearchPage from './pages/AiSearchPage'
 import TimelinePage from './pages/TimelinePage'
 import ContextMenuOverlay from './components/ui/ContextMenuOverlay'
+import ToastOverlay from './components/ui/ToastOverlay'
 import SelectionTray from './features/selection/SelectionTray'
 import EventPickerModal from './features/assignment/EventPickerModal'
 import CollectionPickerModal from './features/assignment/CollectionPickerModal'
@@ -91,6 +92,7 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <ContextMenuOverlay />
+      <ToastOverlay />
       <SelectionTray />
       <EventPickerModal />
       <CollectionPickerModal />

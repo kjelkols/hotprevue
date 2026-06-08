@@ -183,8 +183,16 @@ def set_cover(db: Session, stack_id: uuid.UUID, hothash: str) -> StackOut:
 
 
 def remove_photos_batch(db: Session, hothashes: list[str]) -> None:
-    """Frigjør bilder fra sine stacks. Bilder uten stack hoppes over stille."""
+    """Fjern individuelle bilder fra sin stack. Avviser stack-cover-bilder."""
     photos = db.query(Photo).filter(Photo.hothash.in_(hothashes)).all()
+
+    covers = [p.hothash for p in photos if p.is_stack_cover and p.stack_id is not None]
+    if covers:
+        raise HTTPException(
+            status_code=400,
+            detail="Stack-cover-bilder kan ikke fjernes individuelt. Bruk 'Oppløs stack' for å oppløse hele stacken.",
+        )
+
     affected_stack_ids = {p.stack_id for p in photos if p.stack_id is not None}
 
     for p in photos:
@@ -203,6 +211,31 @@ def remove_photos_batch(db: Session, hothashes: list[str]) -> None:
             remaining[0].is_stack_cover = True
 
     db.commit()
+
+
+def dissolve_by_photos(db: Session, hothashes: list[str]) -> None:
+    """Oppløs stacken som de valgte bildene tilhører. Krever nøyaktig ett stack-cover, ingen løse bilder."""
+    photos = db.query(Photo).filter(Photo.hothash.in_(hothashes)).all()
+
+    not_in_stack = [p.hothash for p in photos if p.stack_id is None]
+    if not_in_stack:
+        raise HTTPException(status_code=400, detail="Noen bilder er ikke i en stack.")
+
+    not_cover = [p.hothash for p in photos if not p.is_stack_cover]
+    if not_cover:
+        raise HTTPException(
+            status_code=400,
+            detail="Utvalget inneholder individuelle stack-bilder. Velg kun stack-coveret for å oppløse en stack.",
+        )
+
+    stack_ids = {p.stack_id for p in photos}
+    if len(stack_ids) > 1:
+        raise HTTPException(
+            status_code=400,
+            detail="Utvalget inneholder flere stacks. Velg bilder fra én stack av gangen.",
+        )
+
+    delete(db, next(iter(stack_ids)))
 
 
 def delete(db: Session, stack_id: uuid.UUID) -> None:
