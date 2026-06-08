@@ -57,9 +57,10 @@ const actionBtn = 'w-6 h-6 rounded bg-black/75 text-white text-base leading-none
 interface Props {
   photo: PhotoListItem
   orderedHashes: string[]
+  stackCount?: number
 }
 
-export default function PhotoThumbnail({ photo, orderedHashes }: Props) {
+export default function PhotoThumbnail({ photo, orderedHashes, stackCount }: Props) {
   const navigate = useNavigate()
   const location = useLocation()
   const [correctionOpen, setCorrectionOpen] = useState(false)
@@ -160,15 +161,7 @@ export default function PhotoThumbnail({ photo, orderedHashes }: Props) {
     })
   }
 
-  const stackIndicator = photo.is_stack_cover && photo.stack_id ? (
-    <div className="absolute bottom-1 right-1 flex items-center gap-0.5 bg-black/75 text-white text-[10px] px-1.5 py-0.5 rounded z-10 pointer-events-none">
-      <svg viewBox="0 0 16 16" className="w-3 h-3 fill-current" aria-hidden>
-        <rect x="1" y="9" width="14" height="2.5" rx="1" />
-        <rect x="2" y="5.5" width="12" height="2.5" rx="1" />
-        <rect x="3" y="2" width="10" height="2.5" rx="1" />
-      </svg>
-    </div>
-  ) : null
+  const isStackCover = photo.is_stack_cover && !!photo.stack_id
 
   const rotateActions = (
     <>
@@ -179,18 +172,30 @@ export default function PhotoThumbnail({ photo, orderedHashes }: Props) {
 
   return (
     <>
-      <div className="relative">
-        <ThumbnailShell
-          imageData={photo.hotpreview_b64}
-          isSelected={isSelected}
-          correction={photo.has_correction ? photo : null}
-          actions={rotateActions}
-          onClick={handleClick}
-          onDoubleClick={handleDoubleClick}
-          onContextMenu={handleContextMenu}
-          bottomOverlay={formatDate(photo.taken_at)}
-        />
-        {stackIndicator}
+      <div className="relative" style={{ overflow: 'visible' }}>
+        {isStackCover && (
+          <>
+            <div className="absolute inset-0 rounded bg-gray-600" style={{ transform: 'translate(5px, 4px) rotate(2deg)', zIndex: 0 }} />
+            <div className="absolute inset-0 rounded bg-gray-700" style={{ transform: 'translate(2.5px, 2px) rotate(1deg)', zIndex: 1 }} />
+          </>
+        )}
+        <div style={{ position: 'relative', zIndex: 2 }}>
+          <ThumbnailShell
+            imageData={photo.hotpreview_b64}
+            isSelected={isSelected}
+            correction={photo.has_correction ? photo : null}
+            actions={rotateActions}
+            onClick={handleClick}
+            onDoubleClick={handleDoubleClick}
+            onContextMenu={handleContextMenu}
+            bottomOverlay={formatDate(photo.taken_at)}
+          />
+          {isStackCover && stackCount != null && (
+            <div className="absolute top-1 right-1 bg-black/80 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded z-10 pointer-events-none">
+              ×{stackCount}
+            </div>
+          )}
+        </div>
       </div>
       <PhotoCorrectionDialog
         hothash={photo.hothash}

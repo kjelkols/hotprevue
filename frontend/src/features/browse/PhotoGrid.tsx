@@ -1,8 +1,10 @@
 import { useEffect, useRef } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { groupByDate } from '../../lib/groupByDate'
 import PhotoThumbnail from './PhotoThumbnail'
 import useSelectionStore from '../../stores/useSelectionStore'
 import useViewStore from '../../stores/useViewStore'
+import { listStacks } from '../../api/stacks'
 import type { PhotoListItem } from '../../types/api'
 
 interface Props {
@@ -27,6 +29,14 @@ export default function PhotoGrid({
   const selectAll = useSelectionStore(s => s.selectAll)
   const gridVariant = useViewStore(s => s.gridVariant)
   const sentinelRef = useRef<HTMLDivElement>(null)
+
+  const hasStacks = photos.some(p => p.is_stack_cover && p.stack_id)
+  const { data: stacks } = useQuery({
+    queryKey: ['stacks'],
+    queryFn: listStacks,
+    enabled: hasStacks,
+  })
+  const stackCountMap = new Map(stacks?.map(s => [s.id, s.photo_count]) ?? [])
 
   const grouped = gridVariant === 'dato'
   const orderedHashes = photos.map(p => p.hothash)
@@ -82,6 +92,7 @@ export default function PhotoGrid({
                     key={photo.hothash}
                     photo={photo}
                     orderedHashes={orderedHashes}
+                    stackCount={photo.stack_id ? stackCountMap.get(photo.stack_id) : undefined}
                   />
                 ))}
               </div>
@@ -95,6 +106,7 @@ export default function PhotoGrid({
               key={photo.hothash}
               photo={photo}
               orderedHashes={orderedHashes}
+              stackCount={photo.stack_id ? stackCountMap.get(photo.stack_id) : undefined}
             />
           ))}
         </div>
