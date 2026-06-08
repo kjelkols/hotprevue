@@ -191,16 +191,6 @@ tilgjengelige uten ekstra API-kall ved hover.
 
 ---
 
-## Konsekvenser
-
-**Gevinst:** Stack-konseptet får eksplisitt identitet i databasen. Enkel modell
-uten kategoriseringsoverhead. UI-strategien unngår feildialoger ved å stenge
-menyvalg basert på utvalgsanalyse.
-
-**Kostnad:** Migrasjonen innfører en `stacks`-tabell og endrer `photos.stack_id`
-til en FK. Eksisterende rader med `stack_id IS NOT NULL` får innsatt tilsvarende
-rader i `stacks`.
-
 ---
 
 ## Filer
