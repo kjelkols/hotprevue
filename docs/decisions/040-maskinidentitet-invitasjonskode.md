@@ -1,6 +1,6 @@
 # ADR-040: Maskinidentitet via invitasjonskode og API-token
 
-**Status:** Planlagt  
+**Status:** Implementert  
 **Dato:** 2026-06-08
 
 ---

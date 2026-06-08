@@ -5,6 +5,7 @@ import { getSettings, patchGlobalSettings, patchMachineSettings } from '../api/s
 import { listPhotographers } from '../api/photographers'
 import { listShortcuts, createShortcut, patchShortcut, deleteShortcut, moveShortcutUp, moveShortcutDown } from '../api/shortcuts'
 import DirectoryPicker from '../components/DirectoryPicker'
+import GuestMachinesPanel from '../features/settings/GuestMachinesPanel'
 
 
 // ─── Tab: Denne maskinen ──────────────────────────────────────────────────────
@@ -433,6 +434,7 @@ const TABS = [
   { id: 'shortcuts', label: 'Snarveier'      },
   { id: 'general',   label: 'Generelt'       },
   { id: 'copy',      label: 'Filkopiering'   },
+  { id: 'guests',    label: 'Gjester'        },
   { id: 'images',    label: 'Bilder'         },
   { id: 'appearance',label: 'Utseende'       },
   { id: 'advanced',  label: 'Avansert'       },
@@ -475,6 +477,10 @@ export default function SettingsPage() {
 
           <Tabs.Content value="copy" className="p-6 max-w-xl">
             <CopyTab />
+          </Tabs.Content>
+
+          <Tabs.Content value="guests" className="p-6 max-w-xl">
+            <GuestMachinesPanel />
           </Tabs.Content>
 
           <Tabs.Content value="images" className="p-6 max-w-xl">

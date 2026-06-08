@@ -15,5 +15,6 @@ class MachineOut(BaseModel):
     machine_id: uuid.UUID
     machine_name: str
     photographer_id: uuid.UUID | None
+    role: str
     last_seen_at: datetime | None
     created_at: datetime
