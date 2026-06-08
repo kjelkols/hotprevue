@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { PhotoListItem } from '../../types/api'
 import { updateCorrection } from '../../api/photos'
+import { removePhotosFromStacks } from '../../api/stacks'
 import { getBaseUrl } from '../../api/client'
 import useSelectionStore from '../../stores/useSelectionStore'
 import useContextMenuStore from '../../stores/useContextMenuStore'
@@ -49,6 +50,13 @@ export default function PhotoThumbnail({ photo, orderedHashes, onToggleStack, is
     mutationFn: (rotation: number | null) => updateCorrection(photo.hothash, { rotation }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['photos'] }),
   })
+  const removeFromStackMut = useMutation({
+    mutationFn: (hothashes: string[]) => removePhotosFromStacks(hothashes),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['photos'] })
+      qc.invalidateQueries({ queryKey: ['stacks'] })
+    },
+  })
 
   function rotateCCW(e: React.MouseEvent) {
     e.stopPropagation()
@@ -78,6 +86,7 @@ export default function PhotoThumbnail({ photo, orderedHashes, onToggleStack, is
     e.preventDefault()
 
     if (isSelected && selectedCount > 1) {
+      const selectedHashes = Array.from(useSelectionStore.getState().selected)
       openContextMenu({
         position: { x: e.clientX, y: e.clientY },
         items: [
@@ -85,6 +94,7 @@ export default function PhotoThumbnail({ photo, orderedHashes, onToggleStack, is
           { id: 'collection', label: `Legg til i samling… (${selectedCount})`, action: () => openAssignment('collection') },
           { id: 'tag',        label: `Legg til tag… (${selectedCount})`,       action: () => openAssignment('tag') },
           { id: 'stack',      label: `Opprett stack (${selectedCount})`,       action: () => openAssignment('stack') },
+          { id: 'unstack',    label: `Fjern fra stack (${selectedCount})`,     action: () => removeFromStackMut.mutate(selectedHashes) },
           { type: 'separator' },
           { id: 'open', label: 'Åpne dette bildet', action: () => navigate(`/photos/${photo.hothash}`) },
         ],
@@ -103,6 +113,7 @@ export default function PhotoThumbnail({ photo, orderedHashes, onToggleStack, is
         { id: 'event',      label: 'Sett event…',         action: () => openAssignment('event') },
         { id: 'collection', label: 'Legg til i samling…', action: () => openAssignment('collection') },
         { id: 'tag',        label: 'Legg til tag…',       action: () => openAssignment('tag') },
+        ...(photo.stack_id ? [{ id: 'unstack', label: 'Fjern fra stack', action: () => removeFromStackMut.mutate([photo.hothash]) }] : []),
       ],
     })
   }

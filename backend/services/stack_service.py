@@ -58,12 +58,13 @@ def create(db: Session, data: StackCreate) -> StackOut:
 
     photos = _get_photos_by_hothash(db, data.hothashes)
 
-    for p in photos:
-        if p.stack_id is not None:
-            raise HTTPException(
-                status_code=409,
-                detail=f"Bilde {p.hothash} er allerede i en stack",
-            )
+    conflicts = [p.hothash for p in photos if p.stack_id is not None]
+    if conflicts:
+        n = len(conflicts)
+        raise HTTPException(
+            status_code=409,
+            detail=f"{n} {'bilde er' if n == 1 else 'bilder er'} allerede i en stack",
+        )
 
     stack = Stack(kind=data.kind)
     db.add(stack)
@@ -179,6 +180,29 @@ def set_cover(db: Session, stack_id: uuid.UUID, hothash: str) -> StackOut:
 
     db.commit()
     return _stack_out(_load_stack(db, stack_id))
+
+
+def remove_photos_batch(db: Session, hothashes: list[str]) -> None:
+    """Frigjør bilder fra sine stacks. Bilder uten stack hoppes over stille."""
+    photos = db.query(Photo).filter(Photo.hothash.in_(hothashes)).all()
+    affected_stack_ids = {p.stack_id for p in photos if p.stack_id is not None}
+
+    for p in photos:
+        p.stack_id = None
+        p.is_stack_cover = False
+
+    db.flush()
+
+    for stack_id in affected_stack_ids:
+        remaining = db.query(Photo).filter(Photo.stack_id == stack_id).all()
+        if not remaining:
+            stack = db.get(Stack, stack_id)
+            if stack:
+                db.delete(stack)
+        elif not any(p.is_stack_cover for p in remaining):
+            remaining[0].is_stack_cover = True
+
+    db.commit()
 
 
 def delete(db: Session, stack_id: uuid.UUID) -> None:

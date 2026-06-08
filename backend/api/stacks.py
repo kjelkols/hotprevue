@@ -15,6 +15,11 @@ def create_stack(data: StackCreate, db: Session = Depends(get_db)):
     return stack_service.create(db, data)
 
 
+@router.post("/remove-photos", status_code=204)
+def remove_photos_from_stacks(data: StackAddPhotos, db: Session = Depends(get_db)):
+    stack_service.remove_photos_batch(db, data.hothashes)
+
+
 @router.get("", response_model=list[StackOut])
 def list_stacks(db: Session = Depends(get_db)):
     return stack_service.list_all(db)

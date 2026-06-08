@@ -45,3 +45,10 @@ export function setStackCover(stackId: string, hothash: string): Promise<StackOu
 export function deleteStack(stackId: string): Promise<void> {
   return apiFetch<void>(`/stacks/${stackId}`, { method: 'DELETE' })
 }
+
+export function removePhotosFromStacks(hothashes: string[]): Promise<void> {
+  return apiFetch<void>('/stacks/remove-photos', {
+    method: 'POST',
+    body: JSON.stringify({ hothashes }),
+  })
+}

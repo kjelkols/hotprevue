@@ -8,7 +8,7 @@ const BACKEND = process.env.VITE_BACKEND_URL ?? 'http://localhost:8000'
 const API_ROUTES = [
   '/admin', '/ai', '/collections', '/events', '/file-copy-operations',
   '/input-sessions', '/kinds', '/machines', '/photographers', '/photos', '/searches',
-  '/settings', '/shortcuts', '/stats', '/system', '/tags',
+  '/settings', '/shortcuts', '/stacks', '/stats', '/system', '/tags',
   '/text-items', '/health', '/api',
 ]
 
