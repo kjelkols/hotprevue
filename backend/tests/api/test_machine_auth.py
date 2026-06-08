@@ -13,7 +13,7 @@ def test_create_invite_code(client):
     assert r.status_code == 201
     data = r.json()
     assert len(data["code"]) == 8
-    assert data["role"] == "guest"
+    assert data["access_level"] == "guest"
     assert data["photographer_name"] == "Anna"
     assert data["used_at"] is None
 
@@ -70,7 +70,7 @@ def test_enroll_expired_code(client, db):
     expired = MachineInviteCode(
         id=uuid.uuid4(),
         code=code_str,
-        role="guest",
+        access_level="guest",
         expires_at=datetime.now(timezone.utc) - timedelta(hours=1),
     )
     db.add(expired)
@@ -87,12 +87,12 @@ def test_enroll_creates_machine_and_photographer(client, db):
 
     machine = db.query(Machine).filter(Machine.machine_id == result["machine_id"]).first()
     assert machine is not None
-    assert machine.role == "guest"
     assert machine.machine_name == "Eva Laptop"
 
     photographer = db.get(Photographer, result["photographer_id"])
     assert photographer is not None
     assert photographer.name == "Eva"
+    assert photographer.access_level == "guest"
 
 
 # ---------------------------------------------------------------------------
@@ -105,7 +105,7 @@ def test_list_machines_admin(client):
     machines = r.json()
     assert isinstance(machines, list)
     for m in machines:
-        assert "role" in m
+        assert "machine_id" in m
 
 
 def test_revoke_nonexistent_machine_token(client):

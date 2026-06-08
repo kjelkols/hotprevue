@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from database.session import get_db
 from models.machine import Machine, MachineToken
+from models.photographer import Photographer
 
 
 def get_machine_from_token(
@@ -28,6 +29,18 @@ def get_machine_from_token(
     return record.machine
 
 
-def require_owner(machine: Machine | None = Depends(get_machine_from_token)) -> None:
-    if machine is not None and machine.role != "owner":
+def get_requesting_photographer(
+    machine: Machine | None = Depends(get_machine_from_token),
+    db: Session = Depends(get_db),
+) -> Photographer | None:
+    if machine is None or machine.photographer_id is None:
+        return None
+    return db.get(Photographer, machine.photographer_id)
+
+
+def require_owner(
+    photographer: Photographer | None = Depends(get_requesting_photographer),
+) -> None:
+    """Block guests; allow owners and unauthenticated requests (legacy owner machines)."""
+    if photographer is not None and photographer.access_level != "owner":
         raise HTTPException(status_code=403, detail="Krever owner-tilgang")

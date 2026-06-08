@@ -29,6 +29,8 @@ from schemas.photo import (
     TimelineBucket,
     TimelineEventBalloon,
 )
+from middleware.machine_auth import get_requesting_photographer, require_owner
+from models.photographer import Photographer
 from services import photo_service
 
 router = APIRouter(prefix="/photos", tags=["photos"])
@@ -42,6 +44,7 @@ def check_hothashes(data: CheckHothashRequest, db: Session = Depends(get_db)):
 @router.get("", response_model=list[PhotoListItem])
 def list_photos(
     db: Session = Depends(get_db),
+    photographer: Photographer | None = Depends(get_requesting_photographer),
     hothash: list[str] = Query(default=[]),
     photographer_id: uuid.UUID | None = None,
     event_id: uuid.UUID | None = None,
@@ -77,6 +80,7 @@ def list_photos(
         sort=sort,
         limit=limit,
         offset=offset,
+        requesting_photographer=photographer,
     )
     return [PhotoListItem.model_validate(p) for p in photos]
 
@@ -162,40 +166,40 @@ def get_coldpreview(hothash: str, db: Session = Depends(get_db)):
 
 
 @router.post("/{hothash}/companions", response_model=ImageFileSchema, status_code=201)
-def add_companion(hothash: str, data: CompanionCreate, db: Session = Depends(get_db)):
+def add_companion(hothash: str, data: CompanionCreate, db: Session = Depends(get_db), _: None = Depends(require_owner)):
     companion = photo_service.add_companion(db, hothash, data)
     return ImageFileSchema.model_validate(companion)
 
 
 @router.patch("/{hothash}", response_model=PhotoDetail)
-def patch_photo(hothash: str, data: PhotoPatch, db: Session = Depends(get_db)):
+def patch_photo(hothash: str, data: PhotoPatch, db: Session = Depends(get_db), _: None = Depends(require_owner)):
     photo = photo_service.patch_photo(db, hothash, data)
     return PhotoDetail.model_validate(photo)
 
 
 @router.patch("/{hothash}/correction", response_model=PhotoDetail)
-def patch_correction(hothash: str, data: CorrectionPatch, db: Session = Depends(get_db)):
+def patch_correction(hothash: str, data: CorrectionPatch, db: Session = Depends(get_db), _: None = Depends(require_owner)):
     photo = photo_service.update_correction(db, hothash, data)
     return PhotoDetail.model_validate(photo)
 
 
 @router.delete("/{hothash}/correction", status_code=204)
-def delete_correction(hothash: str, db: Session = Depends(get_db)):
+def delete_correction(hothash: str, db: Session = Depends(get_db), _: None = Depends(require_owner)):
     photo_service.delete_correction(db, hothash)
 
 
 @router.post("/{hothash}/delete", status_code=204)
-def soft_delete_photo(hothash: str, db: Session = Depends(get_db)):
+def soft_delete_photo(hothash: str, db: Session = Depends(get_db), _: None = Depends(require_owner)):
     photo_service.soft_delete(db, hothash)
 
 
 @router.post("/{hothash}/restore", status_code=204)
-def restore_photo(hothash: str, db: Session = Depends(get_db)):
+def restore_photo(hothash: str, db: Session = Depends(get_db), _: None = Depends(require_owner)):
     photo_service.restore(db, hothash)
 
 
 @router.post("/empty-trash", response_model=BatchResult)
-def empty_trash(db: Session = Depends(get_db)):
+def empty_trash(db: Session = Depends(get_db), _: None = Depends(require_owner)):
     count = photo_service.empty_trash(db)
     return BatchResult(updated=count)
 
@@ -205,39 +209,39 @@ def empty_trash(db: Session = Depends(get_db)):
 # ---------------------------------------------------------------------------
 
 @router.post("/batch/rating", response_model=BatchResult)
-def batch_rating(data: BatchRating, db: Session = Depends(get_db)):
+def batch_rating(data: BatchRating, db: Session = Depends(get_db), _: None = Depends(require_owner)):
     return BatchResult(updated=photo_service.batch_rating(db, data.hothashes, data.rating))
 
 
 @router.post("/batch/event", response_model=BatchResult)
-def batch_event(data: BatchEvent, db: Session = Depends(get_db)):
+def batch_event(data: BatchEvent, db: Session = Depends(get_db), _: None = Depends(require_owner)):
     return BatchResult(updated=photo_service.batch_event(db, data.hothashes, data.event_id))
 
 
 @router.post("/batch/category", response_model=BatchResult)
-def batch_category(data: BatchCategory, db: Session = Depends(get_db)):
+def batch_category(data: BatchCategory, db: Session = Depends(get_db), _: None = Depends(require_owner)):
     return BatchResult(updated=photo_service.batch_category(db, data.hothashes, data.category_id))
 
 
 @router.post("/batch/photographer", response_model=BatchResult)
-def batch_photographer(data: BatchPhotographer, db: Session = Depends(get_db)):
+def batch_photographer(data: BatchPhotographer, db: Session = Depends(get_db), _: None = Depends(require_owner)):
     return BatchResult(updated=photo_service.batch_photographer(db, data.hothashes, data.photographer_id))
 
 
 @router.post("/batch/taken-at", response_model=BatchResult)
-def batch_taken_at(data: BatchTakenAt, db: Session = Depends(get_db)):
+def batch_taken_at(data: BatchTakenAt, db: Session = Depends(get_db), _: None = Depends(require_owner)):
     return BatchResult(updated=photo_service.batch_taken_at(db, data.hothashes, data.taken_at, data.taken_at_source))
 
 
 @router.post("/batch/taken-at-offset", response_model=BatchResult)
-def batch_taken_at_offset(data: BatchTakenAtOffset, db: Session = Depends(get_db)):
+def batch_taken_at_offset(data: BatchTakenAtOffset, db: Session = Depends(get_db), _: None = Depends(require_owner)):
     return BatchResult(updated=photo_service.batch_taken_at_offset(
         db, data.hothashes, data.offset_seconds, note=data.note,
     ))
 
 
 @router.post("/batch/location", response_model=BatchResult)
-def batch_location(data: BatchLocation, db: Session = Depends(get_db)):
+def batch_location(data: BatchLocation, db: Session = Depends(get_db), _: None = Depends(require_owner)):
     return BatchResult(updated=photo_service.batch_location(
         db, data.hothashes, data.location_lat, data.location_lng,
         data.location_source, data.location_accuracy,
@@ -246,10 +250,10 @@ def batch_location(data: BatchLocation, db: Session = Depends(get_db)):
 
 
 @router.post("/batch/delete", response_model=BatchResult)
-def batch_delete(data: BatchBase, db: Session = Depends(get_db)):
+def batch_delete(data: BatchBase, db: Session = Depends(get_db), _: None = Depends(require_owner)):
     return BatchResult(updated=photo_service.batch_delete(db, data.hothashes))
 
 
 @router.post("/batch/restore", response_model=BatchResult)
-def batch_restore(data: BatchBase, db: Session = Depends(get_db)):
+def batch_restore(data: BatchBase, db: Session = Depends(get_db), _: None = Depends(require_owner)):
     return BatchResult(updated=photo_service.batch_restore(db, data.hothashes))

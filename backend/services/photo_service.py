@@ -49,7 +49,10 @@ def list_photos(
     sort: str = "taken_at_desc",
     limit: int = 100,
     offset: int = 0,
+    requesting_photographer=None,
 ) -> list[Photo]:
+    from services.access_filter import PhotoAccessFilter
+
     q = db.query(Photo).options(selectinload(Photo.correction))
 
     if deleted:
@@ -92,6 +95,7 @@ def list_photos(
             (Photo.stack_id.is_(None)) | (Photo.is_stack_cover.is_(True))
         )
 
+    q = PhotoAccessFilter.apply(q, requesting_photographer)
     q = _apply_sort(q, sort)
     return q.offset(offset).limit(limit).all()
 

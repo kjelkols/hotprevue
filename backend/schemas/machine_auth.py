@@ -5,9 +5,12 @@ from pydantic import BaseModel, ConfigDict
 
 
 class InviteCodeCreate(BaseModel):
+    # Scenario A (new photographer): set photographer_name + access_level
     photographer_name: str | None = None
+    access_level: str = "guest"
     ttl_minutes: int = 60
-    role: str = "guest"
+    # Scenario B (existing photographer): set target_photographer_id
+    target_photographer_id: uuid.UUID | None = None
 
 
 class InviteCodeOut(BaseModel):
@@ -15,7 +18,8 @@ class InviteCodeOut(BaseModel):
 
     id: uuid.UUID
     code: str
-    role: str
+    access_level: str | None
+    target_photographer_id: uuid.UUID | None
     photographer_name: str | None
     expires_at: datetime
     used_at: datetime | None
@@ -34,12 +38,25 @@ class EnrollResponse(BaseModel):
     photographer_name: str
 
 
-class MachineWithRoleOut(BaseModel):
+class AddMachineCodeResponse(BaseModel):
+    code: str
+    expires_at: datetime
+
+
+class MachineOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     machine_id: uuid.UUID
     machine_name: str
-    role: str
     photographer_id: uuid.UUID | None
     last_seen_at: datetime | None
     created_at: datetime
+
+
+class PhotographerWithMachinesOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    name: str
+    access_level: str
+    machines: list[MachineOut] = []

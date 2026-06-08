@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from database.session import get_db
+from middleware.machine_auth import require_owner
 from schemas.event import EventCreate, EventOut, EventPatch
 from services import event_service
 
@@ -11,7 +12,7 @@ router = APIRouter(prefix="/events", tags=["events"])
 
 
 @router.post("", response_model=EventOut, status_code=201)
-def create_event(data: EventCreate, db: Session = Depends(get_db)):
+def create_event(data: EventCreate, db: Session = Depends(get_db), _: None = Depends(require_owner)):
     event = event_service.create(db, data)
     return event_service._to_event_out(event, event_service._photo_counts(db))
 
@@ -31,17 +32,17 @@ def get_event(event_id: uuid.UUID, db: Session = Depends(get_db)):
 
 
 @router.patch("/{event_id}", response_model=EventOut)
-def patch_event(event_id: uuid.UUID, data: EventPatch, db: Session = Depends(get_db)):
+def patch_event(event_id: uuid.UUID, data: EventPatch, db: Session = Depends(get_db), _: None = Depends(require_owner)):
     event = event_service.patch(db, event_id, data)
     return event_service._to_event_out(event, event_service._photo_counts(db))
 
 
 @router.post("/{event_id}/auto-date", response_model=EventOut)
-def auto_date_event(event_id: uuid.UUID, db: Session = Depends(get_db)):
+def auto_date_event(event_id: uuid.UUID, db: Session = Depends(get_db), _: None = Depends(require_owner)):
     event = event_service.auto_date(db, event_id)
     return event_service._to_event_out(event, event_service._photo_counts(db))
 
 
 @router.delete("/{event_id}", status_code=204)
-def delete_event(event_id: uuid.UUID, db: Session = Depends(get_db)):
+def delete_event(event_id: uuid.UUID, db: Session = Depends(get_db), _: None = Depends(require_owner)):
     event_service.delete(db, event_id)

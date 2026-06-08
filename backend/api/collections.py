@@ -6,6 +6,7 @@ from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from database.session import get_db
+from middleware.machine_auth import require_owner
 from schemas.collection import (
     CollectionCreate,
     CollectionItemBatch,
@@ -29,7 +30,7 @@ def _to_out(collection, item_count: int) -> CollectionOut:
 
 
 @router.post("", response_model=CollectionOut, status_code=201)
-def create_collection(data: CollectionCreate, db: Session = Depends(get_db)):
+def create_collection(data: CollectionCreate, db: Session = Depends(get_db), _: None = Depends(require_owner)):
     collection, count = collection_service.create(db, data)
     return _to_out(collection, count)
 
@@ -46,13 +47,13 @@ def get_collection(collection_id: uuid.UUID, db: Session = Depends(get_db)):
 
 
 @router.patch("/{collection_id}", response_model=CollectionOut)
-def patch_collection(collection_id: uuid.UUID, data: CollectionPatch, db: Session = Depends(get_db)):
+def patch_collection(collection_id: uuid.UUID, data: CollectionPatch, db: Session = Depends(get_db), _: None = Depends(require_owner)):
     collection, count = collection_service.patch(db, collection_id, data)
     return _to_out(collection, count)
 
 
 @router.delete("/{collection_id}", status_code=204)
-def delete_collection(collection_id: uuid.UUID, db: Session = Depends(get_db)):
+def delete_collection(collection_id: uuid.UUID, db: Session = Depends(get_db), _: None = Depends(require_owner)):
     collection_service.delete(db, collection_id)
 
 
@@ -75,19 +76,19 @@ def get_items(collection_id: uuid.UUID, db: Session = Depends(get_db)):
 
 
 @router.post("/{collection_id}/items", response_model=CollectionItemOut, status_code=201)
-def add_item(collection_id: uuid.UUID, data: CollectionItemCreate, db: Session = Depends(get_db)):
+def add_item(collection_id: uuid.UUID, data: CollectionItemCreate, db: Session = Depends(get_db), _: None = Depends(require_owner)):
     item = collection_service.add_item(db, collection_id, data)
     return CollectionItemOut.model_validate(item)
 
 
 @router.post("/{collection_id}/items/batch", response_model=list[CollectionItemOut], status_code=201)
-def add_items_batch(collection_id: uuid.UUID, data: CollectionItemBatch, db: Session = Depends(get_db)):
+def add_items_batch(collection_id: uuid.UUID, data: CollectionItemBatch, db: Session = Depends(get_db), _: None = Depends(require_owner)):
     items = collection_service.add_items_batch(db, collection_id, data.items)
     return [CollectionItemOut.model_validate(item) for item in items]
 
 
 @router.put("/{collection_id}/items", response_model=list[CollectionItemOut])
-def reorder_items(collection_id: uuid.UUID, data: CollectionItemReorder, db: Session = Depends(get_db)):
+def reorder_items(collection_id: uuid.UUID, data: CollectionItemReorder, db: Session = Depends(get_db), _: None = Depends(require_owner)):
     items = collection_service.reorder_items(db, collection_id, data.item_ids)
     return [CollectionItemOut.model_validate(item) for item in items]
 
@@ -98,6 +99,7 @@ def patch_item(
     item_id: uuid.UUID,
     data: CollectionItemPatch,
     db: Session = Depends(get_db),
+    _: None = Depends(require_owner),
 ):
     item = collection_service.patch_item(db, collection_id, item_id, data)
     return CollectionItemOut.model_validate(item)
@@ -108,10 +110,11 @@ def delete_items_batch(
     collection_id: uuid.UUID,
     data: CollectionItemBatchDelete,
     db: Session = Depends(get_db),
+    _: None = Depends(require_owner),
 ):
     collection_service.delete_items_batch(db, collection_id, data.item_ids)
 
 
 @router.delete("/{collection_id}/items/{item_id}", status_code=204)
-def delete_item(collection_id: uuid.UUID, item_id: uuid.UUID, db: Session = Depends(get_db)):
+def delete_item(collection_id: uuid.UUID, item_id: uuid.UUID, db: Session = Depends(get_db), _: None = Depends(require_owner)):
     collection_service.delete_item(db, collection_id, item_id)

@@ -47,10 +47,13 @@ def execute(
     limit: int = 100,
     offset: int = 0,
     date_filter: str | None = None,
+    requesting_photographer=None,
 ) -> list[Photo]:
+    from services.access_filter import PhotoAccessFilter
     from services.photo_service import _apply_sort
 
     q = _base_query(db, logic, criteria).options(selectinload(Photo.correction))
+    q = PhotoAccessFilter.apply(q, requesting_photographer)
 
     # date_filter is always ANDed regardless of `logic` – see docs/decisions/006-timeline.md
     if date_filter:
@@ -72,6 +75,7 @@ def timeline(
     criteria: list[SearchCriterion],
     session_id=None,
     event_id=None,
+    requesting_photographer=None,
 ) -> list[dict]:
     """Return a year→month→day tree for all dated photos matching the criteria.
 
@@ -81,7 +85,10 @@ def timeline(
     Cover photo per node = newest photo in that node (taken_at DESC).
     Grouping uses UTC dates from the stored taken_at value.
     """
+    from services.access_filter import PhotoAccessFilter
+
     q = _base_query(db, logic, criteria, session_id=session_id, event_id=event_id)
+    q = PhotoAccessFilter.apply(q, requesting_photographer)
 
     # Lightweight fetch: only 3 columns, no ORM overhead for corrections etc.
     rows = (

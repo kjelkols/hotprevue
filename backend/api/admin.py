@@ -10,15 +10,21 @@ from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from database.session import get_db
+from middleware.machine_auth import require_owner
 from models.machine import Machine, MachineInviteCode, MachineToken
-from schemas.machine_auth import InviteCodeCreate, InviteCodeOut, MachineWithRoleOut
+from models.photographer import Photographer
+from schemas.machine_auth import (
+    InviteCodeCreate,
+    InviteCodeOut,
+    MachineOut,
+    PhotographerWithMachinesOut,
+)
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 
 @router.get("/backup")
-def create_backup():
-    """Returnerer en pg_dump SQL-dump av hotprevue-databasen."""
+def create_backup(_: None = Depends(require_owner)):
     pg_dump = shutil.which("pg_dump")
     if not pg_dump:
         raise HTTPException(status_code=501, detail="pg_dump ikke funnet i PATH")
@@ -50,17 +56,24 @@ def create_backup():
 # ---------------------------------------------------------------------------
 
 def _random_code() -> str:
-    """8-tegns alfanumerisk kode (a-z0-9), uppercase for visning."""
-    alphabet = "abcdefghjkmnpqrstuvwxyz23456789"  # utelukker 0/o, 1/l/i for lesbarhet
+    alphabet = "abcdefghjkmnpqrstuvwxyz23456789"
     return "".join(secrets.choice(alphabet) for _ in range(8)).upper()
 
 
 @router.post("/invite-codes", response_model=InviteCodeOut, status_code=201)
-def create_invite_code(data: InviteCodeCreate, db: Session = Depends(get_db)):
+def create_invite_code(
+    data: InviteCodeCreate,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_owner),
+):
+    if data.target_photographer_id and not db.get(Photographer, data.target_photographer_id):
+        raise HTTPException(status_code=404, detail="Fotograf ikke funnet")
+
     code = MachineInviteCode(
         id=uuid.uuid4(),
         code=_random_code(),
-        role=data.role,
+        access_level=None if data.target_photographer_id else data.access_level,
+        target_photographer_id=data.target_photographer_id,
         photographer_name=data.photographer_name,
         expires_at=datetime.now(timezone.utc) + timedelta(minutes=data.ttl_minutes),
     )
@@ -71,7 +84,10 @@ def create_invite_code(data: InviteCodeCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/invite-codes", response_model=list[InviteCodeOut])
-def list_invite_codes(db: Session = Depends(get_db)):
+def list_invite_codes(
+    db: Session = Depends(get_db),
+    _: None = Depends(require_owner),
+):
     return (
         db.query(MachineInviteCode)
         .order_by(MachineInviteCode.created_at.desc())
@@ -80,7 +96,11 @@ def list_invite_codes(db: Session = Depends(get_db)):
 
 
 @router.delete("/invite-codes/{code_id}", status_code=204)
-def delete_invite_code(code_id: uuid.UUID, db: Session = Depends(get_db)):
+def delete_invite_code(
+    code_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_owner),
+):
     code = db.get(MachineInviteCode, code_id)
     if code is None:
         raise HTTPException(status_code=404, detail="Invitasjonskode ikke funnet")
@@ -94,14 +114,20 @@ def delete_invite_code(code_id: uuid.UUID, db: Session = Depends(get_db)):
 # Machine management
 # ---------------------------------------------------------------------------
 
-@router.get("/machines", response_model=list[MachineWithRoleOut])
-def list_machines_admin(db: Session = Depends(get_db)):
+@router.get("/machines", response_model=list[MachineOut])
+def list_machines_admin(
+    db: Session = Depends(get_db),
+    _: None = Depends(require_owner),
+):
     return db.query(Machine).order_by(Machine.created_at).all()
 
 
 @router.delete("/machines/{machine_id}/token", status_code=204)
-def revoke_machine_token(machine_id: uuid.UUID, db: Session = Depends(get_db)):
-    """Trekker tilbake alle aktive tokens for en maskin."""
+def revoke_machine_token(
+    machine_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_owner),
+):
     machine = db.get(Machine, machine_id)
     if machine is None:
         raise HTTPException(status_code=404, detail="Maskin ikke funnet")
@@ -109,4 +135,47 @@ def revoke_machine_token(machine_id: uuid.UUID, db: Session = Depends(get_db)):
         MachineToken.machine_id == machine_id,
         MachineToken.is_active.is_(True),
     ).update({"is_active": False})
+    db.commit()
+
+
+# ---------------------------------------------------------------------------
+# Photographer / user management
+# ---------------------------------------------------------------------------
+
+@router.get("/photographers", response_model=list[PhotographerWithMachinesOut])
+def list_photographers_with_machines(
+    db: Session = Depends(get_db),
+    _: None = Depends(require_owner),
+):
+    """Return photographers that have at least one machine (active users)."""
+    photographers = (
+        db.query(Photographer)
+        .join(Machine, Machine.photographer_id == Photographer.id)
+        .distinct()
+        .order_by(Photographer.name)
+        .all()
+    )
+    result = []
+    for p in photographers:
+        machines = db.query(Machine).filter(Machine.photographer_id == p.id).all()
+        out = PhotographerWithMachinesOut.model_validate(p)
+        out.machines = [MachineOut.model_validate(m) for m in machines]
+        result.append(out)
+    return result
+
+
+@router.patch("/photographers/{photographer_id}/access-level", status_code=204)
+def set_photographer_access_level(
+    photographer_id: uuid.UUID,
+    body: dict,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_owner),
+):
+    photographer = db.get(Photographer, photographer_id)
+    if photographer is None:
+        raise HTTPException(status_code=404, detail="Fotograf ikke funnet")
+    level = body.get("access_level")
+    if level not in ("owner", "guest"):
+        raise HTTPException(status_code=422, detail="access_level må være 'owner' eller 'guest'")
+    photographer.access_level = level
     db.commit()

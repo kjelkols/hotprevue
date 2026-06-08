@@ -18,4 +18,5 @@ class Photographer(Base):
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_default: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     is_unknown: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    access_level: Mapped[str] = mapped_column(String, nullable=False, default="guest")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())

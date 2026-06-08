@@ -14,7 +14,14 @@ class MachineInviteCode(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     code: Mapped[str] = mapped_column(String, unique=True, nullable=False)
-    role: Mapped[str] = mapped_column(String, nullable=False, default="guest")
+    # access_level is set for scenario A (new photographer); NULL for scenario B/C
+    access_level: Mapped[str | None] = mapped_column(String, nullable=True)
+    # target_photographer_id is set for scenario B/C (existing photographer); NULL for scenario A
+    target_photographer_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("photographers.id"),
+        nullable=True,
+    )
     photographer_name: Mapped[str | None] = mapped_column(String, nullable=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -34,7 +41,6 @@ class Machine(Base):
         ForeignKey("photographers.id", ondelete="RESTRICT"),
         nullable=True,  # nullable at DB level for migration safety; app enforces NOT NULL on new rows
     )
-    role: Mapped[str] = mapped_column(String, nullable=False, default="owner")
     enrolled_via_invite: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("machine_invite_codes.id"),

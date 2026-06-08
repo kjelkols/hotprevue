@@ -4,6 +4,8 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from database.session import get_db
+from middleware.machine_auth import get_requesting_photographer
+from models.photographer import Photographer
 from schemas.photo import PhotoListItem
 from schemas.saved_search import (
     ExecuteSearchRequest, SavedSearchCreate, SavedSearchOut, SavedSearchPatch,
@@ -26,19 +28,29 @@ def create_search(data: SavedSearchCreate, db: Session = Depends(get_db)):
 
 # POST routes must be declared before GET /{search_id} to avoid route conflicts
 @router.post("/execute", response_model=list[PhotoListItem])
-def execute_search(req: ExecuteSearchRequest, db: Session = Depends(get_db)):
+def execute_search(
+    req: ExecuteSearchRequest,
+    db: Session = Depends(get_db),
+    photographer: Photographer | None = Depends(get_requesting_photographer),
+):
     photos = search_service.execute(
-        db, req.logic, req.criteria, req.sort, req.limit, req.offset, req.date_filter
+        db, req.logic, req.criteria, req.sort, req.limit, req.offset, req.date_filter,
+        requesting_photographer=photographer,
     )
     return photos
 
 
 @router.post("/timeline", response_model=list[TimelineYear])
-def search_timeline(req: TimelineRequest, db: Session = Depends(get_db)):
+def search_timeline(
+    req: TimelineRequest,
+    db: Session = Depends(get_db),
+    photographer: Photographer | None = Depends(get_requesting_photographer),
+):
     return search_service.timeline(
         db, req.logic, req.criteria,
         session_id=req.session_id,
         event_id=req.event_id,
+        requesting_photographer=photographer,
     )
 
 

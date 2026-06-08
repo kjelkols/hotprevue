@@ -5,7 +5,7 @@ import { getSettings, patchGlobalSettings, patchMachineSettings } from '../api/s
 import { listPhotographers } from '../api/photographers'
 import { listShortcuts, createShortcut, patchShortcut, deleteShortcut, moveShortcutUp, moveShortcutDown } from '../api/shortcuts'
 import DirectoryPicker from '../components/DirectoryPicker'
-import GuestMachinesPanel from '../features/settings/GuestMachinesPanel'
+import UsersPanel from '../features/settings/UsersPanel'
 
 
 // ─── Tab: Denne maskinen ──────────────────────────────────────────────────────
@@ -480,7 +480,7 @@ export default function SettingsPage() {
           </Tabs.Content>
 
           <Tabs.Content value="guests" className="p-6 max-w-xl">
-            <GuestMachinesPanel />
+            <UsersPanel />
           </Tabs.Content>
 
           <Tabs.Content value="images" className="p-6 max-w-xl">

@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from database.session import get_db
+from middleware.machine_auth import require_owner
 from schemas.photographer import PhotographerCreate, PhotographerOut, PhotographerPatch
 from services import photographer_service
 
@@ -11,7 +12,7 @@ router = APIRouter(prefix="/photographers", tags=["photographers"])
 
 
 @router.post("", response_model=PhotographerOut, status_code=201)
-def create_photographer(data: PhotographerCreate, db: Session = Depends(get_db)):
+def create_photographer(data: PhotographerCreate, db: Session = Depends(get_db), _: None = Depends(require_owner)):
     return photographer_service.create(db, data)
 
 
@@ -30,10 +31,11 @@ def patch_photographer(
     photographer_id: uuid.UUID,
     data: PhotographerPatch,
     db: Session = Depends(get_db),
+    _: None = Depends(require_owner),
 ):
     return photographer_service.patch(db, photographer_id, data)
 
 
 @router.delete("/{photographer_id}", status_code=204)
-def delete_photographer(photographer_id: uuid.UUID, db: Session = Depends(get_db)):
+def delete_photographer(photographer_id: uuid.UUID, db: Session = Depends(get_db), _: None = Depends(require_owner)):
     photographer_service.delete(db, photographer_id)
