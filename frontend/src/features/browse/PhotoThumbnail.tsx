@@ -3,9 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { PhotoListItem } from '../../types/api'
 import { updateCorrection } from '../../api/photos'
-import { createStack, removePhotosFromStacks, dissolveStack } from '../../api/stacks'
 import { getBaseUrl } from '../../api/client'
-import useToastStore from '../../stores/useToastStore'
 import useSelectionStore from '../../stores/useSelectionStore'
 import useContextMenuStore from '../../stores/useContextMenuStore'
 import useAssignmentStore from '../../stores/useAssignmentStore'
@@ -49,45 +47,6 @@ export default function PhotoThumbnail({ photo, orderedHashes }: Props) {
     mutationFn: (rotation: number | null) => updateCorrection(photo.hothash, { rotation }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['photos'] }),
   })
-  const showToast = useToastStore(s => s.show)
-
-  function parseApiError(err: unknown): string {
-    try {
-      const msg = (err as Error).message
-      const json = JSON.parse(msg.slice(msg.indexOf(' ') + 1))
-      return json?.detail ?? msg
-    } catch {
-      return String(err)
-    }
-  }
-
-  const createStackMut = useMutation({
-    mutationFn: (hothashes: string[]) => createStack(hothashes),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['photos'] })
-      qc.invalidateQueries({ queryKey: ['stacks'] })
-      useSelectionStore.getState().clear()
-    },
-    onError: (err) => showToast(parseApiError(err)),
-  })
-
-  const removeFromStackMut = useMutation({
-    mutationFn: (hothashes: string[]) => removePhotosFromStacks(hothashes),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['photos'] })
-      qc.invalidateQueries({ queryKey: ['stacks'] })
-    },
-    onError: (err) => showToast(parseApiError(err)),
-  })
-
-  const dissolveMut = useMutation({
-    mutationFn: (hothashes: string[]) => dissolveStack(hothashes),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['photos'] })
-      qc.invalidateQueries({ queryKey: ['stacks'] })
-    },
-    onError: (err) => showToast(parseApiError(err)),
-  })
 
   function rotateCCW(e: React.MouseEvent) {
     e.stopPropagation()
@@ -117,16 +76,12 @@ export default function PhotoThumbnail({ photo, orderedHashes }: Props) {
     e.preventDefault()
 
     if (isSelected && selectedCount > 1) {
-      const selectedHashes = Array.from(useSelectionStore.getState().selected)
       openContextMenu({
         position: { x: e.clientX, y: e.clientY },
         items: [
-          { id: 'event',      label: `Sett event… (${selectedCount})`,         action: () => openAssignment('event') },
-          { id: 'collection', label: `Legg til i samling… (${selectedCount})`,  action: () => openAssignment('collection') },
-          { id: 'tag',        label: `Legg til tag… (${selectedCount})`,        action: () => openAssignment('tag') },
-          { id: 'stack',      label: `Opprett stack (${selectedCount})`,        action: () => createStackMut.mutate(selectedHashes) },
-          { id: 'unstack',    label: `Fjern fra stack`,                         action: () => removeFromStackMut.mutate(selectedHashes) },
-          { id: 'dissolve',   label: `Oppløs stack`,                            action: () => dissolveMut.mutate(selectedHashes) },
+          { id: 'event',      label: `Sett event… (${selectedCount})`,        action: () => openAssignment('event') },
+          { id: 'collection', label: `Legg til i samling… (${selectedCount})`, action: () => openAssignment('collection') },
+          { id: 'tag',        label: `Legg til tag… (${selectedCount})`,       action: () => openAssignment('tag') },
           { type: 'separator' },
           { id: 'open', label: 'Åpne dette bildet', action: () => navigate(`/photos/${photo.hothash}`) },
         ],
@@ -145,20 +100,12 @@ export default function PhotoThumbnail({ photo, orderedHashes }: Props) {
         { id: 'event',      label: 'Sett event…',         action: () => openAssignment('event') },
         { id: 'collection', label: 'Legg til i samling…', action: () => openAssignment('collection') },
         { id: 'tag',        label: 'Legg til tag…',       action: () => openAssignment('tag') },
-        ...(photo.stack_id && !photo.is_stack_cover
-          ? [{ id: 'unstack',  label: 'Fjern fra stack', action: () => removeFromStackMut.mutate([photo.hothash]) }]
-          : []),
-        ...(photo.stack_id && photo.is_stack_cover
-          ? [{ id: 'dissolve', label: 'Oppløs stack',    action: () => dissolveMut.mutate([photo.hothash]) }]
-          : []),
       ],
     })
   }
 
   const stackIndicator = photo.is_stack_cover && photo.stack_id ? (
-    <div
-      className="absolute bottom-1 right-1 flex items-center gap-0.5 bg-black/75 text-white text-[10px] px-1.5 py-0.5 rounded z-10 pointer-events-none"
-    >
+    <div className="absolute bottom-1 right-1 flex items-center gap-0.5 bg-black/75 text-white text-[10px] px-1.5 py-0.5 rounded z-10 pointer-events-none">
       <svg viewBox="0 0 16 16" className="w-3 h-3 fill-current" aria-hidden>
         <rect x="1" y="9" width="14" height="2.5" rx="1" />
         <rect x="2" y="5.5" width="12" height="2.5" rx="1" />
