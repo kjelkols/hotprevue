@@ -1,3 +1,4 @@
+import math
 import uuid
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
@@ -229,6 +230,112 @@ def _criterion_to_clause(c: SearchCriterion):
         if op == "none_of":
             sub = select(PhotoTag.photo_id).where(PhotoTag.tag_id.in_(tag_ids)).scalar_subquery()
             return Photo.id.not_in(sub)
+
+    elif field == "iso":
+        if op == "gte":
+            return Photo.iso >= int(value)
+        if op == "lte":
+            return Photo.iso <= int(value)
+        if op == "eq":
+            return Photo.iso == int(value)
+        if op == "between" and isinstance(value, list) and len(value) == 2:
+            return Photo.iso.between(int(value[0]), int(value[1]))
+        if op == "is_null":
+            return Photo.iso.is_(None)
+
+    elif field == "aperture":
+        if op == "gte":
+            return Photo.aperture >= float(value)
+        if op == "lte":
+            return Photo.aperture <= float(value)
+        if op == "eq":
+            return Photo.aperture == float(value)
+        if op == "between" and isinstance(value, list) and len(value) == 2:
+            return Photo.aperture.between(float(value[0]), float(value[1]))
+        if op == "is_null":
+            return Photo.aperture.is_(None)
+
+    elif field == "focal_length":
+        if op == "gte":
+            return Photo.focal_length >= float(value)
+        if op == "lte":
+            return Photo.focal_length <= float(value)
+        if op == "eq":
+            return Photo.focal_length == float(value)
+        if op == "between" and isinstance(value, list) and len(value) == 2:
+            return Photo.focal_length.between(float(value[0]), float(value[1]))
+        if op == "is_null":
+            return Photo.focal_length.is_(None)
+
+    elif field == "lens_model":
+        if op == "eq" and value:
+            return Photo.lens_model == value
+        if op == "contains" and value:
+            return Photo.lens_model.ilike(f"%{value}%")
+        if op == "is_null":
+            return Photo.lens_model.is_(None)
+
+    elif field == "orientation":
+        if op == "eq":
+            if value == "portrait":
+                return Photo.height > Photo.width
+            if value == "landscape":
+                return Photo.width > Photo.height
+            if value == "square":
+                return Photo.width == Photo.height
+
+    elif field == "has_location":
+        if op == "eq":
+            if value in (True, "true", 1):
+                return Photo.location_lat.is_not(None)
+            return Photo.location_lat.is_(None)
+
+    elif field == "location_radius":
+        if op == "within" and isinstance(value, dict):
+            from sqlalchemy import and_, func as sfunc
+            lat = float(value["lat"])
+            lng = float(value["lng"])
+            r = float(value["radius_km"])
+            lat_delta = r / 111.0
+            lng_delta = r / (111.0 * math.cos(math.radians(lat)))
+            bb = and_(
+                Photo.location_lat.between(lat - lat_delta, lat + lat_delta),
+                Photo.location_lng.between(lng - lng_delta, lng + lng_delta),
+            )
+            dlat = sfunc.radians(Photo.location_lat - lat)
+            dlng = sfunc.radians(Photo.location_lng - lng)
+            a = (
+                sfunc.pow(sfunc.sin(dlat / 2), 2)
+                + sfunc.cos(sfunc.radians(lat))
+                * sfunc.cos(sfunc.radians(Photo.location_lat))
+                * sfunc.pow(sfunc.sin(dlng / 2), 2)
+            )
+            dist_km = 6371 * 2 * sfunc.asin(sfunc.sqrt(a))
+            return and_(bb, dist_km <= r)
+
+    elif field == "taken_at_source":
+        if op == "eq":
+            return Photo.taken_at_source == int(value)
+        if op == "any_of" and isinstance(value, list):
+            return Photo.taken_at_source.in_([int(v) for v in value])
+
+    elif field == "taken_at_accuracy":
+        if op == "eq" and value:
+            return Photo.taken_at_accuracy == value
+        if op == "any_of" and isinstance(value, list):
+            return Photo.taken_at_accuracy.in_(value)
+
+    elif field == "location_source":
+        if op == "eq":
+            return Photo.location_source == int(value)
+        if op == "any_of" and isinstance(value, list):
+            return Photo.location_source.in_([int(v) for v in value])
+
+    elif field == "location_accuracy_meters":
+        if op == "gte":
+            return Photo.location_accuracy_meters >= float(value)
+        if op == "lte":
+            return Photo.location_accuracy_meters <= float(value)
 
     return None
 

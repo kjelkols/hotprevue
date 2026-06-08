@@ -71,4 +71,91 @@ export const SEARCH_FIELDS: FieldDef[] = [
       { operator: 'contains', label: 'Inneholder' },
     ],
   },
+  {
+    field: 'iso',
+    label: 'ISO',
+    operators: [
+      { operator: 'gte', label: '>=' },
+      { operator: 'lte', label: '<=' },
+      { operator: 'eq', label: '=' },
+      { operator: 'between', label: 'Mellom' },
+      { operator: 'is_null', label: 'Ikke satt' },
+    ],
+  },
+  {
+    field: 'aperture',
+    label: 'Blenderåpning',
+    operators: [
+      { operator: 'gte', label: '>=' },
+      { operator: 'lte', label: '<=' },
+      { operator: 'eq', label: '=' },
+      { operator: 'between', label: 'Mellom' },
+      { operator: 'is_null', label: 'Ikke satt' },
+    ],
+  },
+  {
+    field: 'focal_length',
+    label: 'Brennvidde (mm)',
+    operators: [
+      { operator: 'gte', label: '>=' },
+      { operator: 'lte', label: '<=' },
+      { operator: 'eq', label: '=' },
+      { operator: 'between', label: 'Mellom' },
+      { operator: 'is_null', label: 'Ikke satt' },
+    ],
+  },
+  {
+    field: 'lens_model',
+    label: 'Linse',
+    operators: [
+      { operator: 'eq', label: 'Er' },
+      { operator: 'contains', label: 'Inneholder' },
+      { operator: 'is_null', label: 'Ikke satt' },
+    ],
+  },
+  {
+    field: 'orientation',
+    label: 'Orientering',
+    operators: [
+      { operator: 'eq', label: 'Er' },
+    ],
+  },
+  {
+    field: 'has_location',
+    label: 'Har GPS',
+    operators: [
+      { operator: 'eq', label: 'Er' },
+    ],
+  },
+  {
+    field: 'location_radius',
+    label: 'Innen avstand',
+    operators: [
+      { operator: 'within', label: 'Innen' },
+    ],
+  },
+  {
+    field: 'taken_at_source',
+    label: 'Tidskilde',
+    operators: [
+      { operator: 'eq', label: 'Er' },
+      { operator: 'any_of', label: 'En av' },
+    ],
+  },
+  {
+    field: 'taken_at_accuracy',
+    label: 'Tidsnøyaktighet',
+    operators: [
+      { operator: 'eq', label: 'Er' },
+      { operator: 'any_of', label: 'En av' },
+    ],
+  },
+  {
+    field: 'location_source',
+    label: 'Posisjonskilde',
+    operators: [
+      { operator: 'eq', label: 'Er' },
+      { operator: 'any_of', label: 'En av' },
+    ],
+  },
 ]

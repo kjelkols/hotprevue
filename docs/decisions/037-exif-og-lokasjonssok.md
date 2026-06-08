@@ -1,6 +1,6 @@
 # ADR-037: EXIF-felter og lokasjonsbasert søk
 
-**Status:** Planlagt  
+**Status:** Implementert  
 **Dato:** 2026-06-08
 
 ---
