@@ -1,6 +1,6 @@
 # ADR-036: Stack-implementering
 
-**Status:** Implementert (UI under redesign — se 036-stack-ux-kladd.md)  
+**Status:** Backend implementert. UI under implementasjon.  
 **Dato:** 2026-06-08
 
 ---
@@ -68,24 +68,38 @@ automatisk når siste bilde frigjøres.
 
 ### Opprett stack
 
+**UI-trigger:** Kontekstmeny → «Opprett stack» (aktivt når utvalget kun inneholder
+frie bilder ≥ 2).
+
 **Forutsetning:** Alle bilder må være frie (`stack_id IS NULL`).
 
 **Feil (409):** Hvis ett eller flere bilder allerede er i en stack.
 
 **Resultat:** Ny stack opprettes. Første bilde settes som cover.
 
+### Legg til i stack
+
+**UI-trigger:** Kontekstmeny → «Legg til i stack» (aktivt når utvalget inneholder
+frie bilder + nøyaktig én stack).
+
+De frie bildene legges inn i stacken som allerede er i utvalget. Ingen dialog.
+
 ### Fjern fra stack
+
+**UI-trigger:** Kontekstmeny → «Fjern fra stack» (aktivt i ekspandert modus når
+utvalget kun inneholder stack-*medlemmer*, ikke cover).
 
 **Endepunkt:** `POST /stacks/remove-photos`
 
 **Forutsetning:** Ingen av bildene kan være stack-cover.
 
-**Feil (400):** Hvis utvalget inneholder cover-bilder — bruk «Oppløs stack».
-
 **Resultat:** Bildene frigjøres. Stacks som tømmes slettes. Stacks som mister
 cover tildeler første gjenværende bilde som nytt cover.
 
 ### Oppløs stack
+
+**UI-trigger:** Kontekstmeny → «Oppløs stack» (aktivt når utvalget inneholder
+nøyaktig én stack og ingen individuelle bilder).
 
 **Endepunkt:** `POST /stacks/dissolve`
 
@@ -116,10 +130,72 @@ slettes — de lever videre som frie bilder.
 
 ---
 
+## UI-strategi
+
+### Kjerneprinsipper
+
+**Disable fremfor feil.** Kontekstmenyen speiler tilstanden til utvalget. Menyvalg
+er grå når forutsetningene ikke er oppfylt — ingen reaktive feilmeldinger, ingen
+bekreftelsesdialoger.
+
+**Stack som atomisk UI-element.** En stack er én kortstokk i gridet, ikke et sett
+bilder som bare kepper seg annerledes.
+
+### Visuell modell
+
+**Kollapset (standard):**
+
+- Cover-thumbnail med 2–3 forskjøvede «kort» bak (CSS transform — kortstokk-effekt)
+- Antall-badge, f.eks. `×4`
+- Hover (~350 ms) → popover med mikro-thumbnails (~48×48 px) og antall — kun lesing
+- Klikk → velger stacken (cover-hothash som proxy)
+
+**Ekspandert (via toggle «Ekspander stack» i verktøylinja):**
+
+- Alle bilder i alle stacks vises, inkl. ikke-cover-bilder
+- Stack-tilhørighet: subtle border/bakgrunn per stack (ulik farge per stack)
+- Cover-bildet: `cover`-badge
+- Hover på ikke-cover-bilde → tooltip med stackens cover-thumbnail
+- Utvalg velger individuelle bilder
+
+Togglen lagres i `useViewStore` og tømmer utvalget når den skifter tilstand.
+
+### Kontekstmeny
+
+Utvalget analyseres før menyen bygges:
+
+| Utvalgssammensetning | Aktivt valg |
+|---|---|
+| Frie bilder ≥ 2, ingen stacks | **Opprett stack** |
+| Frie bilder + nøyaktig én stack | **Legg til i stack** |
+| Nøyaktig én stack, ingen andre | **Oppløs stack** |
+| Stack-medlemmer (ikke-cover) i ekspandert modus | **Fjern fra stack** |
+| Alt annet | Alle grå |
+
+### Seleksjonsmodell
+
+`useSelectionStore` holder `Set<string>` med hothashes — ingen endring.
+Cover-hothash brukes som proxy for stacken i kollapset modus.
+
+### Fase 2
+
+- **«Merk stack»** — høyreklikk på stacket bilde i ekspandert modus → resetter
+  utvalget og merker alle bilder i stacken
+- **«Sett som cover»** — høyreklikk på ikke-cover-bilde i ekspandert modus
+
+### Hover-popover
+
+Popoveren viser de øvrige bildenes hotpreviews. For god responsivitet utvides
+`StackOut` med `member_hotpreviews_b64: string[]` slik at alle previews er
+tilgjengelige uten ekstra API-kall ved hover.
+
+---
+
 ## Konsekvenser
 
 **Gevinst:** Stack-konseptet får eksplisitt identitet i databasen. Enkel modell
-uten kategoriseringsoverhead.
+uten kategoriseringsoverhead. UI-strategien unngår feildialoger ved å stenge
+menyvalg basert på utvalgsanalyse.
 
 **Kostnad:** Migrasjonen innfører en `stacks`-tabell og endrer `photos.stack_id`
 til en FK. Eksisterende rader med `stack_id IS NOT NULL` får innsatt tilsvarende
@@ -138,10 +214,20 @@ backend/
   alembic/versions/a2b3c4d5e036_adr036_stacks.py
   alembic/versions/b3c4d5e6f037_drop_stack_kind.py
   tests/api/test_stacks.py
+
+frontend/src/
+  api/stacks.ts
+  types/api.ts                  # StackOut, StackDetail
+  features/browse/
+    PhotoGrid.tsx               # grid-visning
+    PhotoThumbnail.tsx          # stack-indikator (statisk, hover og kontekstmeny kommer)
 ```
 
 ### TODO
 
-- **Browse-filtrering:** `GET /photos` returnerer alle bilder inkludert
-  ikke-cover stack-bilder. Krever `stacks_collapsed`-parameter i `list_photos`
-  og `usePhotoSource`.
+- **Browse-filtrering:** `GET /photos` returnerer alle bilder inkludert ikke-cover
+  stack-bilder. Krever `stacks_collapsed`-parameter i `list_photos` og `usePhotoSource`.
+- **Kortstokk-visning:** Kollapset stack-thumbnail med CSS-korteffekt.
+- **Hover-popover:** `member_hotpreviews_b64` i `StackOut`, popover-komponent.
+- **«Ekspander stack»-toggle** i verktøylinja, farging per stack i ekspandert modus.
+- **Kontekstmeny med utvalgsanalyse:** Opprett / Legg til i stack / Fjern / Oppløs.
