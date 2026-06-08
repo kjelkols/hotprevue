@@ -73,7 +73,7 @@ src/
 | `useContextMenuStore` | `open`, `position`, `items` | `openContextMenu({items, position})`, `closeContextMenu()` |
 | `useAssignmentStore` | `modal: 'event'\|'collection'\|null` | `open(modal)`, `close()` |
 | `useSessionStore` | Aktiv sesjon (registreringsflyt) | — |
-| `useViewStore` | Grid-størrelse og visningsvalg | — |
+| `useViewStore` | `gridVariant`, `stacksCollapsed`, `timelineView: 'grid'\|'tree'\|'zoom'` | `setGridVariant`, `setStacksCollapsed`, `setTimelineView` |
 | `useLocationEditorStore` | Kart-editorstate | — |
 
 ### Globale overlays (montert i App.tsx, utenfor Routes)

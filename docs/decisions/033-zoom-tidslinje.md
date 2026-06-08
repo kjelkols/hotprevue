@@ -33,6 +33,16 @@ ikke ved å bytte modus.
 Tidslinjen er et eget verktøy for utforskning og minnenavigasjon, ikke en variant av
 bla-siden.
 
+TimelinePage har en verktøylinje øverst med tre visningsvalg:
+
+| Visning | Komponent | Beskrivelse |
+|---|---|---|
+| **Grid** (default) | `PhotoGrid` | Vanlig grid med alle bilder, GridVariantDropdown + stack-toggle |
+| **Tre** | `PhotoTimeline` | Hierarkisk år → måned → dag, klikk åpner dag-grid |
+| **Zoom** | `ZoomTimeline` | Semantisk zoom, skyer → thumbnails |
+
+Valgt visning persisteres i `useViewStore` (`timelineView`, nøkkel `hotprevue-view-prefs`).
+
 ---
 
 ## Kjerneprinsipp: semantisk progressiv avsløring
@@ -232,9 +242,10 @@ frontend/src/
     buildRows.ts          # Ren funksjon: topMs+bottomMs+pxPerDay → RowData[]
     useTimelineData.ts    # React Query-wrapper: buckets, yearBuckets, thumbnails
   pages/
-    TimelinePage.tsx      # Tynn wrapper rundt ZoomTimeline
+    TimelinePage.tsx      # Verktøylinje (Grid/Tre/Zoom) + betinget render av valgt view
   stores/
     useTimelineStore.ts   # Zustand persist: pxPerDay + topMs (nøkkel v2)
+    useViewStore.ts       # timelineView: 'grid'|'tree'|'zoom' (default 'grid', persistert)
   api/
     timeline.ts           # getTimelineBuckets, getTimelineEvents
 
