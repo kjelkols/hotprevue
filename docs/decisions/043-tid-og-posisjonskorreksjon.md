@@ -1,6 +1,6 @@
 # ADR-043: Tid- og posisjonskorreksjon med provenans
 
-**Status:** Planlagt  
+**Status:** Implementert  
 **Dato:** 2026-06-08
 
 ---

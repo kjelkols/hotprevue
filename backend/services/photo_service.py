@@ -12,6 +12,8 @@ from sqlalchemy.orm import Session, selectinload
 
 from models.event import Event
 from models.photo import ImageFile, Photo, PhotoCorrection
+from models.photo_field_edit import PhotoFieldEdit
+from utils import time_source as ts, location_source as ls
 from schemas.input_session import CheckHothashRequest, CheckHothashResponse
 from schemas.photo import PerceptualHashComputeResult, TimelineBucket, TimelineEventBalloon
 
@@ -474,15 +476,46 @@ def batch_taken_at(db: Session, hothashes: list[str], taken_at: datetime, taken_
     return len(photos)
 
 
-def batch_taken_at_offset(db: Session, hothashes: list[str], offset_seconds: int) -> int:
+def batch_taken_at_offset(
+    db: Session,
+    hothashes: list[str],
+    offset_seconds: int,
+    note: str | None = None,
+    machine_id: uuid.UUID | None = None,
+) -> int:
     from datetime import timedelta
     photos = _get_batch(db, hothashes)
     updated = 0
     for photo in photos:
-        if photo.taken_at is not None:
-            photo.taken_at = photo.taken_at + timedelta(seconds=offset_seconds)
-            photo.taken_at_source = 1  # adjusted
-            updated += 1
+        if photo.taken_at is None:
+            continue
+        old_value = {
+            "taken_at": photo.taken_at.isoformat(),
+            "taken_at_source": photo.taken_at_source,
+            "taken_at_accuracy": photo.taken_at_accuracy,
+            "taken_at_utc_offset": photo.taken_at_utc_offset,
+        }
+        photo.taken_at = photo.taken_at + timedelta(seconds=offset_seconds)
+        photo.taken_at_source = ts.OFFSET_CORRECTED
+        new_value = {
+            "taken_at": photo.taken_at.isoformat(),
+            "taken_at_source": photo.taken_at_source,
+            "taken_at_accuracy": photo.taken_at_accuracy,
+            "taken_at_utc_offset": photo.taken_at_utc_offset,
+        }
+        edit_details: dict = {"offset_seconds": offset_seconds}
+        if note:
+            edit_details["note"] = note
+        db.add(PhotoFieldEdit(
+            photo_id=photo.id,
+            field_name="taken_at",
+            old_value=old_value,
+            new_value=new_value,
+            edit_method="batch_offset",
+            edit_details=edit_details,
+            machine_id=machine_id,
+        ))
+        updated += 1
     db.commit()
     return updated
 
@@ -494,13 +527,36 @@ def batch_location(
     location_lng: float,
     location_source: int,
     location_accuracy: str | None,
+    location_accuracy_meters: float | None = None,
+    machine_id: uuid.UUID | None = None,
 ) -> int:
     photos = _get_batch(db, hothashes)
     for photo in photos:
+        old_value = {
+            "location_lat": photo.location_lat,
+            "location_lng": photo.location_lng,
+            "location_source": photo.location_source,
+            "location_accuracy_meters": photo.location_accuracy_meters,
+        }
         photo.location_lat = location_lat
         photo.location_lng = location_lng
         photo.location_source = location_source
         photo.location_accuracy = location_accuracy
+        photo.location_accuracy_meters = location_accuracy_meters
+        new_value = {
+            "location_lat": location_lat,
+            "location_lng": location_lng,
+            "location_source": location_source,
+            "location_accuracy_meters": location_accuracy_meters,
+        }
+        db.add(PhotoFieldEdit(
+            photo_id=photo.id,
+            field_name="location",
+            old_value=old_value,
+            new_value=new_value,
+            edit_method="location_editor",
+            machine_id=machine_id,
+        ))
     db.commit()
     return len(photos)
 

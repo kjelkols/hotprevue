@@ -274,7 +274,9 @@ export interface PhotoCorrection {
 
 export interface PhotoDetail extends PhotoListItem {
   taken_at_source: number
+  taken_at_utc_offset: string | null
   location_source: number | null
+  location_accuracy_meters: number | null
   input_session_id: string | null
   registered_at: string
   image_files: ImageFileInfo[]

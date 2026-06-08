@@ -17,6 +17,7 @@ import models.machine  # noqa: E402, F401
 import models.machine_lock  # noqa: E402, F401
 import models.photographer  # noqa: E402, F401
 import models.photo  # noqa: E402, F401
+import models.photo_field_edit  # noqa: E402, F401
 import models.saved_search  # noqa: E402, F401
 import models.settings  # noqa: E402, F401
 import models.shortcut  # noqa: E402, F401

@@ -231,7 +231,9 @@ def batch_taken_at(data: BatchTakenAt, db: Session = Depends(get_db)):
 
 @router.post("/batch/taken-at-offset", response_model=BatchResult)
 def batch_taken_at_offset(data: BatchTakenAtOffset, db: Session = Depends(get_db)):
-    return BatchResult(updated=photo_service.batch_taken_at_offset(db, data.hothashes, data.offset_seconds))
+    return BatchResult(updated=photo_service.batch_taken_at_offset(
+        db, data.hothashes, data.offset_seconds, note=data.note,
+    ))
 
 
 @router.post("/batch/location", response_model=BatchResult)
@@ -239,6 +241,7 @@ def batch_location(data: BatchLocation, db: Session = Depends(get_db)):
     return BatchResult(updated=photo_service.batch_location(
         db, data.hothashes, data.location_lat, data.location_lng,
         data.location_source, data.location_accuracy,
+        location_accuracy_meters=data.location_accuracy_meters,
     ))
 
 

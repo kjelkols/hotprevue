@@ -2,6 +2,8 @@ import type { PhotoDetail } from '../../types/api'
 import PhotoLocationMap from './PhotoLocationMap'
 import PhotoMetaQuality from './PhotoMetaQuality'
 import CorrectionPanel from './CorrectionPanel'
+import { TIME_SOURCE_LABELS, ACCURACY_LABELS } from '../../lib/timeSource'
+import { LOCATION_SOURCE_LABELS } from '../../lib/locationSource'
 
 function formatDate(taken_at: string | null): string {
   if (!taken_at) return 'Ukjent dato'
@@ -25,6 +27,14 @@ function Stars({ rating }: { rating: number }) {
   return (
     <span className="text-yellow-400 tracking-tight">
       {'★'.repeat(rating)}{'☆'.repeat(5 - rating)}
+    </span>
+  )
+}
+
+function SourceBadge({ label }: { label: string }) {
+  return (
+    <span className="ml-1.5 text-xs text-gray-500 bg-gray-800 rounded px-1.5 py-0.5">
+      {label}
     </span>
   )
 }
@@ -53,7 +63,15 @@ export default function PhotoMetaPanel({ photo }: Props) {
       <dl className="space-y-3">
         <div>
           <dt className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-0.5">Tidspunkt</dt>
-          <dd>{formatDate(photo.taken_at)}</dd>
+          <dd>
+            {formatDate(photo.taken_at)}
+            {photo.taken_at_source != null && (
+              <SourceBadge label={TIME_SOURCE_LABELS[photo.taken_at_source] ?? String(photo.taken_at_source)} />
+            )}
+            {photo.taken_at_accuracy && photo.taken_at_accuracy !== 'second' && (
+              <SourceBadge label={ACCURACY_LABELS[photo.taken_at_accuracy] ?? photo.taken_at_accuracy} />
+            )}
+          </dd>
         </div>
 
         {(photo.camera_make || photo.camera_model) && (
@@ -107,6 +125,14 @@ export default function PhotoMetaPanel({ photo }: Props) {
       </dl>
 
       <PhotoLocationMap photo={photo} />
+      {photo.location_lat != null && photo.location_source != null && (
+        <p className="text-xs text-gray-500 -mt-3">
+          {LOCATION_SOURCE_LABELS[photo.location_source] ?? String(photo.location_source)}
+          {photo.location_accuracy_meters != null && (
+            <> · ±{Math.round(photo.location_accuracy_meters)} m</>
+          )}
+        </p>
+      )}
 
       <PhotoMetaQuality photo={photo} />
 

@@ -23,10 +23,13 @@ class Photo(Base):
     taken_at_source: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     taken_at_accuracy: Mapped[str] = mapped_column(String, nullable=False, default="second")
 
+    taken_at_utc_offset: Mapped[str | None] = mapped_column(String, nullable=True)
+
     location_lat: Mapped[float | None] = mapped_column(Float, nullable=True)
     location_lng: Mapped[float | None] = mapped_column(Float, nullable=True)
     location_source: Mapped[int | None] = mapped_column(Integer, nullable=True)
     location_accuracy: Mapped[str | None] = mapped_column(String, nullable=True)
+    location_accuracy_meters: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     camera_make: Mapped[str | None] = mapped_column(String, nullable=True)
     camera_model: Mapped[str | None] = mapped_column(String, nullable=True)
@@ -143,6 +146,12 @@ class Photo(Base):
         back_populates="photo",
         uselist=False,
         cascade="all, delete-orphan",
+    )
+    field_edits: Mapped[list["PhotoFieldEdit"]] = relationship(
+        "PhotoFieldEdit",
+        back_populates="photo",
+        cascade="all, delete-orphan",
+        order_by="PhotoFieldEdit.edited_at.desc()",
     )
 
 

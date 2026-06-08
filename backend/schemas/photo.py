@@ -1,6 +1,5 @@
 import uuid
 from datetime import datetime
-from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
@@ -81,7 +80,9 @@ class CompanionCreate(BaseModel):
 
 class PhotoDetail(PhotoListItem):
     taken_at_source: int
+    taken_at_utc_offset: str | None
     location_source: int | None
+    location_accuracy_meters: float | None
     input_session_id: uuid.UUID | None
     registered_at: datetime
     image_files: list[ImageFileSchema]
@@ -151,18 +152,20 @@ class BatchPhotographer(BatchBase):
 
 class BatchTakenAt(BatchBase):
     taken_at: datetime
-    taken_at_source: Literal[1, 2] = 2
+    taken_at_source: int = 5  # 5 = manual
 
 
 class BatchTakenAtOffset(BatchBase):
     offset_seconds: int
+    note: str | None = None
 
 
 class BatchLocation(BatchBase):
     location_lat: float
     location_lng: float
-    location_source: int = 1
+    location_source: int = 5  # 5 = batch_assigned
     location_accuracy: str | None = None
+    location_accuracy_meters: float | None = None
 
 
 class BatchResult(BaseModel):
