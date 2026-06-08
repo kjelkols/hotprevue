@@ -1,10 +1,10 @@
 import { apiFetch } from './client'
-import type { StackDetail, StackKind, StackOut } from '../types/api'
+import type { StackDetail, StackOut } from '../types/api'
 
-export function createStack(hothashes: string[], kind: StackKind = 'selection'): Promise<StackOut> {
+export function createStack(hothashes: string[]): Promise<StackOut> {
   return apiFetch<StackOut>('/stacks', {
     method: 'POST',
-    body: JSON.stringify({ hothashes, kind }),
+    body: JSON.stringify({ hothashes }),
   })
 }
 
@@ -14,13 +14,6 @@ export function listStacks(): Promise<StackOut[]> {
 
 export function getStack(stackId: string): Promise<StackDetail> {
   return apiFetch<StackDetail>(`/stacks/${stackId}`)
-}
-
-export function patchStack(stackId: string, kind: StackKind): Promise<StackOut> {
-  return apiFetch<StackOut>(`/stacks/${stackId}`, {
-    method: 'PATCH',
-    body: JSON.stringify({ kind }),
-  })
 }
 
 export function addPhotoToStack(stackId: string, hothash: string): Promise<StackOut> {

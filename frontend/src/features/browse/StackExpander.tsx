@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getStack, setStackCover, removePhotoFromStack, deleteStack } from '../../api/stacks'
 import { getBaseUrl } from '../../api/client'
-import { STACK_KIND_LABELS } from '../../types/api'
 import type { CorrectionInput } from '../../lib/photoTransform'
 import { computePhotoTransformCSS } from '../../lib/photoTransform'
 import type { CSSProperties } from 'react'
@@ -58,7 +57,7 @@ export default function StackExpander({ stackId, onClose }: Props) {
     <div className="col-span-full bg-gray-900 border border-gray-700 rounded-lg p-3 my-1">
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs font-medium text-gray-400">
-          {STACK_KIND_LABELS[stack.kind]} · {stack.photos.length} bilder
+          {stack.photos.length} bilder
         </span>
         <div className="flex items-center gap-2">
           <button
@@ -66,7 +65,7 @@ export default function StackExpander({ stackId, onClose }: Props) {
             disabled={deleteMut.isPending}
             className="text-xs text-red-500 hover:text-red-400 disabled:opacity-40"
           >
-            Slett stack
+            Oppløs stack
           </button>
           <button onClick={onClose} className="text-xs text-gray-500 hover:text-gray-300">
             Lukk ×

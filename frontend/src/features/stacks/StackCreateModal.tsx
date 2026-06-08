@@ -1,12 +1,7 @@
-import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { createStack } from '../../api/stacks'
 import useSelectionStore from '../../stores/useSelectionStore'
 import useAssignmentStore from '../../stores/useAssignmentStore'
-import type { StackKind } from '../../types/api'
-import { STACK_KIND_LABELS } from '../../types/api'
-
-const KINDS: StackKind[] = ['selection', 'burst', 'panorama', 'hdr', 'focus']
 
 function isConflictError(err: unknown): boolean {
   return err instanceof Error && err.message.startsWith('409')
@@ -22,7 +17,6 @@ function conflictMessage(err: unknown): string {
 }
 
 export default function StackCreateModal() {
-  const [kind, setKind] = useState<StackKind>('selection')
   const qc = useQueryClient()
   const selected = useSelectionStore(s => s.selected)
   const clear = useSelectionStore(s => s.clear)
@@ -32,12 +26,11 @@ export default function StackCreateModal() {
   const open = modal === 'stack'
 
   const mutation = useMutation({
-    mutationFn: () => createStack(Array.from(selected), kind),
+    mutationFn: () => createStack(Array.from(selected)),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['photos'] })
       qc.invalidateQueries({ queryKey: ['stacks'] })
       clear()
-      setKind('selection')
       close()
     },
   })
@@ -71,20 +64,10 @@ export default function StackCreateModal() {
           </>
         ) : (
           <>
-            <div className="p-4 border-b border-gray-800">
-              <p className="text-sm font-medium text-gray-300 mb-4">
+            <div className="p-4">
+              <p className="text-sm font-medium text-gray-300">
                 Opprett stack av {selected.size} {selected.size === 1 ? 'bilde' : 'bilder'}
               </p>
-              <label className="block text-xs text-gray-500 mb-1.5">Stack-type</label>
-              <select
-                value={kind}
-                onChange={e => setKind(e.target.value as StackKind)}
-                className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
-              >
-                {KINDS.map(k => (
-                  <option key={k} value={k}>{STACK_KIND_LABELS[k]}</option>
-                ))}
-              </select>
             </div>
             <div className="flex justify-end gap-2 p-3 border-t border-gray-800">
               <button type="button" onClick={handleClose} className="rounded-lg px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors">

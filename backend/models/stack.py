@@ -1,27 +1,17 @@
 import uuid
 from datetime import datetime
-from enum import Enum
 
-from sqlalchemy import DateTime, String, func
+from sqlalchemy import DateTime, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base
 
 
-class StackKind(str, Enum):
-    SELECTION = "selection"
-    BURST = "burst"
-    PANORAMA = "panorama"
-    HDR = "hdr"
-    FOCUS = "focus"
-
-
 class Stack(Base):
     __tablename__ = "stacks"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    kind: Mapped[str] = mapped_column(String, nullable=False, default=StackKind.SELECTION.value)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     photos: Mapped[list["Photo"]] = relationship(  # noqa: F821

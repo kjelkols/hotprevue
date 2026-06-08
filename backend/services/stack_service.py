@@ -4,16 +4,9 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session, selectinload
 
 from models.photo import Photo
-from models.stack import Stack, StackKind
+from models.stack import Stack
 from schemas.photo import PhotoListItem
-from schemas.stack import StackCreate, StackDetail, StackOut, StackPatch
-
-
-def _valid_kind(kind: str) -> str:
-    values = {k.value for k in StackKind}
-    if kind not in values:
-        raise HTTPException(status_code=422, detail=f"Ugyldig stack kind: {kind}")
-    return kind
+from schemas.stack import StackCreate, StackDetail, StackOut
 
 
 def _stack_out(stack: Stack) -> StackOut:
@@ -22,7 +15,6 @@ def _stack_out(stack: Stack) -> StackOut:
         cover = stack.photos[0]
     return StackOut(
         id=stack.id,
-        kind=stack.kind,
         created_at=stack.created_at,
         photo_count=len(stack.photos),
         cover_hothash=cover.hothash if cover else None,
@@ -52,7 +44,6 @@ def _get_photos_by_hothash(db: Session, hothashes: list[str]) -> list[Photo]:
 
 
 def create(db: Session, data: StackCreate) -> StackOut:
-    _valid_kind(data.kind)
     if not data.hothashes:
         raise HTTPException(status_code=422, detail="Minst ett bilde kreves")
 
@@ -66,7 +57,7 @@ def create(db: Session, data: StackCreate) -> StackOut:
             detail=f"{n} {'bilde er' if n == 1 else 'bilder er'} allerede i en stack",
         )
 
-    stack = Stack(kind=data.kind)
+    stack = Stack()
     db.add(stack)
     db.flush()
 
@@ -93,19 +84,9 @@ def get_one(db: Session, stack_id: uuid.UUID) -> StackDetail:
     stack = _load_stack(db, stack_id)
     return StackDetail(
         id=stack.id,
-        kind=stack.kind,
         created_at=stack.created_at,
         photos=[PhotoListItem.model_validate(p) for p in stack.photos],
     )
-
-
-def patch(db: Session, stack_id: uuid.UUID, data: StackPatch) -> StackOut:
-    _valid_kind(data.kind)
-    stack = _load_stack(db, stack_id)
-    stack.kind = data.kind
-    db.commit()
-    db.refresh(stack)
-    return _stack_out(_load_stack(db, stack_id))
 
 
 def add_photo(db: Session, stack_id: uuid.UUID, hothash: str) -> StackOut:

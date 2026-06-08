@@ -29,8 +29,8 @@ def _make_photos(db, kind_id, n=2) -> list[str]:
     return [_make_photo(db, kind_id) for _ in range(n)]
 
 
-def _create_stack(client, hothashes, kind="selection"):
-    r = client.post("/stacks", json={"hothashes": hothashes, "kind": kind})
+def _create_stack(client, hothashes):
+    r = client.post("/stacks", json={"hothashes": hothashes})
     assert r.status_code == 201
     return r.json()
 
@@ -43,7 +43,6 @@ def test_create_stack_returns_201(client, db, default_kind_id):
     hashes = _make_photos(db, default_kind_id, 3)
     data = _create_stack(client, hashes)
     assert data["photo_count"] == 3
-    assert data["kind"] == "selection"
     assert data["cover_hothash"] == hashes[0]
 
 
@@ -51,12 +50,6 @@ def test_create_stack_sets_cover_on_first_photo(client, db, default_kind_id):
     hashes = _make_photos(db, default_kind_id, 2)
     data = _create_stack(client, hashes)
     assert data["cover_hothash"] == hashes[0]
-
-
-def test_create_stack_with_kind(client, db, default_kind_id):
-    hashes = _make_photos(db, default_kind_id, 2)
-    data = _create_stack(client, hashes, kind="panorama")
-    assert data["kind"] == "panorama"
 
 
 def test_create_stack_empty_hothashes_returns_422(client):
@@ -103,25 +96,6 @@ def test_get_stack_returns_photos(client, db, default_kind_id):
 def test_get_stack_not_found(client):
     r = client.get(f"/stacks/{uuid.uuid4()}")
     assert r.status_code == 404
-
-
-# ---------------------------------------------------------------------------
-# Patch kind
-# ---------------------------------------------------------------------------
-
-def test_patch_kind(client, db, default_kind_id):
-    hashes = _make_photos(db, default_kind_id, 2)
-    stack = _create_stack(client, hashes)
-    r = client.patch(f"/stacks/{stack['id']}", json={"kind": "burst"})
-    assert r.status_code == 200
-    assert r.json()["kind"] == "burst"
-
-
-def test_patch_invalid_kind_returns_422(client, db, default_kind_id):
-    hashes = _make_photos(db, default_kind_id, 2)
-    stack = _create_stack(client, hashes)
-    r = client.patch(f"/stacks/{stack['id']}", json={"kind": "invalid"})
-    assert r.status_code == 422
 
 
 # ---------------------------------------------------------------------------

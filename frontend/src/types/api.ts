@@ -230,19 +230,8 @@ export interface PhotoListItem {
 
 // ─── Stacks ───────────────────────────────────────────────────────────────────
 
-export type StackKind = 'selection' | 'burst' | 'panorama' | 'hdr' | 'focus'
-
-export const STACK_KIND_LABELS: Record<StackKind, string> = {
-  selection: 'Utvalg',
-  burst:     'Burst',
-  panorama:  'Panorama',
-  hdr:       'HDR',
-  focus:     'Fokus-stacking',
-}
-
 export interface StackOut {
   id: string
-  kind: StackKind
   created_at: string
   photo_count: number
   cover_hothash: string | null
@@ -251,7 +240,6 @@ export interface StackOut {
 
 export interface StackDetail {
   id: string
-  kind: StackKind
   created_at: string
   photos: PhotoListItem[]
 }

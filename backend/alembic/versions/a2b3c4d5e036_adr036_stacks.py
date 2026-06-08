@@ -1,4 +1,4 @@
-"""ADR-036: stack-tabell med kind-felt
+"""ADR-036: stack-tabell
 
 Revision ID: a2b3c4d5e036
 Revises: f6b2e1d4c028
@@ -20,15 +20,14 @@ def upgrade() -> None:
     op.create_table(
         "stacks",
         sa.Column("id", UUID(as_uuid=True), primary_key=True),
-        sa.Column("kind", sa.String(), nullable=False, server_default="selection"),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
     )
 
     # Migrer eksisterende stack_id-verdier fra photos: lag én stack-rad per distinkt UUID
     op.execute(
         """
-        INSERT INTO stacks (id, kind, created_at)
-        SELECT DISTINCT stack_id, 'selection', now()
+        INSERT INTO stacks (id, created_at)
+        SELECT DISTINCT stack_id, now()
         FROM photos
         WHERE stack_id IS NOT NULL
         """

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from database.session import get_db
-from schemas.stack import StackAddPhotos, StackCreate, StackDetail, StackOut, StackPatch
+from schemas.stack import StackAddPhotos, StackCreate, StackDetail, StackOut
 from services import stack_service
 
 router = APIRouter(prefix="/stacks", tags=["stacks"])
@@ -33,11 +33,6 @@ def list_stacks(db: Session = Depends(get_db)):
 @router.get("/{stack_id}", response_model=StackDetail)
 def get_stack(stack_id: uuid.UUID, db: Session = Depends(get_db)):
     return stack_service.get_one(db, stack_id)
-
-
-@router.patch("/{stack_id}", response_model=StackOut)
-def patch_stack(stack_id: uuid.UUID, data: StackPatch, db: Session = Depends(get_db)):
-    return stack_service.patch(db, stack_id, data)
 
 
 @router.post("/{stack_id}/photos/{hothash}", response_model=StackOut)
