@@ -1,6 +1,6 @@
 # ADR-036: Stack-implementering
 
-**Status:** Planlagt  
+**Status:** Implementert  
 **Dato:** 2026-06-08
 
 ---
