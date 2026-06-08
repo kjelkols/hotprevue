@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { QueryClient } from '@tanstack/react-query'
@@ -12,6 +12,7 @@ import useAssignmentStore from '../../stores/useAssignmentStore'
 import usePhotoNavStore from '../../stores/usePhotoNavStore'
 import ThumbnailShell from '../../components/ui/ThumbnailShell'
 import PhotoCorrectionDialog from '../photos/PhotoCorrectionDialog'
+import PhotoTooltip from './PhotoTooltip'
 
 function formatDate(taken_at: string | null): string {
   if (!taken_at) return 'Ukjent dato'
@@ -162,6 +163,20 @@ export default function PhotoThumbnail({ photo, orderedHashes, stackCount }: Pro
   }
 
   const isStackCover = photo.is_stack_cover && !!photo.stack_id
+  const thumbRef = useRef<HTMLDivElement>(null)
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [tooltipAnchor, setTooltipAnchor] = useState<DOMRect | null>(null)
+
+  function handleMouseEnter() {
+    hoverTimer.current = setTimeout(() => {
+      if (thumbRef.current) setTooltipAnchor(thumbRef.current.getBoundingClientRect())
+    }, 350)
+  }
+
+  function handleMouseLeave() {
+    if (hoverTimer.current) clearTimeout(hoverTimer.current)
+    setTooltipAnchor(null)
+  }
 
   const rotateActions = (
     <>
@@ -172,7 +187,13 @@ export default function PhotoThumbnail({ photo, orderedHashes, stackCount }: Pro
 
   return (
     <>
-      <div className="relative" style={{ overflow: 'visible' }}>
+      <div
+        ref={thumbRef}
+        className="relative"
+        style={{ overflow: 'visible' }}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
         {isStackCover && (
           <>
             <div className="absolute inset-0 rounded bg-gray-600" style={{ transform: 'translate(5px, 4px) rotate(2deg)', zIndex: 0 }} />
@@ -196,6 +217,9 @@ export default function PhotoThumbnail({ photo, orderedHashes, stackCount }: Pro
             </div>
           )}
         </div>
+        {tooltipAnchor && (
+          <PhotoTooltip photo={photo} anchorRect={tooltipAnchor} stackCount={stackCount} />
+        )}
       </div>
       <PhotoCorrectionDialog
         hothash={photo.hothash}
