@@ -11,6 +11,7 @@ export function listPhotos(params: {
   kindIds?: string[]
   taken_after?: string
   taken_before?: string
+  stacksCollapsed?: boolean
 }): Promise<PhotoListItem[]> {
   const q = new URLSearchParams()
   if (params.limit != null) q.set('limit', String(params.limit))
@@ -26,6 +27,7 @@ export function listPhotos(params: {
   if (params.hothashes) {
     for (const h of params.hothashes) q.append('hothash', h)
   }
+  if (params.stacksCollapsed) q.set('stacks_collapsed', 'true')
   return apiFetch<PhotoListItem[]>(`/photos?${q}`)
 }
 

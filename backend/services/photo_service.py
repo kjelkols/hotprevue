@@ -43,6 +43,7 @@ def list_photos(
     taken_after: datetime | None = None,
     taken_before: datetime | None = None,
     deleted: bool = False,
+    stacks_collapsed: bool = False,
     sort: str = "taken_at_desc",
     limit: int = 100,
     offset: int = 0,
@@ -84,6 +85,10 @@ def list_photos(
         q = q.filter(Photo.taken_at >= taken_after)
     if taken_before:
         q = q.filter(Photo.taken_at <= taken_before)
+    if stacks_collapsed:
+        q = q.filter(
+            (Photo.stack_id.is_(None)) | (Photo.is_stack_cover.is_(True))
+        )
 
     q = _apply_sort(q, sort)
     return q.offset(offset).limit(limit).all()

@@ -11,6 +11,8 @@ export const GRID_VARIANTS: { value: GridVariant; label: string }[] = [
 interface ViewStore {
   gridVariant: GridVariant
   setGridVariant: (v: GridVariant) => void
+  stacksCollapsed: boolean
+  setStacksCollapsed: (v: boolean) => void
 }
 
 const useViewStore = create<ViewStore>()(
@@ -18,6 +20,8 @@ const useViewStore = create<ViewStore>()(
     (set) => ({
       gridVariant: 'standard',
       setGridVariant: (v) => set({ gridVariant: v }),
+      stacksCollapsed: true,
+      setStacksCollapsed: (v) => set({ stacksCollapsed: v }),
     }),
     { name: 'hotprevue-view-prefs' }
   )

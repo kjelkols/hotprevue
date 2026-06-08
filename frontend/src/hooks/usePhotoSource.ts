@@ -2,6 +2,7 @@ import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { listPhotos } from '../api/photos'
 import { executeSearch } from '../api/searches'
 import { getSettings } from '../api/settings'
+import useViewStore from '../stores/useViewStore'
 import type { PhotoListItem, SearchCriterion } from '../types/api'
 
 export interface PhotoSourceParams {
@@ -32,6 +33,8 @@ export function usePhotoSource(params: PhotoSourceParams): PhotoSourceResult {
     queryFn: getSettings,
   })
 
+  const stacksCollapsed = useViewStore(s => s.stacksCollapsed)
+
   const limit = settings?.machine.photo_limit ?? 1000
   const infiniteScroll = settings?.machine.infinite_scroll ?? false
   const isSearch = params.criteria !== undefined
@@ -40,7 +43,7 @@ export function usePhotoSource(params: PhotoSourceParams): PhotoSourceResult {
   const query = useInfiniteQuery({
     queryKey: isSearch
       ? ['search-results', { logic: params.logic, criteria: params.criteria, dateFilter: params.dateFilter }]
-      : ['photos', { sessionId: params.sessionId, eventId: params.eventId, kindIds: params.kindIds, takenFrom: params.takenFrom, takenTo: params.takenTo }],
+      : ['photos', { sessionId: params.sessionId, eventId: params.eventId, kindIds: params.kindIds, takenFrom: params.takenFrom, takenTo: params.takenTo, stacksCollapsed }],
     queryFn: ({ pageParam }) =>
       isSearch
         ? executeSearch({
@@ -58,6 +61,7 @@ export function usePhotoSource(params: PhotoSourceParams): PhotoSourceResult {
             kindIds: params.kindIds,
             taken_after: params.takenFrom,
             taken_before: params.takenTo,
+            stacksCollapsed,
             limit,
             offset: pageParam as number,
           }),
