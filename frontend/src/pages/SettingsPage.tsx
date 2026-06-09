@@ -461,6 +461,11 @@ export default function SettingsPage() {
               {label}
             </Tabs.Trigger>
           ))}
+          <div className="mt-auto pt-4 pb-3 px-3">
+            <p className="text-xs text-gray-600 font-mono">
+              {import.meta.env.VITE_APP_VERSION ?? 'dev'}
+            </p>
+          </div>
         </Tabs.List>
 
         {/* Innhold til høyre */}
