@@ -21,7 +21,7 @@ function downloadUrl(hothash: string, size: Size): string {
 }
 
 function shareUrl(hothash: string): string {
-  return `${window.location.origin}/share/photo/${hothash}/og`
+  return `${getBaseUrl()}/share/photo/${hothash}/og`
 }
 
 export default function PhotoSharePanel({ photo }: Props) {
