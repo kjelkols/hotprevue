@@ -2,7 +2,7 @@ import base64
 import io
 import math
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import piexif
@@ -202,6 +202,20 @@ def _open_and_correct(coldpreview_file, c):
     return img
 
 
+_LOW_ACCURACY = {"year", "decade", "unknown"}
+
+
+def _parse_utc_offset(offset_str: str | None) -> timedelta:
+    """Parse "+02:00" / "-05:30" / "Z" → timedelta. Returns zero for None/Z."""
+    if not offset_str or offset_str == "Z":
+        return timedelta(0)
+    sign = 1 if offset_str[0] == "+" else -1
+    parts = offset_str[1:].split(":")
+    hours = int(parts[0])
+    minutes = int(parts[1]) if len(parts) > 1 else 0
+    return sign * timedelta(hours=hours, minutes=minutes)
+
+
 def _build_exif_bytes(photo, photographer_name: str, c) -> bytes:
     exif_0th: dict = {
         piexif.ImageIFD.Software: b"Hotprevue",
@@ -216,10 +230,16 @@ def _build_exif_bytes(photo, photographer_name: str, c) -> bytes:
         exif_0th[piexif.ImageIFD.Copyright] = photographer_name.encode()
 
     exif_exif: dict = {}
-    if photo.taken_at:
-        dt_str = photo.taken_at.strftime("%Y:%m:%d %H:%M:%S").encode()
+    accuracy = getattr(photo, "taken_at_accuracy", "second") or "second"
+    if photo.taken_at and accuracy not in _LOW_ACCURACY:
+        # taken_at is UTC — convert to local time using utc_offset before writing
+        offset_delta = _parse_utc_offset(getattr(photo, "taken_at_utc_offset", None))
+        local_dt = photo.taken_at + offset_delta
+        dt_str = local_dt.strftime("%Y:%m:%d %H:%M:%S").encode()
         exif_exif[piexif.ExifIFD.DateTimeOriginal] = dt_str
         exif_exif[piexif.ExifIFD.DateTimeDigitized] = dt_str
+        if photo.taken_at_utc_offset:
+            exif_exif[piexif.ExifIFD.OffsetTimeOriginal] = photo.taken_at_utc_offset.encode()
     if photo.lens_model:
         exif_exif[piexif.ExifIFD.LensModel] = photo.lens_model.encode()
     if photo.iso:
@@ -233,14 +253,15 @@ def _build_exif_bytes(photo, photographer_name: str, c) -> bytes:
         if rational:
             exif_exif[piexif.ExifIFD.ExposureTime] = rational
 
-    user_comment = _build_user_comment(c)
+    user_comment = _build_user_comment(c, photo)
     exif_exif[piexif.ExifIFD.UserComment] = (
         b"ASCII\x00\x00\x00" + user_comment.encode("ascii", errors="replace")
     )
 
     exif_gps: dict = {}
     if photo.location_lat is not None and photo.location_lng is not None:
-        exif_gps = _build_gps_ifd(photo.location_lat, photo.location_lng)
+        accuracy_m = getattr(photo, "location_accuracy_meters", None)
+        exif_gps = _build_gps_ifd(photo.location_lat, photo.location_lng, accuracy_m)
 
     return piexif.dump({"0th": exif_0th, "Exif": exif_exif, "GPS": exif_gps})
 
@@ -300,7 +321,7 @@ def build_download(db: Session, hothash: str, size: str) -> tuple[bytes, str]:
     return _encode_jpeg(img, exif_bytes), f"{hothash}.jpg"
 
 
-def _build_user_comment(c) -> str:
+def _build_user_comment(c, photo=None) -> str:
     parts = ["Hotprevue"]
     if c is not None:
         corrections = []
@@ -317,6 +338,18 @@ def _build_user_comment(c) -> str:
             corrections.append("cropped")
         if corrections:
             parts.append("corrections:" + ",".join(corrections))
+    if photo is not None:
+        taken_at_source = getattr(photo, "taken_at_source", ts.EXIF_ORIGINAL)
+        if taken_at_source not in (ts.UNKNOWN, ts.EXIF_ORIGINAL, ts.EXIF_GPS, ts.EXIF_DIGITIZED):
+            label = ts.LABELS.get(taken_at_source, str(taken_at_source))
+            parts.append(f"time_source:{label}")
+        accuracy = getattr(photo, "taken_at_accuracy", "second") or "second"
+        if accuracy not in ("second", "subsecond"):
+            parts.append(f"time_accuracy:{accuracy}")
+        location_source = getattr(photo, "location_source", None)
+        if location_source is not None and location_source not in (ls.UNKNOWN, ls.EXIF_GPS):
+            label = ls.LABELS.get(location_source, str(location_source))
+            parts.append(f"location_source:{label}")
     return "|".join(parts)
 
 
@@ -332,19 +365,22 @@ def _shutter_to_rational(shutter_speed: str) -> tuple[int, int] | None:
         return None
 
 
-def _build_gps_ifd(lat: float, lng: float) -> dict:
+def _build_gps_ifd(lat: float, lng: float, accuracy_meters: float | None = None) -> dict:
     def to_dms(deg: float) -> tuple[tuple, tuple, tuple]:
         d = int(abs(deg))
         m = int((abs(deg) - d) * 60)
         s = round(((abs(deg) - d) * 60 - m) * 60 * 100)
         return (d, 1), (m, 1), (s, 100)
 
-    return {
+    ifd = {
         piexif.GPSIFD.GPSLatitudeRef: b"N" if lat >= 0 else b"S",
         piexif.GPSIFD.GPSLatitude: to_dms(lat),
         piexif.GPSIFD.GPSLongitudeRef: b"E" if lng >= 0 else b"W",
         piexif.GPSIFD.GPSLongitude: to_dms(lng),
     }
+    if accuracy_meters is not None:
+        ifd[piexif.GPSIFD.GPSHPositioningError] = f"{accuracy_meters:.1f}".encode()
+    return ifd
 
 
 # ---------------------------------------------------------------------------

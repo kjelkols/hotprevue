@@ -42,15 +42,28 @@ Svaret er en JPEG med `Content-Disposition: attachment` og `Cache-Control: no-st
 Nedlastet JPEG inneholder:
 
 **Fra Photo/ImageFile:**
-- `DateTimeOriginal`, `Make`, `Model`, `LensModel`
+- `DateTimeOriginal` — lokal kameratid (`taken_at` konvertert med `taken_at_utc_offset`). Hoppes over for accuracy `year`/`decade`/`unknown` (for upresist).
+- `OffsetTimeOriginal` — UTC-offset som `"+02:00"` når `taken_at_utc_offset` er satt.
+- `Make`, `Model`, `LensModel`
 - `ISOSpeedRatings`, `FNumber`, `ExposureTime`, `FocalLength`
-- GPS-koordinater (lat/lng) om de finnes
+- GPS `LatitudeRef`/`Latitude`/`LongitudeRef`/`Longitude` om de finnes
+- `GPSHPositioningError` — nøyaktighet i meter når `location_accuracy_meters` er satt
 
 **Fra Hotprevue:**
 - `Artist`, `Copyright` — fotografens navn
 - `Software` — `"Hotprevue"`
 - `ImageDescription` — `"hothash:{hothash}"` (sporbart, maskinlesbart)
-- `UserComment` — `"Hotprevue"` evt. `"Hotprevue|corrections:rotation=90,exposure_ev=+0.5"`
+- `UserComment` — provenance-streng, pipe-separert:
+  ```
+  Hotprevue
+  Hotprevue|corrections:rotation=90,exposure_ev=+0.5
+  Hotprevue|time_source:Kamera-offset justert|time_accuracy:month|location_source:Manuelt plassert
+  ```
+
+**Viktige presiseringer:**
+- `taken_at` er alltid UTC i databasen. `DateTimeOriginal` skal være lokal tid → offset legges til.
+- Uten `taken_at_utc_offset` skrives UTC direkte (samme feil som original EXIF uten offset-info).
+- `UserComment` dokumenterer ikke-opprinnelige tidskilder (`offset_corrected`, `manual`, `estimated`) og posisjonskilder (`manual`, `estimated`, `batch_assigned`) slik at mottakeren vet at data er modifisert.
 
 `piexif` brukes til å bygge og skrive EXIF-blokken. `serve_coldpreview()` bruker
 samme pipeline — høyreklikk → Lagre bilde i nettleseren gir korrekte metadata.
