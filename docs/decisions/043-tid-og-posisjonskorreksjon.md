@@ -352,3 +352,11 @@ ingen provenans — det er en akseptert begrensning.
 - Tidssone-database for automatisk utledning av offset fra GPS-koordinat
   og tid
 - EXIF-skriving av korrigert tid tilbake til originalfil (se ADR-020)
+
+**Samspill med ADR-045 (nedlasting):**
+`taken_at_utc_offset` og `location_accuracy_meters` brukes aktivt i
+`_build_exif_bytes()` når coldpreview-JPEG leveres via nedlasting:
+- `DateTimeOriginal` konverteres fra UTC til lokal tid via `taken_at_utc_offset`
+- `OffsetTimeOriginal` skrives når offset er kjent
+- `GPSHPositioningError` skrives fra `location_accuracy_meters`
+Dette er *ikke* skriving tilbake til originalfilen — kun til nedlastet coldpreview.
