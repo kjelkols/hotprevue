@@ -171,17 +171,35 @@ ssh kjell@hotprevue "cd /opt/hotprevue/backend && uv run alembic upgrade head"
 
 ---
 
-## Første gangs server-oppsett
+## Komplett oppsett av ny server
 
-Kjøres én gang når en ny server skal settes opp (krever root-tilgang):
+### Steg 1 — Engangsoppsett (kun første gang)
 
 ```bash
 scp scripts/setup-server.sh kjell@hotprevue:~/
-ssh kjell@hotprevue sudo bash ~/setup-server.sh
+ssh kjell@hotprevue "sudo bash ~/setup-server.sh"
 ```
 
-Skriptet installerer: PostgreSQL, uv, oppretter kataloger, `.env`, systemd-tjeneste
-og sudoers-regel for `systemctl restart hotprevue`.
+Installerer: PostgreSQL, uv, kataloger, `.env`, systemd-tjeneste og sudoers-regel.
+
+### Steg 2 — Tøm database og coldpreviews (ved full nullstilling)
+
+```bash
+# På serveren:
+sudo systemctl stop hotprevue
+sudo -u postgres psql -c 'DROP DATABASE IF EXISTS hotprevue;'
+sudo -u postgres psql -c 'CREATE DATABASE hotprevue OWNER kjell;'
+rm -rf /var/lib/hotprevue/coldpreviews/*
+```
+
+### Steg 3 — Deploy siste kode fra beelink
+
+```bash
+bash scripts/deploy.sh kjell@hotprevue
+```
+
+Kjører tester, sender kode, kjører alle migrasjoner og starter tjenesten.
+Åpne `http://hotprevue:8000` når det er ferdig.
 
 ---
 
