@@ -6,9 +6,13 @@ dem som statiske filer på en offentlig tilgjengelig URL.
 ## Oppsett på Trollfjell
 
 ```bash
-# 1. Kopier filer
+# 1. Hent filer fra repoet (kjøres på dev-maskinen)
+rsync -av relay/ trollfjell:/opt/hotprevue-relay/
+# — eller på Trollfjell direkte:
+# git clone git@github.com:kjelkols/hotprevue.git
+# sudo cp hotprevue/relay/relay.py hotprevue/relay/requirements.txt /opt/hotprevue-relay/
+
 sudo mkdir -p /opt/hotprevue-relay
-sudo cp relay.py requirements.txt /opt/hotprevue-relay/
 cd /opt/hotprevue-relay
 
 # 2. Virtualenv
