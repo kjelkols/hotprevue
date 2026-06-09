@@ -1,8 +1,11 @@
 # ADR-039: Offentlige lenker for enkeltbilder
 
-**Status:** Implementert  
+**Status:** Erstattet av ADR-045 (2026-06-09)  
 **Dato:** 2026-06-08  
 **Implementert:** 2026-06-09
+
+> Innholdet er konsolidert inn i [ADR-045: Deling og leveranse](045-deling-og-leveranse.md).
+> Del 3 (Offentlig bildelenke) i ADR-045 dekker dette.
 
 ---
 

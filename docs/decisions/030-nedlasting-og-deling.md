@@ -1,7 +1,10 @@
 # ADR-030: Nedlasting og deling av bilder
 
-**Status:** Implementert  
+**Status:** Erstattet av ADR-045 (2026-06-09)  
 **Dato:** 2026-06-05
+
+> Innholdet er konsolidert inn i [ADR-045: Deling og leveranse](045-deling-og-leveranse.md).
+> Del 1 (nedlasting) og Del 2 (Web Share API) i ADR-045 dekker dette.
 
 ## Kontekst
 

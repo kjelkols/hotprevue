@@ -1,7 +1,10 @@
 # ADR-038: Deling av collections via token-lenker
 
-**Status:** Planlagt  
+**Status:** Erstattet av ADR-045 (2026-06-09)  
 **Dato:** 2026-06-08
+
+> Innholdet er konsolidert inn i [ADR-045: Deling og leveranse](045-deling-og-leveranse.md).
+> Del 4 (Collection-lenke) i ADR-045 dekker dette.
 
 ---
 
