@@ -16,7 +16,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.drop_column("stacks", "kind")
+    op.execute("ALTER TABLE stacks DROP COLUMN IF EXISTS kind")
 
 
 def downgrade() -> None:
