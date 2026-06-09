@@ -15,8 +15,10 @@ export interface MachineOut {
   machine_id: string
   machine_name: string
   photographer_id: string | null
+  photographer_name: string | null
   last_seen_at: string | null
   created_at: string
+  has_active_token: boolean
 }
 
 export interface PhotographerWithMachines {
@@ -59,5 +61,12 @@ export function setPhotographerAccessLevel(photographerId: string, accessLevel: 
   return apiFetch(`/admin/photographers/${photographerId}/access-level`, {
     method: 'PATCH',
     body: JSON.stringify({ access_level: accessLevel }),
+  })
+}
+
+export function renameMachine(machineId: string, machineName: string): Promise<void> {
+  return apiFetch(`/admin/machines/${machineId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ machine_name: machineName }),
   })
 }

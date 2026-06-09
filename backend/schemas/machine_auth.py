@@ -49,8 +49,10 @@ class MachineOut(BaseModel):
     machine_id: uuid.UUID
     machine_name: str
     photographer_id: uuid.UUID | None
+    photographer_name: str | None = None
     last_seen_at: datetime | None
     created_at: datetime
+    has_active_token: bool = False
 
 
 class PhotographerWithMachinesOut(BaseModel):

@@ -5,8 +5,9 @@ import subprocess
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 from fastapi.responses import Response
+from sqlalchemy import exists, func
 from sqlalchemy.orm import Session
 
 from database.session import get_db
@@ -119,7 +120,42 @@ def list_machines_admin(
     db: Session = Depends(get_db),
     _: None = Depends(require_owner),
 ):
-    return db.query(Machine).order_by(Machine.created_at).all()
+    machines = db.query(Machine).order_by(Machine.created_at).all()
+    result = []
+    for m in machines:
+        photographer_name = None
+        if m.photographer_id:
+            p = db.get(Photographer, m.photographer_id)
+            if p:
+                photographer_name = p.name
+        has_active_token = db.query(
+            exists().where(
+                MachineToken.machine_id == m.machine_id,
+                MachineToken.is_active.is_(True),
+            )
+        ).scalar()
+        out = MachineOut.model_validate(m)
+        out.photographer_name = photographer_name
+        out.has_active_token = bool(has_active_token)
+        result.append(out)
+    return result
+
+
+@router.patch("/machines/{machine_id}", status_code=204)
+def rename_machine(
+    machine_id: uuid.UUID,
+    body: dict = Body(...),
+    db: Session = Depends(get_db),
+    _: None = Depends(require_owner),
+):
+    machine = db.get(Machine, machine_id)
+    if machine is None:
+        raise HTTPException(status_code=404, detail="Maskin ikke funnet")
+    name = body.get("machine_name", "").strip()
+    if not name:
+        raise HTTPException(status_code=422, detail="machine_name kan ikke være tom")
+    machine.machine_name = name
+    db.commit()
 
 
 @router.delete("/machines/{machine_id}/token", status_code=204)

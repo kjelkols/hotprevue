@@ -19,6 +19,7 @@ import SearchPage from './pages/SearchPage'
 import SettingsPage from './pages/SettingsPage'
 import LocationEditorPage from './pages/LocationEditorPage'
 import PhotographersPage from './pages/PhotographersPage'
+import MachinesPage from './pages/MachinesPage'
 import KindsPage from './pages/KindsPage'
 import TagsPage from './pages/TagsPage'
 import PreorganiseringPage from './pages/PreorganiseringPage'
@@ -82,6 +83,7 @@ export default function App() {
           <Route path="/settings"        element={<SettingsPage />} />
           <Route path="/sted"            element={<LocationEditorPage />} />
           <Route path="/fotografer"        element={<PhotographersPage />} />
+          <Route path="/maskiner"          element={<MachinesPage />} />
           <Route path="/kinds"             element={<KindsPage />} />
           <Route path="/tags"              element={<TagsPage />} />
           <Route path="/preorganisering"   element={<PreorganiseringPage />} />

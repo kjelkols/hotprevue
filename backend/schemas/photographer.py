@@ -31,4 +31,7 @@ class PhotographerOut(BaseModel):
     notes: str | None
     is_default: bool
     is_unknown: bool
+    access_level: str = "guest"
+    machine_count: int = 0
+    last_seen_at: datetime | None = None
     created_at: datetime

@@ -108,6 +108,9 @@ export interface Photographer {
   notes: string | null
   is_default: boolean
   is_unknown: boolean
+  access_level: string
+  machine_count: number
+  last_seen_at: string | null
   created_at: string
 }
 
