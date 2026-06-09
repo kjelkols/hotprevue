@@ -1,7 +1,8 @@
 # ADR-044: Fotograf som identitet og tilgangskontroll
 
-**Status:** Planlagt  
+**Status:** Delvis implementert  
 **Dato:** 2026-06-08  
+**Sist oppdatert:** 2026-06-09  
 **Erstatter delvis:** ADR-040 (`machines.role`), ADR-042 (forenklet versjon av samme idé)
 
 ---
@@ -303,19 +304,100 @@ fotografen satt som `owner`, alle andre (om de finnes) beholder `'guest'`.
 
 ---
 
-## Forholdet til PhotographersPage (`/fotografer`)
+## Administrasjonsgrensesnitt: to komplementære sider
 
-`/fotografer`-siden viser i dag alle fotografer som metadataliste.
-Med dette ADR-et får den en ny seksjon: «Brukere» — fotografer med
-`access_level` og tilknyttede maskiner. Fotografer uten maskiner vises
-kun i metadatadelen.
-
-Visning av bruker-seksjonen krever en ny respons-type fra backend:
+Identitetssystemet eksponeres i to separate sider med ulike perspektiver:
 
 ```
-GET /photographers?with_machines=true
-→ [{ id, name, access_level, machines: [{ machine_id, machine_name, last_seen_at }] }]
+PhotographersPage (/fotografer)      MachinesPage (/maskiner)
+————————————————————————————         ————————————————————————
+Person-perspektiv                    Enhet-perspektiv
+Hvem er i systemet?                  Hva er koblet til serveren?
+Én rad per fotograf                  Én rad per maskin
 ```
+
+### PhotographersPage — oppdatert
+
+Siden viser **alle** fotografer, uavhengig av om de har maskiner.
+To kategorier vises tydelig:
+
+| Kategori | Kjennetegn | Visning |
+|----------|-----------|---------|
+| Enrollert | Har ≥1 maskin | `access_level`-badge, maskinantall, sist sett |
+| Metadata-kun | Ingen maskin | «Ikke enrollert»-markering |
+
+**Funksjonalitet:**
+- Opprett ny fotograf (eksisterende — metadata-formål)
+- Rediger metadata: navn, nettside, bio (eksisterende)
+- Slett fotograf (eksisterende, blokkert av bilder)
+- **NY:** Vis `access_level` (owner / gjest / ikke enrollert)
+- **NY:** Vis maskinantall og sist sett (utledet fra maskinene)
+- **NY:** «Inviter»-knapp per fotograf — genererer invitasjonskode for
+  eksisterende fotograf (scenario B fra ADR-044). Naturlig plassering:
+  eieren ser «Anna — 47 bilder — ikke enrollert» og kan klikke «Inviter»
+  for å la Anna koble seg til og se sine egne bilder.
+- **NY:** Endre tilgangsnivå (owner ↔ gjest) direkte per kort
+
+**Backend-endringer for PhotographersPage:**
+
+`GET /photographers` og `PhotographerOut` utvides med:
+
+```python
+class PhotographerOut(BaseModel):
+    ...
+    access_level: str               # 'owner' | 'guest'
+    machine_count: int              # 0 = ikke enrollert
+    last_seen_at: datetime | None   # max av tilknyttede maskiners last_seen_at
+```
+
+`machine_count` og `last_seen_at` beregnes i `photographer_service.list_all()`
+via én ekstra SQL-aggregering — ingen ekstra HTTP-kall fra frontend.
+
+Invitasjon herfra bruker eksisterende `POST /admin/invite-codes` med
+`target_photographer_id`.
+
+### MachinesPage — ny side (`/maskiner`)
+
+Viser alle enrollede maskiner som enheter, uavhengig av fotograf.
+
+**Funksjonalitet:**
+- List alle maskiner med: maskinnavn, tilhørende fotograf (navn + lenke),
+  sist sett, opprettet, aktiv/tilbakekalt-status
+- **Gi nytt navn** — nyttig når maskin ble enrollet som «iPhone» og
+  bør hete «Anna iPhone 15»
+- **Trekk tilbake tilgang** — deaktiverer token (eksisterende)
+- Ingen oppretting (enrollment er eneste vei inn)
+
+**Ikke på maskinsiden:**
+- Tilgangsnivå (det er per fotograf, ikke per maskin)
+- Innstillinger for lokal maskin (det er i SettingsPage → «Denne maskinen»)
+
+**Backend-endringer for MachinesPage:**
+
+`MachineOut` utvides med fotografnavn:
+
+```python
+class MachineOut(BaseModel):
+    ...
+    photographer_name: str | None   # denormalisert for visning
+    has_active_token: bool          # true = kan logge inn
+```
+
+Nytt endepunkt for omdøping:
+
+```
+PATCH /admin/machines/{machine_id}
+{ "machine_name": "Anna iPhone 15" }
+```
+
+### Navigasjon
+
+`/maskiner` legges **ikke** i topnav — det er en administrativ side
+som ikke passer ved siden av «Browse», «Events», «Collections».
+
+Tilgang via:
+- Maskinantall-lenke på fotografkortet i PhotographersPage
+- Lenke i SettingsPage (ny fane eller lenke fra eksisterende Gjester-fane)
 
 ---
 
@@ -359,23 +441,39 @@ logikken ett sted.
 
 ## Implementeringsplan
 
+### Fase 1 — Backend og tilgangskontroll ✅ FERDIG (2026-06-09)
+
 | Steg | Fil | Innhold |
 |------|-----|---------|
-| 1 | `backend/alembic/versions/…_photographer_access.py` | `access_level` på `photographers`; `access_level` + `target_photographer_id` på `machine_invite_codes`; fjern `role` fra `machines`; migrasjonslogikk |
-| 2 | `backend/models/photographer.py` | `access_level`-kolonne |
-| 3 | `backend/models/machine.py` | Fjern `role`; oppdater `MachineInviteCode` med `access_level` og `target_photographer_id` |
-| 4 | `backend/services/access_filter.py` | `PhotoAccessFilter.apply()` |
-| 5 | `backend/middleware/machine_auth.py` | `get_requesting_photographer`; oppdater `require_owner` til å bruke fotografens `access_level` |
-| 6 | `backend/schemas/machine_auth.py` | Oppdater `InviteCodeCreate` med `access_level` og `target_photographer_id`; oppdater `MachineWithRoleOut` |
-| 7 | `backend/api/auth.py` | Støtte for scenario B+C i `enroll`; ny `POST /auth/add-machine-code` |
-| 8 | `backend/api/admin.py` | Oppdater `InviteCodeCreate`; ny `GET /admin/photographers` |
-| 9 | `backend/api/photos.py` | `PhotoAccessFilter` i alle list-endepunkter; `require_owner` på skriveoperasjoner |
-| 10 | `backend/api/events.py` | `require_owner` på `POST/PATCH/DELETE` |
-| 11 | `backend/api/collections.py` | `require_owner` på `POST/PATCH/DELETE` |
-| 12 | `backend/api/photographers.py` | `require_owner` på `POST/PATCH/DELETE` |
-| 13 | `frontend/src/api/machineAuth.ts` | Nye API-kall: `createInviteCodeForPhotographer`, `addMachineCode` |
-| 14 | `frontend/src/features/settings/UsersPanel.tsx` | Erstatter `GuestMachinesPanel`; viser fotografer med maskiner, inviter, tilbakekall |
-| 15 | `backend/tests/api/test_access_control.py` | Owner ser alt, guest ser kun egne, korrekt 403 på skriveoperasjoner |
+| 1 ✅ | `backend/alembic/versions/d1e2f3a4b044_…` | `access_level` på `photographers`; `access_level` + `target_photographer_id` på `machine_invite_codes`; fjern `role` fra `machines` |
+| 2 ✅ | `backend/models/photographer.py` | `access_level`-kolonne |
+| 3 ✅ | `backend/models/machine.py` | Fjern `role`; oppdater `MachineInviteCode` |
+| 4 ✅ | `backend/services/access_filter.py` | `PhotoAccessFilter.apply()` |
+| 5 ✅ | `backend/middleware/machine_auth.py` | `get_requesting_photographer`; `require_owner` |
+| 6 ✅ | `backend/schemas/machine_auth.py` | `InviteCodeCreate`, `MachineOut`, `PhotographerWithMachinesOut` |
+| 7 ✅ | `backend/api/auth.py` | Scenario B+C i `enroll`; `POST /auth/add-machine-code` |
+| 8 ✅ | `backend/api/admin.py` | `GET /admin/photographers`; `PATCH /admin/photographers/{id}/access-level` |
+| 9 ✅ | `backend/api/photos.py` | `PhotoAccessFilter`; `require_owner` på skriveoperasjoner |
+| 10 ✅ | `backend/api/events.py` | `require_owner` på `POST/PATCH/DELETE` |
+| 11 ✅ | `backend/api/collections.py` | `require_owner` på `POST/PATCH/DELETE` |
+| 12 ✅ | `backend/api/photographers.py` | `require_owner` på `POST/PATCH/DELETE` |
+| 13 ✅ | `backend/api/searches.py` | `PhotoAccessFilter` i `execute` og `timeline` |
+| 14 ✅ | `frontend/src/api/machineAuth.ts` | Oppdaterte typer og nye API-kall |
+| 15 ✅ | `frontend/src/features/settings/UsersPanel.tsx` | Erstatter `GuestMachinesPanel` |
+| 16 ✅ | `backend/tests/api/test_access_control.py` | 14 tester — 109/109 grønne |
+
+### Fase 2 — PhotographersPage og MachinesPage
+
+| Steg | Fil | Innhold |
+|------|-----|---------|
+| 17 | `backend/schemas/photographer.py` | Legg til `access_level`, `machine_count`, `last_seen_at` i `PhotographerOut` |
+| 18 | `backend/services/photographer_service.py` | `list_all()` aggregerer maskinantall og sist sett i én spørring |
+| 19 | `backend/schemas/machine_auth.py` | Legg til `photographer_name` og `has_active_token` i `MachineOut` |
+| 20 | `backend/api/admin.py` | `PATCH /admin/machines/{machine_id}` for omdøping av maskin |
+| 21 | `frontend/src/types/api.ts` | Oppdater `Photographer`-type med `access_level`, `machine_count`, `last_seen_at` |
+| 22 | `frontend/src/pages/PhotographersPage.tsx` | `access_level`-badge, maskinantall (klikkbar → `/maskiner`), sist sett, Inviter-knapp, endre tilgangsnivå |
+| 23 | `frontend/src/pages/MachinesPage.tsx` | Ny side — list maskiner med fotograf, sist sett, status, omdøp, trekk tilbake |
+| 24 | `frontend/src/App.tsx` | Ny rute `/maskiner → MachinesPage` |
 
 ---
 

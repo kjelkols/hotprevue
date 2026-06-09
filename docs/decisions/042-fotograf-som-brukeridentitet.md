@@ -1,7 +1,8 @@
 # ADR-042: Fotograf som brukeridentitet og flerbruker-tilgangskontroll
 
-**Status:** Planlagt  
-**Dato:** 2026-06-08
+**Status:** Erstattet av ADR-044  
+**Dato:** 2026-06-08  
+**Erstattet:** 2026-06-09 — ADR-044 implementerer en forenklet versjon (to tilgangsnivåer i stedet for tre, ingen `member`-nivå). Dokumentet beholdes for historisk kontekst.
 
 ---
 
