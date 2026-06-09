@@ -46,6 +46,7 @@ class Machine(Base):
         ForeignKey("machine_invite_codes.id"),
         nullable=True,
     )
+    role: Mapped[str] = mapped_column(String, nullable=False, server_default="owner")
     settings: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
