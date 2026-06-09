@@ -135,6 +135,10 @@ export interface GlobalSettings {
   coldpreview_quality: number
   copy_verify_after_copy: boolean
   copy_include_videos: boolean
+  public_share_relay_url: string | null
+  public_share_base_url: string | null
+  public_share_api_key: string | null
+  public_share_default_ttl_days: number
 }
 
 export interface MachineSettings {
@@ -292,6 +296,13 @@ export interface PhotoDetail extends PhotoListItem {
   share_caption: string | null
   share_downloads: boolean
   share_views: number
+  public_share_token: string | null
+  public_share_expires_at: string | null
+}
+
+export interface PublicShareOut {
+  public_url: string
+  expires_at: string | null
 }
 
 export interface SharedPhotoOut {

@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { getBaseUrl } from '../../api/client'
 import { patchPhoto } from '../../api/photos'
 import type { PhotoDetail } from '../../types/api'
+import PhotoPublicShare from './PhotoPublicShare'
 
 type Size = 'full' | 'medium' | 'small'
 
@@ -128,7 +129,9 @@ export default function PhotoSharePanel({ photo }: Props) {
             <div className="absolute right-0 top-full mt-1 z-20 bg-gray-800 border border-gray-700 rounded shadow-lg w-80 p-4 flex flex-col gap-3">
               <p className="text-sm font-medium text-gray-100">Del dette bildet</p>
 
-              {/* is_shared toggle */}
+              {/* ── Tailscale-deling ── */}
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Intern (Tailscale)</p>
+
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <input
                   type="checkbox"
@@ -137,12 +140,11 @@ export default function PhotoSharePanel({ photo }: Props) {
                   disabled={mutation.isPending}
                   className="w-4 h-4 rounded accent-blue-500"
                 />
-                <span className="text-sm text-gray-200">Gjør offentlig tilgjengelig</span>
+                <span className="text-sm text-gray-200">Aktiver delingslenke</span>
               </label>
 
               {photo.is_shared && (
                 <>
-                  {/* URL */}
                   <div className="flex items-center gap-2">
                     <input
                       readOnly
@@ -157,7 +159,6 @@ export default function PhotoSharePanel({ photo }: Props) {
                     </button>
                   </div>
 
-                  {/* Caption */}
                   <input
                     type="text"
                     placeholder="Bildetekst (valgfri)"
@@ -166,7 +167,6 @@ export default function PhotoSharePanel({ photo }: Props) {
                     className="rounded bg-gray-700 px-2 py-1.5 text-sm text-gray-200 placeholder-gray-500"
                   />
 
-                  {/* share_downloads toggle */}
                   <label className="flex items-center gap-2 cursor-pointer select-none">
                     <input
                       type="checkbox"
@@ -178,12 +178,16 @@ export default function PhotoSharePanel({ photo }: Props) {
                     <span className="text-sm text-gray-200">Tillat nedlasting</span>
                   </label>
 
-                  {/* view count */}
                   <p className="text-xs text-gray-500">
                     Vist {photo.share_views} {photo.share_views === 1 ? 'gang' : 'ganger'}
                   </p>
                 </>
               )}
+
+              {/* ── Offentlig deling ── */}
+              <div className="border-t border-gray-700 pt-3">
+                <PhotoPublicShare photo={photo} />
+              </div>
             </div>
           </>
         )}

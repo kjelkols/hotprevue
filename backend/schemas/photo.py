@@ -95,6 +95,8 @@ class PhotoDetail(PhotoListItem):
     share_caption: str | None
     share_downloads: bool
     share_views: int
+    public_share_token: str | None
+    public_share_expires_at: datetime | None
 
 
 class SharedPhotoOut(BaseModel):

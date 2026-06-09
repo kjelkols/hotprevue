@@ -25,3 +25,8 @@ class SystemSettings(Base):
     copy_verify_after_copy: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     copy_include_videos: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     extra: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+
+    public_share_relay_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    public_share_base_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    public_share_api_key: Mapped[str | None] = mapped_column(Text, nullable=True)
+    public_share_default_ttl_days: Mapped[int] = mapped_column(Integer, nullable=False, default=30)

@@ -18,6 +18,10 @@ class GlobalSettingsOut(BaseModel):
     coldpreview_quality: int
     copy_verify_after_copy: bool
     copy_include_videos: bool
+    public_share_relay_url: str | None
+    public_share_base_url: str | None
+    public_share_api_key: str | None
+    public_share_default_ttl_days: int
 
 
 class GlobalSettingsPatch(BaseModel):
@@ -32,6 +36,10 @@ class GlobalSettingsPatch(BaseModel):
     coldpreview_quality: int | None = None
     copy_verify_after_copy: bool | None = None
     copy_include_videos: bool | None = None
+    public_share_relay_url: str | None = None
+    public_share_base_url: str | None = None
+    public_share_api_key: str | None = None
+    public_share_default_ttl_days: int | None = None
 
 
 class MachineSettingsOut(BaseModel):

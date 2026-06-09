@@ -100,6 +100,9 @@ class Photo(Base):
     share_downloads: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     share_views: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
+    public_share_token: Mapped[str | None] = mapped_column(Text, nullable=True, unique=True, index=True)
+    public_share_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
     registered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 

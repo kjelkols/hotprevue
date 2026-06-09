@@ -2,6 +2,7 @@
 
 **Status:** Delvis implementert  
 **Dato:** 2026-06-09  
+**Oppdatert:** 2026-06-09 (Del 5: offentlig relay)
 **Erstatter:** ADR-030, ADR-038, ADR-039
 
 ---
@@ -14,7 +15,8 @@ Fotografen trenger å ta bilder ut av Hotprevue på fire måter:
 |-------|------|--------|--------|
 | **Nedlasting** | Eier | JPEG med EXIF til lokal disk | ✅ Implementert |
 | **Native deling** | Eier | OS-delingsark for mobil/desktop | ✅ Implementert |
-| **Offentlig bildelenke** | Ekstern | Ett bilde via stabil URL med OG-tags | ✅ Implementert |
+| **Offentlig bildelenke (Tailscale)** | Nettverksbrukere | Ett bilde via lenke med OG-tags | ✅ Implementert |
+| **Offentlig bildelenke (relay)** | Alle på internett | Stabil offentlig URL via ekstern server | ✅ Implementert |
 | **Collection-lenke** | Ekstern | Kuratert bildeutvalg til kunde/partner | Planlagt |
 
 Backend leser aldri originalfiler — alt leveres som coldpreviews (800–1200px JPEG).
@@ -172,6 +174,115 @@ forhåndsvisning. Nettlesere omdirigeres til React-siden.
 ### Migrasjon
 
 `a1b2c3d4e039_adr039_photo_sharing.py`
+
+---
+
+---
+
+## Del 5: Offentlig bildedeling via relay
+
+### Motivasjon
+
+Tailscale-lenken (Del 3) er kun tilgjengelig for brukere på samme Tailnet. For å
+dele et bilde med hvem som helst på internett trengs en ekstern server som kan
+ta imot og videreformidle bildefilen.
+
+### Arkitektur B: push-relay
+
+```
+Hotprevue backend                Relay (Trollfjell)              Internett
+──────────────────               ──────────────────              ──────────
+POST /share/photo/{hh}/public
+  → public_share_service.py
+      les coldpreview fra disk
+      generer token (32 hex)    POST /push/{token}?ttl=N
+      ────────────────────────► lagre fil på disk
+      lagre token + utløp i db  (nginx server filen)
+      ◄────────────────────────
+  → public_url + expires_at                           ──────────► {base_url}/{token}.jpg
+
+DELETE /share/photo/{hh}/public  DELETE /push/{token}
+  ────────────────────────────►  slett fil fra disk
+  nullstill token i db
+```
+
+**Valg av arkitektur:** Tre alternativer ble vurdert:
+- A: Reverse proxy (nginx tunnel) — krever åpen port inn til Tailnet, kompleks nettverkskonfigurasjon.
+- **B: Push-relay (valgt)** — Hotprevue pusher aktivt til ekstern server. Enkel, robust, umiddelbar tilbakekalling.
+- C: CDN/objektlager (S3-kompatibelt) — mer kompleksitet enn nødvendig for enkeltfiler.
+
+Arkitektur B velges fordi den er enkel å forstå, ikke krever endringer i
+nettverkstopologien, og gir umiddelbar tilbakekalling (DELETE sletter filen).
+
+### Datamodell
+
+To nye kolonner på `photos`:
+
+```sql
+public_share_token    TEXT     NULL  UNIQUE  -- 32 hex-tegn, generert ved publisering
+public_share_expires_at TIMESTAMPTZ NULL    -- utløpstidspunkt basert på TTL-innstilling
+```
+
+Fire nye kolonner på `system_settings`:
+
+```sql
+public_share_relay_url       TEXT     NULL  -- API-base til relay, f.eks. https://relay.trollfjell.no
+public_share_base_url        TEXT     NULL  -- Offentlig base-URL, f.eks. https://del.trollfjell.no
+public_share_api_key         TEXT     NULL  -- Felles hemmelighet (X-API-Key)
+public_share_default_ttl_days INTEGER NOT NULL DEFAULT 30
+```
+
+### API
+
+```
+POST /share/photo/{hothash}/public
+    → PublicShareOut { public_url, expires_at }
+    → 422 om relay ikke er konfigurert
+    → 502 om relay-server ikke svarer
+
+DELETE /share/photo/{hothash}/public
+    → 204  (best-effort — sletter lokal tilstand uansett)
+```
+
+`PhotoDetail`-responsen inkluderer `public_share_token` og `public_share_expires_at`
+slik at frontend kan vise status uten ekstra kall.
+
+### Relay-applikasjon
+
+`relay/relay.py` — ~100 linjer FastAPI:
+
+| Endepunkt | Metode | Effekt |
+|-----------|--------|--------|
+| `/push/{token}` | POST | Lagrer JPEG til `/var/www/share/{token}.jpg` + metadata |
+| `/push/{token}` | DELETE | Sletter fil + metadata umiddelbart |
+| `/health` | GET | `{ status, active }` |
+
+Metadata lagres i `/var/www/share/.meta.json` (token → expiry-timestamp).
+Cleanup kjører ved oppstart og hver time (bakgrunnstråd) — sletter utløpte filer.
+
+Nginx server `/var/www/share/` som statiske filer direkte. Alle PUT/POST/DELETE
+proxies til relay på port 8010.
+
+### Frontend
+
+`PhotoPublicShare` (`features/photos/PhotoPublicShare.tsx`):
+- Vises inni "Del"-panelet i `PhotoSharePanel`
+- Viser konfigurasjonsmelding med lenke til innstillinger om relay ikke er satt opp
+- "Publiser offentlig"-knapp → `POST /share/photo/{hh}/public`
+- Viser stabil URL + kopierknapp + utløpsdato
+- "Trekk tilbake lenke"-knapp → `DELETE /share/photo/{hh}/public`
+
+`PublicShareSettings` (`features/settings/PublicShareSettings.tsx`):
+- Ny "Deling"-fane i Innstillinger
+- Felt: Relay-URL, base-URL, API-nøkkel, TTL
+
+### Migrasjon
+
+`b2c3d4e5f045_public_share.py`
+
+### Installasjon av relay på Trollfjell
+
+Se `relay/README.md`.
 
 ---
 

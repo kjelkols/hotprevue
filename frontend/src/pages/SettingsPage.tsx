@@ -6,6 +6,7 @@ import { listPhotographers } from '../api/photographers'
 import { listShortcuts, createShortcut, patchShortcut, deleteShortcut, moveShortcutUp, moveShortcutDown } from '../api/shortcuts'
 import DirectoryPicker from '../components/DirectoryPicker'
 import UsersPanel from '../features/settings/UsersPanel'
+import PublicShareSettings from '../features/settings/PublicShareSettings'
 
 
 // ─── Tab: Denne maskinen ──────────────────────────────────────────────────────
@@ -435,6 +436,7 @@ const TABS = [
   { id: 'general',   label: 'Generelt'       },
   { id: 'copy',      label: 'Filkopiering'   },
   { id: 'guests',    label: 'Gjester'        },
+  { id: 'sharing',   label: 'Deling'         },
   { id: 'images',    label: 'Bilder'         },
   { id: 'appearance',label: 'Utseende'       },
   { id: 'advanced',  label: 'Avansert'       },
@@ -481,6 +483,10 @@ export default function SettingsPage() {
 
           <Tabs.Content value="guests" className="p-6 max-w-xl">
             <UsersPanel />
+          </Tabs.Content>
+
+          <Tabs.Content value="sharing" className="p-6 max-w-xl">
+            <PublicShareSettings />
           </Tabs.Content>
 
           <Tabs.Content value="images" className="p-6 max-w-xl">

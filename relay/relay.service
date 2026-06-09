@@ -1,0 +1,16 @@
+[Unit]
+Description=Hotprevue public share relay
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/opt/hotprevue-relay
+Environment=SHARE_DIR=/var/www/share
+EnvironmentFile=/opt/hotprevue-relay/.env
+ExecStart=/opt/hotprevue-relay/venv/bin/uvicorn relay:app --host 127.0.0.1 --port 8010
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

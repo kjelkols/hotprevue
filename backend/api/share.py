@@ -1,6 +1,8 @@
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, Response
-
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from core.config import settings as app_settings
@@ -8,9 +10,14 @@ from database.session import get_db
 from models.photo import Photo
 from models.photographer import Photographer
 from schemas.photo import SharedPhotoOut
-from services import photo_service
+from services import photo_service, public_share_service
 
 router = APIRouter(prefix="/share", tags=["share"])
+
+
+class PublicShareOut(BaseModel):
+    public_url: str
+    expires_at: datetime | None
 
 
 def _get_shared_photo(hothash: str, db: Session) -> Photo:
@@ -71,6 +78,27 @@ def get_shared_photo_og(hothash: str, request: Request, db: Session = Depends(ge
 <body><p>Laster…</p></body>
 </html>"""
     return HTMLResponse(content=html)
+
+
+@router.post("/photo/{hothash}/public", response_model=PublicShareOut)
+def publish_photo_public(hothash: str, db: Session = Depends(get_db)):
+    """Push coldpreview to public relay and return stable URL."""
+    photo = db.query(Photo).filter(Photo.hothash == hothash).first()
+    if photo is None:
+        raise HTTPException(status_code=404, detail="Bildet finnes ikke")
+    try:
+        public_url, expires_at = public_share_service.publish(db, hothash)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Relay-feil: {e}")
+    return PublicShareOut(public_url=public_url, expires_at=expires_at)
+
+
+@router.delete("/photo/{hothash}/public", status_code=204)
+def revoke_photo_public(hothash: str, db: Session = Depends(get_db)):
+    """Revoke public relay link for a photo."""
+    public_share_service.revoke(db, hothash)
 
 
 @router.get("/photo/{hothash}/download")
