@@ -20,6 +20,7 @@ import SettingsPage from './pages/SettingsPage'
 import LocationEditorPage from './pages/LocationEditorPage'
 import PhotographersPage from './pages/PhotographersPage'
 import MachinesPage from './pages/MachinesPage'
+import SharedPhotoPage from './pages/SharedPhotoPage'
 import KindsPage from './pages/KindsPage'
 import TagsPage from './pages/TagsPage'
 import PreorganiseringPage from './pages/PreorganiseringPage'
@@ -68,6 +69,7 @@ export default function App() {
       <Routes>
         <Route path="/collections/:id/present" element={<CollectionPresentPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/share/photo/:hothash" element={<SharedPhotoPage />} />
         <Route element={<AppLayout />}>
           <Route path="/"                element={<HomePage />} />
           <Route path="/browse"          element={<BrowsePage />} />

@@ -95,6 +95,11 @@ class Photo(Base):
     exposure_clipping: Mapped[float | None] = mapped_column(Float, nullable=True)
     noise_score: Mapped[float | None] = mapped_column(Float, nullable=True)
 
+    is_shared: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    share_caption: Mapped[str | None] = mapped_column(Text, nullable=True)
+    share_downloads: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    share_views: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
     registered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 

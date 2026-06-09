@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { getPhoto } from '../api/photos'
 import { getBaseUrl } from '../api/client'
 import PhotoMetaPanel from '../features/photos/PhotoMetaPanel'
-import PhotoDownloadShare from '../features/photos/PhotoDownloadShare'
+import PhotoSharePanel from '../features/photos/PhotoSharePanel'
 import PhotoFullscreen from '../features/photos/PhotoFullscreen'
 import ZoomableImage from '../components/ZoomableImage'
 import SplitPane from '../components/SplitPane'
@@ -101,7 +101,7 @@ export default function PhotoDetailPage() {
           </button>
           <div className="ml-auto flex items-center gap-2">
             {fsButton}
-            <PhotoDownloadShare hothash={hothash!} />
+            {photo && <PhotoSharePanel photo={photo} />}
             <button onClick={onPrev} disabled={!prevHash} className="w-8 h-8 flex items-center justify-center rounded bg-gray-800 disabled:opacity-30 text-lg">‹</button>
             <button onClick={onNext} disabled={!nextHash} className="w-8 h-8 flex items-center justify-center rounded bg-gray-800 disabled:opacity-30 text-lg">›</button>
           </div>
@@ -122,7 +122,7 @@ export default function PhotoDetailPage() {
         </button>
         <div className="ml-auto flex items-center gap-3">
           {fsButton}
-          <PhotoDownloadShare hothash={hothash!} />
+          {photo && <PhotoSharePanel photo={photo} />}
           {currentIndex >= 0 && (
             <div className="flex items-center gap-2">
               <button onClick={onPrev} disabled={!prevHash} className="px-3 py-1 rounded text-sm bg-gray-800 hover:bg-gray-700 disabled:opacity-30 disabled:cursor-default transition-colors" title="Forrige (←)">‹ Forrige</button>

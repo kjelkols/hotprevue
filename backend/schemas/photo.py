@@ -91,6 +91,21 @@ class PhotoDetail(PhotoListItem):
     exposure_mean: float | None
     exposure_clipping: float | None
     noise_score: float | None
+    is_shared: bool
+    share_caption: str | None
+    share_downloads: bool
+    share_views: int
+
+
+class SharedPhotoOut(BaseModel):
+    hothash: str
+    coldpreview_url: str
+    taken_at: datetime | None
+    photographer_name: str | None
+    camera_make: str | None
+    camera_model: str | None
+    share_caption: str | None
+    share_downloads: bool
 
 
 # ---------------------------------------------------------------------------
@@ -110,6 +125,9 @@ class PhotoPatch(BaseModel):
     category_id: uuid.UUID | None = None
     event_id: uuid.UUID | None = None
     photographer_id: uuid.UUID | None = None
+    is_shared: bool | None = None
+    share_caption: str | None = None
+    share_downloads: bool | None = None
 
 
 class CorrectionPatch(BaseModel):

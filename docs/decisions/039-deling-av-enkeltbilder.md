@@ -1,7 +1,8 @@
 # ADR-039: Offentlige lenker for enkeltbilder
 
-**Status:** Planlagt  
-**Dato:** 2026-06-08
+**Status:** Implementert  
+**Dato:** 2026-06-08  
+**Implementert:** 2026-06-09
 
 ---
 
@@ -197,22 +198,22 @@ kreve en ekstra handling for den vanligste bruken.
 
 ---
 
-## Implementeringsplan
+## Implementering
 
-| Steg | Fil | Innhold |
-|------|-----|---------|
-| 1 | `backend/alembic/versions/…_photo_sharing.py` | 4 nye kolonner på `photos` |
-| 2 | `backend/models/photo.py` | `is_shared`, `share_caption`, `share_downloads`, `share_views` |
-| 3 | `backend/schemas/photo.py` | `SharedPhotoOut`; legg til felt i `PhotoPatch` |
-| 4 | `backend/api/share.py` | `GET /share/photo/{hothash}` og `/download` (legg til i eksisterende share-router fra ADR-038) |
-| 5 | `backend/api/share_og.py` eller rute i `share.py` | HTML-rute med OG-tags og meta-refresh |
-| 6 | `backend/services/photo_service.py` | Inkrementering av `share_views` |
-| 7 | `frontend/src/api/photos.ts` | `patchPhoto` utvides med nye felt |
-| 8 | `frontend/src/types/api.ts` | `SharedPhotoOut` |
-| 9 | `frontend/src/features/photos/PhotoSharePanel.tsx` | Erstatter `PhotoDownloadShare` |
-| 10 | `frontend/src/pages/SharedPhotoPage.tsx` | Offentlig visningsside |
-| 11 | `frontend/src/App.tsx` | Ny rute `/share/photo/:hothash` uten AppLayout |
-| 12 | `backend/tests/api/test_share_photo.py` | Aktiver/deaktiver deling, OG-HTML, nedlasting |
+| Fil | Innhold |
+|-----|---------|
+| `backend/alembic/versions/a1b2c3d4e039_adr039_photo_sharing.py` | 4 nye kolonner på `photos` |
+| `backend/models/photo.py` | `is_shared`, `share_caption`, `share_downloads`, `share_views` |
+| `backend/schemas/photo.py` | `SharedPhotoOut`; `PhotoPatch` utvidet; `PhotoDetail` utvidet |
+| `backend/api/share.py` | `GET /share/photo/{hothash}`, `/og` (HTML+OG-tags), `/download` |
+| `frontend/src/api/photos.ts` | `patchPhoto` utvidet; `getSharedPhoto()` |
+| `frontend/src/types/api.ts` | `SharedPhotoOut`; `PhotoDetail` utvidet |
+| `frontend/src/features/photos/PhotoSharePanel.tsx` | Erstatter `PhotoDownloadShare` — download + del-panel |
+| `frontend/src/pages/SharedPhotoPage.tsx` | Offentlig visningsside (ingen AppLayout) |
+| `frontend/src/App.tsx` | Rute `/share/photo/:hothash` uten AppLayout |
+| `backend/tests/api/test_share_photo.py` | 10 tester — aktiver/deaktiver, OG-HTML, nedlasting, visnings­teller |
+
+**Avvik fra plan:** `share_views` inkrementeres direkte i API-laget (ikke i `photo_service`). `PhotoDownloadShare` er erstattet av `PhotoSharePanel` som samler nedlasting og deling i én komponent.
 
 ---
 

@@ -1,5 +1,5 @@
 import { apiFetch } from './client'
-import type { PhotoDetail, PhotoListItem, CheckResponse } from '../types/api'
+import type { PhotoDetail, PhotoListItem, CheckResponse, SharedPhotoOut } from '../types/api'
 
 export function listPhotos(params: {
   limit?: number
@@ -44,11 +44,18 @@ export function patchPhoto(hothash: string, data: {
   location_lng?: number | null
   location_source?: number | null
   location_accuracy?: string | null
+  is_shared?: boolean | null
+  share_caption?: string | null
+  share_downloads?: boolean | null
 }): Promise<PhotoDetail> {
   return apiFetch<PhotoDetail>(`/photos/${hothash}`, {
     method: 'PATCH',
     body: JSON.stringify(data),
   })
+}
+
+export function getSharedPhoto(hothash: string): Promise<SharedPhotoOut> {
+  return apiFetch<SharedPhotoOut>(`/share/photo/${hothash}`)
 }
 
 export function assignEvent(hothashes: string[], eventId: string | null): Promise<{ updated: number }> {

@@ -288,6 +288,21 @@ export interface PhotoDetail extends PhotoListItem {
   exposure_mean: number | null
   exposure_clipping: number | null
   noise_score: number | null
+  is_shared: boolean
+  share_caption: string | null
+  share_downloads: boolean
+  share_views: number
+}
+
+export interface SharedPhotoOut {
+  hothash: string
+  coldpreview_url: string
+  taken_at: string | null
+  photographer_name: string | null
+  camera_make: string | null
+  camera_model: string | null
+  share_caption: string | null
+  share_downloads: boolean
 }
 
 // ─── TextItems ────────────────────────────────────────────────────────────────
