@@ -1,8 +1,8 @@
 # ADR-045: Deling og leveranse
 
-**Status:** Delvis implementert  
+**Status:** Implementert (Del 1–3 og 5). Del 4 (Collection-lenke) planlagt.
 **Dato:** 2026-06-09  
-**Oppdatert:** 2026-06-09 (Del 5: offentlig relay)
+**Oppdatert:** 2026-06-09 (Del 5: offentlig relay implementert og testet lokalt)
 **Erstatter:** ADR-030, ADR-038, ADR-039
 
 ---
