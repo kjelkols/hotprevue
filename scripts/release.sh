@@ -38,8 +38,7 @@ fi
 # ── Tester ────────────────────────────────────────────────────────────────────
 
 echo "→ Kjører backend-tester…"
-cd "$REPO/backend"
-uv run pytest --tb=short -q
+bash "$REPO/scripts/run-tests.sh" --tb=short -q
 echo "✓ Tester bestått"
 echo ""
 
