@@ -22,11 +22,11 @@
               ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │  hotprevue  (produksjonsserver)                                     │
-│  OS: Ubuntu 26.04 LTS · VM på Proxmox · Tailscale-navn: hotprevue │
+│  OS: Ubuntu 26.04 LTS · VM på Proxmox · Tailscale: hotprevue      │
 │                                                                     │
 │  Rolle: produksjon — kjøres kontinuerlig, eksponert via Tailscale  │
 │                                                                     │
-│  Backend:         http://hotprevue:8000  (port 8000, 0.0.0.0)     │
+│  Backend:  http://hotprevue.tail764ab5.ts.net:8000  (port 8000)   │
 │  Systemd-tjeneste: hotprevue.service                               │
 │  App-kode:        /opt/hotprevue/backend/                          │
 │  Frontend (dist): /opt/hotprevue/frontend/dist/                    │
@@ -150,7 +150,7 @@ bash scripts/release.sh major   # v0.1.4 → v1.0.0  (store endringer)
 Brukes unntaksvis når du vil sende en rask rettelse uten å øke versjonsnummeret:
 
 ```bash
-bash scripts/deploy.sh kjell@hotprevue
+bash scripts/deploy.sh kjell@hotprevue.tail764ab5.ts.net
 ```
 
 Kjører tester, bygger og deployer — men oppretter ingen ny tag.
@@ -166,7 +166,7 @@ make deploy-vm
 
 Merk: kjører ikke tester og ikke migrasjoner. Migrer manuelt ved behov:
 ```bash
-ssh kjell@hotprevue "cd /opt/hotprevue/backend && uv run alembic upgrade head"
+ssh kjell@hotprevue.tail764ab5.ts.net "cd /opt/hotprevue/backend && uv run alembic upgrade head"
 ```
 
 ---
@@ -176,8 +176,8 @@ ssh kjell@hotprevue "cd /opt/hotprevue/backend && uv run alembic upgrade head"
 ### Steg 1 — Engangsoppsett (kun første gang)
 
 ```bash
-scp scripts/setup-server.sh kjell@hotprevue:~/
-ssh kjell@hotprevue "sudo bash ~/setup-server.sh"
+scp scripts/setup-server.sh kjell@hotprevue.tail764ab5.ts.net:~/
+ssh kjell@hotprevue.tail764ab5.ts.net "sudo bash ~/setup-server.sh"
 ```
 
 Installerer: PostgreSQL, uv, kataloger, `.env`, systemd-tjeneste og sudoers-regel.
@@ -195,11 +195,11 @@ rm -rf /var/lib/hotprevue/coldpreviews/*
 ### Steg 3 — Deploy siste kode fra beelink
 
 ```bash
-bash scripts/deploy.sh kjell@hotprevue
+bash scripts/deploy.sh kjell@hotprevue.tail764ab5.ts.net
 ```
 
 Kjører tester, sender kode, kjører alle migrasjoner og starter tjenesten.
-Åpne `http://hotprevue:8000` når det er ferdig.
+Åpne `http://hotprevue.tail764ab5.ts.net:8000` når det er ferdig.
 
 ---
 
@@ -213,18 +213,18 @@ Brukes når produksjonsserver skal oppdateres med data fra beelink
 pg_dump -h /run/postgresql hotprevue > /tmp/hotprevue-dump.sql
 
 # 2. Kopier dump og alle coldpreviews til server
-rsync /tmp/hotprevue-dump.sql kjell@hotprevue:/tmp/
+rsync /tmp/hotprevue-dump.sql kjell@hotprevue.tail764ab5.ts.net:/tmp/
 rsync -av --delete \
     ~/.local/share/hotprevue/coldpreviews/ \
-    kjell@hotprevue:/var/lib/hotprevue/coldpreviews/
+    kjell@hotprevue.tail764ab5.ts.net:/var/lib/hotprevue/coldpreviews/
 
 # 3. Erstatt database på server
-ssh kjell@hotprevue "sudo systemctl stop hotprevue && \
+ssh kjell@hotprevue.tail764ab5.ts.net "sudo systemctl stop hotprevue && \
     sudo -u postgres psql -c 'DROP DATABASE IF EXISTS hotprevue; CREATE DATABASE hotprevue;' && \
     psql hotprevue < /tmp/hotprevue-dump.sql"
 
 # 4. Migrer til nyeste skjema og start tjeneste
-ssh kjell@hotprevue "cd /opt/hotprevue/backend && \
+ssh kjell@hotprevue.tail764ab5.ts.net "cd /opt/hotprevue/backend && \
     uv run alembic upgrade head && \
     sudo systemctl start hotprevue"
 ```

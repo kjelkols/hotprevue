@@ -4,7 +4,7 @@
 set -euo pipefail
 
 BUMP="${1:?Bruk: bash scripts/release.sh patch|minor|major}"
-REMOTE="kjell@hotprevue"
+REMOTE="kjell@hotprevue.tail764ab5.ts.net"
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 
 case "$BUMP" in
@@ -89,4 +89,4 @@ sudo systemctl restart hotprevue
 EOF
 
 echo ""
-echo "✓ Produksjon oppdatert til $NEW_VERSION → http://hotprevue:8000"
+echo "✓ Produksjon oppdatert til $NEW_VERSION → http://hotprevue.tail764ab5.ts.net:8000"
