@@ -1,7 +1,10 @@
 # ADR-032: Nettverksarkitektur uten Tailscale
 
-**Status:** Under vurdering  
+**Status:** Godkjent
 **Dato:** 2026-06-06
+**Oppdatert:** 2026-07-06 — beslutning tatt: frp som tunneltransport.
+rathole eliminert (dødt prosjekt), Pangolin evaluert og valgt bort
+(auth-overlapp med ADR-040).
 
 ## Kontekst
 
@@ -14,88 +17,166 @@ Målet er å distribuere Hotprevue til nye brukere uten at de trenger å
 installere og konfigurere Tailscale. Avhengigheten av et eksternt selskap
 (Tailscale Inc.) er også uønsket på sikt.
 
-Hotprevue er ikke et P2P-system i egentlig forstand — problemet er
-enklere: **klienten (browser/Python) trenger sikker tilgang til backenden**.
+Hotprevue er ikke et P2P-system — alle klienter (browser, uploader,
+gjest-PWA) snakker HTTPS mot samme backend. Problemet er 1-til-N med
+backend som fast punkt, ikke N-til-N. Riktig kategori er derfor
+**utgående reverse tunnel**: backend kobler selv ut til en relay ved
+oppstart og får en stabil offentlig HTTPS-adresse. Ingen portåpning,
+fungerer bak enhver NAT/CGNAT.
+
+En viktig avgrensning: tunnelen berører kun backend-distribusjonen og
+relay-infrastrukturen. Browser trenger ingen installer-komponent (den
+*er* en URL), og uploaderen trenger bare backend-URL + maskintoken fra
+enrollment (ADR-040/044).
 
 ## Analyserte alternativer
 
-### 1. Reverse tunnel / outbound proxy
+### rathole — eliminert
 
-Backenden knytter selv en utadgående tilkobling til en relay-server.
-Klienter kobler til relay-serveren. Relay videreformidler trafikken, men
-kan ikke lese den (TLS end-to-end).
+Lett Rust-binær, i sin tid hovedkandidat sammen med frp. Siste release
+(v0.5.0) er fra oktober 2023; prosjektet ble flyttet til en community-org
+etter at originalforfatteren forsvant, uten releaser siden. En komponent
+som bærer all trafikk inn til arkivet kan ikke stå på et i praksis dødt
+prosjekt.
 
-Aktuelle verktøy:
-- **rathole** — lett Rust-binær (~2 MB), kan bundles i distribusjonen
-- **frp** — mer moden, støtter HTTPS-terminering, Go-binær
-- **Cloudflare Tunnel** — gratis for privatbruk, men avhengig av Cloudflare
+### Pangolin (fosrl) — evaluert og valgt bort
+
+Selvhostet «identity-aware» tunnelplattform: Docker-stack på VPS
+(Pangolin-kontrollplan, Gerbil/WireGuard, Traefik med automatisk TLS),
+enkelt-binær «Newt» på backend-siden. Svært aktivt vedlikeholdt
+(YC-selskapet Fossorial), dual-lisens AGPL-3/kommersiell, Integration API
+for provisjonering.
+
+Valgt bort fordi verdiforslaget — identitetsbevisst tilgangskontroll per
+ressurs (SSO, passord, PIN) — **overlapper Hotprevues egen auth-modell**
+(maskintoken og invitasjonskoder, ADR-040/044). Betaler man
+kompleksitetskostnaden (Docker-stack, eget brukerregister,
+AGPL-vurdering) og skrur av tilgangslaget, sitter man igjen med
+Traefik + WireGuard — en tyngre frp. Pangolin er riktig for prosjekter
+uten egen auth; Hotprevue har allerede bygget sin.
+
+**Revurderingspunkt:** hvis provisjonerings- og sertifikatskriptingen
+rundt frp vokser seg vesentlig større enn antatt, kjøper Pangolin nettopp
+det stykket ferdig.
+
+### Cloudflare Tunnel — valgt bort
+
+Gratis og null drift, men domenet må ligge hos Cloudflare, TLS termineres
+i Cloudflares nett, og tilgjengeligheten avhenger av en tredjepart —
+samme innvending som mot Tailscale.
+
+### Mesh-VPN (Nebula, Headscale, NetBird, libp2p) — valgt bort
+
+Løser et N-til-N-problem Hotprevue ikke har, og krever klientinstallasjon
+og/eller sertifikatoppsett hos brukeren.
+
+### Ren WireGuard + nginx-vhost — valgt bort som hovedspor
+
+Null ny programvare for dagens éngbruker-situasjon, men hver ny bruker
+krever manuelt nøkkel- og vhost-oppsett på relayen. Skalerer ikke til
+distribusjonsmålet.
+
+## Beslutning
+
+**frp** (fatedier/frp, Apache 2.0) som tunneltransport, med
+TLS-terminering i eksisterende nginx (eventuelt Caddy) på relay-serveren.
+
+frp er valgt fordi den er nøyaktig komponenten som mangler og ikke mer:
+dum, kryptert transport uten meninger om identitet. Én statisk Go-binær i
+hver ende, token-autentisert utgående tilkobling, innebygd
+subdomene-vhost, aktivt vedlikeholdt med stort miljø (v0.69.1, juni 2026,
+~100k stjerner). ADR-040-tokens forblir eneste auth-lag i systemet.
+
+### Arkitektur
 
 ```
-[Backend] --outbound TLS--> [Hotprevue relay] <-- [Klient/nettleser]
+                        *.hp.<domene>  (wildcard-DNS → relay)
+                                │
+                        ┌───────▼────────┐
+   https://abc.hp.<domene>   nginx (TLS) │   relay-server (Trollfjell)
+                        │       │        │
+                        │     frps       │
+                        └───────▲────────┘
+                                │ utgående TLS-tunnel (token)
+                        ┌───────┴────────┐
+                        │     frpc       │   brukerens backend-maskin
+                        │  backend :8000 │
+                        └────────────────┘
 ```
 
-Fordeler: ingen portvideresending, fungerer bak streng NAT, kan bundles.  
-Ulemper: Hotprevue-prosjektet må drifte en relay-server.
+### Relay-serveren (Trollfjell)
 
-### 2. Nebula (Slacks mesh-VPN)
+- `frps` som systemd-tjeneste bak nginx, gjenbruker mønsteret fra
+  eksisterende `relay/` (ADR-045 del 5).
+- Wildcard-DNS `*.hp.<domene>` peker på relayen.
+- Sertifikater: ett wildcard-sertifikat via certbot DNS-01
+  (Domeneshop har certbot-plugin), alternativt Caddy med on-demand TLS
+  foran frps hvis per-subdomene-utstedelse blir enklere.
+- Hver Hotprevue-instans identifiseres av (subdomene, frp-token).
+  For nåværende éngbruker-situasjon er dette én statisk
+  konfigurasjonsblokk; ved distribusjon utvides relay-tjenesten med et
+  provisjoneringsendepunkt som utsteder subdomene + token.
 
-Fullt selvhostet mesh-VPN bygget på WireGuard-protokollen. Krever en
-"lighthouse"-server kun for discovery — selve trafikken går direkte
-mellom noder (NAT hole-punching).
+### Backend-distribusjonen
 
-Hvert node får et sertifikat signert av en CA du kontrollerer.
-Binæren kan bundles i distribusjonen.
+- `frpc`-binæren bundles i zip-pakken (samme mønster som `uv`).
+- Installeren skriver `frpc.toml` fra to verdier: relay-adresse og
+  instans-token. Startskriptet starter frpc sammen med uvicorn når
+  `HOTPREVUE_TUNNEL=on`.
+- Backend får dermed en stabil `https://<instans>.hp.<domene>` uten
+  portåpning hos brukeren.
 
-Fordeler: ingen sentral avhengighet, trafikk går direkte.  
-Ulemper: brukeren må gjennom en sertifikat-oppsettsprosess; ikke
-brukervennlig nok uten et dedikert administrasjonsverktøy.
+### Browser og uploader
 
-### 3. Headscale (selvhostet Tailscale-kontrollplan)
+- **Browser:** ingen tunnelkomponent — bruker den offentlige URL-en
+  direkte.
+- **Uploader:** installeren spør om backend-URL + invitasjonskode,
+  enrollerer (ADR-040) og lagrer maskintokenet. Ingen tunnelkomponent.
+- **Gjest-PWA (ADR-041):** som browser — trenger bare URL-en.
 
-Tailscale-klienter kan peke mot en selvhostet kontrollserver i stedet
-for Tailscale Inc. Fjerner avhengigheten av selskapet, men brukeren
-må fortsatt installere Tailscale-klienten.
+### Forutsetning: obligatorisk autentisering
 
-### 4. mTLS + dynamisk DNS
+Tunnelen gjør backend offentlig tilgjengelig. Før en instans eksponeres
+må auth-håndhevingen snus fra «åpen med unntak» til «lukket med unntak»:
+alle endepunkter — også lesing og coldpreview-serving — må kreve gyldig
+maskintoken (jf. ADR-044). Dagens `require_owner`-unntak for
+uautentiserte kall («legacy owner machines») forutsetter Tailscale som
+tillitsgrense og kan ikke bestå bak tunnelen.
 
-Backend genererer et nøkkelpar ved første oppstart. En liten
-Hotprevue-tjeneste tilbyr:
-- **Dynamisk DNS:** backenden registrerer sin IP periodisk og får et
-  stabilt hostnavn (f.eks. `abc123.hotprevue.no`)
-- **mTLS:** klienten autentiseres med et klientsertifikat; backenden
-  verifiserer det
+## Begrunnelse
 
-```
-backend.hotprevue.no  -->  HTTPS (mTLS)  -->  Backend-node
-```
-
-Selvbekreftende identitet à la Syncthing: backend genererer et nøkkelpar
-ved første oppstart; "server-ID" = hash av offentlig nøkkel, brukes for
-å parre klienter uten sentral brukerregistrering.
-
-### 5. libp2p
-
-Brukt av IPFS og Ethereum. Full P2P med DHT-basert discovery,
-NAT-traversal, kryptert transport. Mest fleksibelt, men mest komplekst
-å integrere i Python/FastAPI.
-
-## Beslutning (tentativ)
-
-**Fase 1:** Rathole eller frp bundlet i server-distribusjonen, med en
-Hotprevue-hostet relay. Backenden kobler automatisk til relay ved oppstart
-og får et stabilt hostnavn. Klienter bruker dette hostnavnet — ingen
-portvideresending, ingen Tailscale.
-
-**Fase 2:** Åpne relay-koden slik at avanserte brukere kan hoste sin
-egen relay, eller koble direkte via eget domene/DDNS.
-
-Selvbekreftende identitet (nøkkelpar ved første oppstart, server-ID som
-parringsnøkkel) er et prinsipp som bør tas med uansett løsning — det
-eliminerer behovet for sentral brukerregistrering.
+- **Passer eksisterende drift:** relay-siden gjenbruker nginx + certbot +
+  systemd-mønsteret som allerede kjører på Trollfjell.
+- **Ingen auth-duplisering:** frp er ren transport; Hotprevues egen
+  identitetsmodell (ADR-040/044) forblir eneste tilgangskontroll.
+- **Installer-vennlig:** én statisk binær og en generert TOML-fil per
+  ende — samme bundlingsmønster som distribusjonen bruker i dag.
+- **Skalerer til distribusjon:** nye brukere = nytt (subdomene, token)
+  på relayen, skriptbart uten manuell vhost-konfigurasjon.
+- **Modenhet:** frp er det klart mest brukte og aktivt vedlikeholdte
+  verktøyet i kategorien.
 
 ## Konsekvenser
 
-- Tailscale-avhengigheten fjernes fra sluttbrukerdistribusjonen
-- Hotprevue-prosjektet må drifte en liten relay-tjeneste (fase 1)
-- Eksisterende installasjoner med Tailscale fortsetter å fungere uendret
-- Nettverksoppsett flyttes fra brukerens ansvar til distribusjonens ansvar
+- Tailscale-avhengigheten fjernes fra sluttbrukerdistribusjonen.
+  Eksisterende Tailscale-oppsett fortsetter å fungere uendret.
+- Hotprevue-prosjektet drifter relayen (frps + nginx). Liten flate:
+  to systemd-tjenester og en DNS-sone.
+- **Tillitsforbehold:** relayen terminerer TLS og kan teknisk sett lese
+  trafikken. Akseptabelt så lenge eieren drifter relayen selv; for
+  distribusjon beholdes fase 2 som exit: åpen relay-oppskrift slik at
+  brukere kan hoste egen relay eller bruke eget domene/DDNS.
+- Migrering av eksisterende Tailscale-baserte owner-maskiner til
+  token-modellen må avklares (åpent spørsmål fra ADR-040, jf.
+  `docs/vision/tilgang-og-deling.md`).
+- Invitasjonsdeling (deep link / QR mot `https://<instans>.hp.<domene>`)
+  får det stabile vertsnavnet den forutsetter.
+
+## Åpne spørsmål
+
+1. Wildcard-sertifikat (DNS-01) vs. Caddy on-demand TLS — avgjøres ved
+   implementasjon av relay-oppsettet.
+2. Provisjoneringsendepunktets form (utvidelse av `relay/relay.py` eller
+   egen liten tjeneste) — trengs først ved distribusjon til andre.
+3. Forholdet mellom denne relayen og delings-relayen (ADR-045 del 5):
+   samme server, men bør de forbli separate tjenester?

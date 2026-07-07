@@ -64,4 +64,4 @@ Hva innebærer denne beslutningen fremover?
 | 029 | UI for visningskorreksjoner | Planlagt |
 | 030 | Nedlasting og deling | Implementert |
 | 031 | Mobilstøtte | Delvis implementert |
-| 032 | Nettverksarkitektur uten Tailscale | Under vurdering |
+| 032 | Nettverksarkitektur uten Tailscale | Godkjent (frp) |
