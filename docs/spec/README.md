@@ -25,7 +25,7 @@ Kjernefilene (`overview`, `domain`, `api`, `frontend`, `backend-architecture`) b
 | `collection-presentation.md` | Kolleksjonspresentasjon og lysbildefremvisning |
 | `push.md` | ⚠ Push/synk-tanker |
 | `testing.md` | Teststrategi (pytest, `scripts/run-tests.sh`) |
-| `data-model.md` | ⚠ Datamodell — utdatert; mangler Kind, Tag, Stack, maskinidentitet m.m. Se `backend/models/` |
+| `data-model.md` | Datamodell — alle entiteter og felt, speiler `backend/models/` |
 | `distribution.md` | ⚠ Erstattet av `docs/program-distribution.md` |
 
 Utkast og ideer som ikke er implementert ligger i `docs/drafts/` (f.eks. `insertion-point.md`).
