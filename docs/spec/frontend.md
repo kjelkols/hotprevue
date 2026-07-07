@@ -9,9 +9,9 @@
 | **Tailwind CSS** | Styling — ingen separate CSS-filer |
 | **Vite** | Bygging og utvikling |
 | **React Query (TanStack Query)** | Server-state: caching, loading, feil mot API |
-| **Zustand** | Klient-state: valgte photos, modus, midlertidige tilstander |
+| **Zustand** | Klient-state: utvalg, visningsvalg, midlertidige tilstander |
 | **Radix UI** | Headless UI-primitiver for komplekse komponenter (modal, dropdown, tabs) |
-| **React Router** | Klientside-routing |
+| **React Router (HashRouter)** | Klientside-routing |
 
 ---
 
@@ -23,230 +23,124 @@ Disse prinsippene gjelder alltid og styrer alle kodebeslutninger:
 Maks ~100 linjer per komponentfil. Del opp aggressivt. Store filer er der feil introduseres og kontekst går tapt.
 
 ### 2. Typed API-klientlag
-Alle backend-kall går gjennom `src/api/`. Ingen `fetch()` direkte i komponenter. Hvert endepunkt har en typet funksjon som returnerer et kjent TypeScript-objekt. Hvis API-typene er riktige, propagerer TypeScript feil i stedet for å la dem passere stille.
+Alle backend-kall går gjennom `src/api/`. Ingen `fetch()` direkte i komponenter. Hvert endepunkt har en typet funksjon som returnerer et kjent TypeScript-objekt. `agentClient.ts`/`agent.ts` går mot den lokale agenten (port 8002), resten mot backend.
 
 ### 3. Ingen CSS-filer
-All styling skjer med Tailwind utility-klasser inline i JSX. Ingen `.css`- eller `.module.css`-filer. Globale Tailwind-innstillinger konfigureres i `tailwind.config.ts`.
+All styling skjer med Tailwind utility-klasser inline i JSX.
 
 ### 4. Radix UI for komplekse komponenter
-Modaler, dropdowns, tooltips, tabs og andre interaktive komponenter bygges på Radix UI-primitiver. AI trenger kun å sette Tailwind-klasser, ikke implementere tilgjengelighet og tastaturnavigasjon fra bunnen.
+Modaler, dropdowns, tooltips, tabs og andre interaktive komponenter bygges på Radix UI-primitiver — tilgjengelighet og tastaturnavigasjon følger med gratis.
 
 ### 5. Typer i egne filer
-TypeScript-typer som matcher API-responser og domeneobjekter samles i `src/types/`. Importeres i komponenter og API-klientfunksjoner. Endres aldri lokalt i komponentfiler.
+Alle API- og domenetyper ligger i `src/types/api.ts` — énkildes sannhet. Aldri domenetyper inline i komponentfiler.
 
 ### 6. React Query for all server-state
-Data fra backend håndteres utelukkende via React Query. Ingen lokal useState for data som kommer fra API. Mutation-hooks wrapper PATCH/POST/DELETE-kall og invaliderer relevante queries automatisk.
+Ingen lokal `useState` for data som kommer fra API. Mutation-hooks invaliderer relevante queries.
 
 ### 7. Zustand for klient-state
-Tilstander som ikke er server-data (flervalgsmodus, valgte photos, aktive filtre, midlertidig sortering) håndteres i Zustand-stores. En store per domene.
+Én store per ansvar (se tabell under). Visningsvalg persisteres til `localStorage` der brukeren forventer at de huskes.
 
 ---
 
 ## Mappestruktur
 
 ```
-frontend/
-  src/
-    api/              # Typed API-klientfunksjoner, én fil per ressurs
-      photos.ts
-      events.ts
-      collections.ts
-      ...
-    types/            # TypeScript-typer for API-responser og domene
-      photo.ts
-      event.ts
-      ...
-    components/
-      ui/             # Radix UI-wrappers med Tailwind-styling
-        Button.tsx
-        Dialog.tsx
-        DropdownMenu.tsx
-        ...
-    features/         # Funksjonalitet organisert etter domene
-      gallery/
-      photos/
-      events/
-      collections/
-      stacks/
-      input-sessions/
-      photographers/
-      duplicates/
-      settings/
-      admin/
-    hooks/            # Gjenbrukbare React-hooks
-    stores/           # Zustand-stores
-    pages/            # Rutekomponenter — tynne, komponerer features
-    lib/              # Formatering, datohjelpere, konstanter
+frontend/src/
+  api/           Thin fetch-wrappers, én fil per ressurs
+  types/api.ts   Alle TypeScript-typer
+  stores/        Zustand — kun global UI-tilstand
+  hooks/         usePhotoSource, useScrollRestoration, useBrowse, useAiSearch,
+                 useImageZoom, useIsMobile, useEnsureMachine
+  components/    Generelle komponenter: TopNav, ViewToggle, ContextMenuOverlay
+    ui/          Gjenbrukbare primitiver (NavDropdown, ThumbnailShell, …)
+  features/      Domenemapper: browse/, collection/, events/, search/,
+                 selection/, assignment/, registration/, preorganisering/,
+                 present/, photos/, stacks/, tags/, kinds/, identity/,
+                 location/, photographers/, home/, settings/, setup/, timeline/
+  pages/         Route-komponenter — tynne, delegerer til features/
+  lib/           Formatering, hjelpere, konstanter
 ```
 
----
+## Ruter (HashRouter)
 
-## Ruter
+| Rute | Side | Merknad |
+|---|---|---|
+| `/` | HomePage | Statistikk, snarveier, bildemosaikk |
+| `/browse` | BrowsePage | `?session_id=` / `?event_id=` / `?taken_from=&taken_to=` |
+| `/timeline` | TimelinePage | Grid-/tre-/zoom-visning (ADR-033) |
+| `/photos/:hothash` | PhotoDetailPage | Uten scroll-container; egen Escape-håndtering |
+| `/collections` `/collections/:id` | Kolleksjoner | |
+| `/collections/:id/present` | CollectionPresentPage | Uten AppLayout |
+| `/sessions` | SessionsListPage | Passiv oversikt over registreringer |
+| `/events` `/events/:id` | Events | |
+| `/searches` `/searches/new` `/searches/:id` | Lagrede søk / søkeside | |
+| `/ai-search` | AiSearchPage | Semantisk søk (ADR-022) |
+| `/settings` | SettingsPage | |
+| `/sted` | LocationEditorPage | Kartredigering av posisjon |
+| `/fotografer` | PhotographersPage | |
+| `/maskiner` | MachinesPage | |
+| `/kinds` `/tags` | Forvaltning | |
+| `/preorganisering` | PreorganiseringPage | Lokale verktøy — krever agent |
+| `/register` | RegisterPage | Registreringsflyt — krever agent; uten AppLayout |
+| `/share/photo/:hothash` | SharedPhotoPage | Offentlig visning; uten AppLayout |
 
-| Rute | Side |
+TopNav grupperer rutene: tre primærlenker (Tidslinje/Events/Kolleksjoner), nedtrekksgrupper for Søk og Organisering, Sesjoner som vanlig lenke, og et visuelt dempet «uploader»-cluster (Registrer / Lokale verktøy) som krever agenten.
+
+## Zustand-stores
+
+| Store | Tilstand |
 |---|---|
-| `/` | Hovedgalleri / timeline |
-| `/photos/:hothash` | Detaljvisning for ett photo |
-| `/events` | Liste over events som trestruktur |
-| `/events/:id` | Event med tilhørende photos |
-| `/collections` | Liste over collections |
-| `/collections/:id` | Collection i rekkefølge |
-| `/stacks/:stack_id` | Alle photos i en stack |
-| `/input-sessions` | Registreringsassistent — liste og opprettelse |
-| `/input-sessions/:id` | Pågående eller fullført sesjon |
-| `/photographers` | Liste over fotografer |
-| `/photographers/:id` | Fotograf med tilhørende photos |
-| `/duplicates` | Oversikt over duplikatfiler |
-| `/search` | Søk og filtrering |
-| `/settings` | Systeminnstillinger |
-| `/admin` | Systemstatus og filstivalidering |
+| `useSelectionStore` | `selected: Set<hothash>`, `anchor` — avkryssingstilstand |
+| `usePhotoNavStore` | `gridOrder` (synlig rekkefølge), `hothashes` (bla-liste for detaljside), `backUrl` |
+| `useContextMenuStore` | Global kontekstmeny (items + posisjon) |
+| `useAssignmentStore` | Hvilken picker-modal er åpen (`event`/`collection`) |
+| `useSessionStore` | Aktiv fotografidentitet (persisted, ADR-012) |
+| `useViewStore` | `gridVariant`, `stacksCollapsed`, `timelineView`, `browseView` (persisted) |
+| `useKindFilterStore` | Valgte kinds (persisted) — KindFilterBar viser rav-merke når noe er skjult |
+| `useTagSetStore`, `useTimelineStore`, `useLocationEditorStore` | Øvrige persisted UI-valg |
+| `useToastStore`, `usePreorganiserStore` | Flyktig tilstand |
 
----
+## Navigasjons- og tastaturkonvensjoner
 
-## Kjernekomponenter
+- **Escape-kjede:** global handler i App.tsx lukker kontekstmeny først, deretter tømmes utvalget. Sider med egen Escape-håndtering (PhotoDetailPage) registrerer lytter med `{ capture: true }` og kaller `e.preventDefault()` — App-handleren respekterer `defaultPrevented`.
+- **Scroll-restaurering:** all scrolling skjer i AppLayouts container. `useScrollRestoration` lagrer posisjon per `location.key` og gjenoppretter ved tilbakenavigasjon (rAF-polling til async innhold har høyde).
+- **Tilbake fra detaljside:** `navigate(-1)` når historikken har oppføringer (bevarer scrollposisjon), ellers `backUrl` fra `usePhotoNavStore`. Forrige/neste bruker `replace: true` slik at hele bildevandringen er én historikkoppføring.
+- **Åpne bilde fra grid:** dobbeltklikk eller kontekstmeny setter bla-kontekst (hothashes + backUrl) før navigering.
 
-To gjenbrukbare visningskomponenter brukes overalt i applikasjonen. Se `domain.md` for fullstendig beskrivelse.
-
-### BrowseView
-Spørringsbasert bildeliste. Brukes på Hjem, Event-sider, Fotograf-sider, Søk og alle andre steder der et spørringsresultat vises. Støtter avkryssingstilstand for batch-operasjoner via SelectionTray.
-
-### CollectionView
-Kuratert, ordnet sekvens. Brukes på `/collections/:id`. Har InsertionPoint, caption per element og tekstkort. Batch-operasjoner på bildemetadata er ikke tilgjengelig her.
-
-### SelectionTray
-Frittstående vindu med avkryssede bilder og handlingsverktøylinje. Åpnes fra Taskbar-indikatoren. Se `domain.md` for handlinger og reversibilitetsregler.
-
----
-
-## Lasting og scrolling
-
-PhotoGrid bruker **paginert lasting** via `usePhotoSource`-hooken.
-
-- `photo_limit` (maskin-innstilling, standard 1000) bestemmer antall bilder per batch
-- `infinite_scroll` (maskin-innstilling, standard false): automatisk laste neste batch via `IntersectionObserver` ved bunnen av grid, eller manuell «Last inn mer»-knapp
-- `useInfiniteQuery` i `usePhotoSource` håndterer batching og caching — ikke i `PhotoGrid` selv
-- Allerede lastede photos forblir i DOM
-
-**Virtualisering** (TanStack Virtual) legges til som ytelsesoptimering ved behov — ingen arkitekturendring kreves siden hotpreviews har fast størrelse (150×150px).
-
----
-
-## Avkryssingstilstand — selection-modell
-
-Følger Windows Explorer-mønsteret:
+## Utvalgsmodell (Windows Explorer-mønster)
 
 | Handling | Resultat |
 |---|---|
-| Klikk | Velg kun dette — fjern alle andre |
+| Klikk | Velg kun dette |
 | Ctrl+klikk | Toggle dette — behold resten |
-| Shift+klikk | Velg rekke fra anker til her |
-| Ctrl+Shift+klikk | Legg til rekke — behold resten |
-| Klikk på tom flate | Fjern alle |
+| Shift+klikk | Velg rekke fra anker |
 | Ctrl+A | Velg alle i gjeldende utvalg |
-| Escape | Fjern alle |
+| Escape | Lukk meny → tøm utvalg (se Escape-kjeden) |
 
-**Anker:** Sist klikkede element uten Shift lagres som anker. Shift+klikk beregner rekke mellom anker og mål basert på dataindeks — fungerer selv om anker er scrollet ut av syne.
+Anker lagres i `useSelectionStore`; rekkeberegning bruker `gridOrder` fra `usePhotoNavStore`. Valgt bilde vises med ramme + hake; SelectionTray (bunnoverlegg) vises når utvalget er ikke-tomt og tilbyr batch-handlinger.
 
-**Rubber band selection** (dra for å tegne rektangel) — utsettes.
+## Tildelingsflyt (ADR-014)
 
-`useSelectionStore` holder:
-- `selectedHashes: Set<string>` — merkede photos
-- `anchorHash: string | null` — anker for Shift+klikk
-- `orderedHashes: string[]` — gjeldende rekkefølge (for rekkeberegning)
+1. Velg bilder i PhotoGrid (avkryssingstilstand)
+2. Høyreklikk → batch-kontekstmeny, eller SelectionTray → «Registrer på»
+3. PickerModal (event/collection) åpnes via `useAssignmentStore`
+4. Modalen kaller batch-API
 
----
+Se `photo-assignment.md`, `context-menu.md` og `selection-tray.md`.
 
-## Visuell feedback for avkryssingstilstand
+## Lasting og ytelse
 
-Tre synlige tilstander per photo-element:
+- `usePhotoSource` er den universelle datahooken (PhotoGrid, PhotoTimeline, SearchPage): `useInfiniteQuery`-basert paginering med `loadMore`/`infiniteScroll`.
+- `PhotoThumbnail` er memoisert og abonnerer kun på sitt eget valgt-flagg; alt annet leses lazily via `getState()` i handlere. Gridet kan inneholde tusenvis av bilder.
+- Virtualisering (TanStack Virtual) er en mulig senere optimering — ingen arkitekturendring kreves.
 
-| Tilstand | Visuell effekt |
+## To verdener
+
+| BrowseView | CollectionView |
 |---|---|
-| Normal | Ingen overlay |
-| Hover | Svak hake i sirkel øverst til venstre — signaliserer at valg er mulig |
-| Valgt | Blå ramme + fylt hake i sirkel |
+| Uordnet spørringsresultat | Ordnet, kuratert |
+| Avkryssingstilstand + batch-operasjoner | Ingen avkryssing; presentasjonsoperatorer |
+| Kilde for tildeling | **Aldri kilde** — sluttprodukt |
+| `PhotoGrid` / `PhotoTimeline` | `CollectionGrid` |
 
-Haken plasseres i en liten sirkel med hvit/blå bakgrunn — alltid synlig uavhengig av bildets farger (standard mønster fra iOS Photos og Google Photos).
-
-Taskbar viser alltid antall valgte photos. Klikk på telleren åpner SelectionTray.
-
----
-
-## Tooltip
-
-Vises ved hover over et photo (Radix UI Tooltip). Innhold:
-
-| Felt | Kilde |
-|---|---|
-| Filnavn | ImageFile der `is_master = true` |
-| Tidspunkt | `taken_at` formatert etter `taken_at_accuracy` |
-| Kamera | `camera_make` + `camera_model` |
-| Eksponering | `shutter_speed` · `aperture` · `iso` |
-| Rating | Vises hvis satt |
-| Event | Eventnavn hvis tilknyttet |
-
-All nødvendig data er tilgjengelig i liste-responsen fra `GET /photos` — ingen ekstra API-kall.
-
----
-
-## Visninger
-
-### Hjem
-- Programoversikt — ingen bildestrøm
-- Snarveier til nylig brukte kolleksjoner og events
-- Statistikk: antall photos, siste registrering, papirkurv
-- Hurtighandlinger: start ny registrering, åpne søk
-
-### BrowseView — brukes på:
-- `/` — standard startutvalg (tomt, brukeren filtrerer)
-- `/events/:id` — photos i event
-- `/photographers/:id` — photos av fotograf
-- `/search` — søk og filtrering
-- `/stacks/:stack_id` — photos i stack
-
-Felles for alle BrowseView-kontekster:
-- Grid-visning av hotpreviews med progressiv lasting
-- Stacks vises som ett photo (coverbilde) med indikator for antall
-- Mykt slettede photos vises med slettet-indikator hvis `show_deleted_in_gallery` er på
-- Filtrering på fotograf, event, tags, rating, dato, kategori (kontekstavhengig)
-- Sortering (følger `default_sort` fra settings, kan overstyres midlertidig)
-- Avkryssingstilstand (Windows Explorer-mønster) for batch-operasjoner via SelectionTray
-
-### Detaljvisning
-- Coldpreview (korrigert versjon hvis korreksjon finnes, ellers original)
-- Alle metadata: EXIF, tags, rating, event, fotograf, kategori
-- Korreksjonsverktøy: rotasjon, horisont, eksponering, crop
-- Liste over tilknyttede ImageFiles med filtype og sti
-- Knapp for å åpne originalfil i eksternt program
-- Navigasjon til forrige/neste photo i gjeldende kontekst
-- Tydelig varsling hvis originalfil ikke er tilgjengelig på disk
-
-### Registreringsassistent
-- Steg 1: Opprett sesjon — navn, fotograf, kildekatalog, event (valgfritt)
-- Steg 2: Skann — vis gruppesammendrag (RAW+JPEG-par, kun RAW, kun JPEG, duplikater, feil)
-- Steg 3: Bekreft — brukeren godkjenner before prosessering starter
-- Steg 4: Fremgang — live-oppdatering under registrering
-- Steg 5: Oppsummering — antall registrerte, duplikater og feil
-
-### Settings
-- Visningsinnstillinger: standardsortering, vis slettede i galleri
-- Coldpreview-innstillinger: maks piksler (langside), JPEG-kvalitet
-- Eierinfo: instansnavn, eiers navn, nettside, bio
-- Installasjons-ID: vises som read-only
-
-### Admin
-- Filstivalidering: status per ImageFile (ok / mangler / endret)
-- Batch-oppdatering av stiprefikser (f.eks. ved flytting av ekstern disk)
-- Oversikt over input-sesjoner
-- Systeminfo: databasestørrelse, antall photos, coldpreview-diskbruk
-
----
-
-## UX-prinsipper
-
-- Originalfilsti alltid synlig i detaljvisning
-- Tydelig varsling når originalfil ikke er tilgjengelig
-- Ingen destruktive operasjoner uten bekreftelse (dialog)
-- Batch-operasjoner via SelectionTray — aldri direkte fra BrowseView uten at bilder er avkrysset
-- Standardverdier fra settings respekteres som innledende tilstand; brukeren kan overstyre i sesjonen
-- Alle handlinger i SelectionTray kan angres — én nivå per handling
+Se `domain.md` for full begrunnelse.

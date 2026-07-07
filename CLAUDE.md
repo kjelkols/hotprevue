@@ -337,7 +337,7 @@ git tag v0.2.0 && git push origin v0.2.0
 
 - `GET /system/lock` — check current lock status
 - `POST /system/lock` — acquire lock (returns 409 if already held)
-- `DELETE /system/lock` — release lock
+- `DELETE /system/lock/{lock_type}` — release lock
 
 Locks have a 30-minute TTL. See `docs/decisions/010-multi-machine-locking.md`.
 

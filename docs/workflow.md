@@ -235,5 +235,5 @@ Beskriv: hva ble valgt, hvilke alternativer ble vurdert, og hvorfor.
 - [ ] Alle endringer er committed og pushet
 - [ ] Tester passerer: `make test`
 - [ ] Manuell test i Windows-nettleser mot dev-server
-- [ ] `CHANGELOG.md` og/eller ADR-er oppdatert ved behov
+- [ ] ADR-er oppdatert ved behov
 - [ ] Versjonsnummer er valgt (`git tag vX.Y.Z`)

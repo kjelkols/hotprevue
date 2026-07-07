@@ -11,7 +11,7 @@ Dette omrÃ¥det inneholder overordnet strategisk tenkning om Hotprevue og det stÃ
 ## Hva dette ikke er
 
 - Krav (se `spec/`)
-- Handlingsliste (se `TODO.md`)
+- Handlingsliste
 - Tekniske beslutninger (se `decisions/`)
 
 ## Bruk

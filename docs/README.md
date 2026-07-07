@@ -6,19 +6,20 @@ Denne katalogen inneholder all prosjektdokumentasjon, organisert etter formål.
 
 | Katalog / fil | Rolle |
 |---|---|
-| `spec/` | Kravspesifikasjon — autoritativ kilde for hva systemet skal gjøre og hvordan |
+| `spec/` | Spesifikasjon — hva systemet gjør og hvordan |
 | `decisions/` | Arkitekturbeslutninger (ADR) — hvorfor ting ble som de ble |
 | `vision/` | Strategisk tenkning — overordnede ideer og retning, ikke krav |
-| `TODO.md` | Aktiv oppgaveliste, prioritert etter neste steg |
-| `CHANGELOG.md` | Kronologisk logg over endringer |
+| `drafts/` | Utkast og ideer som ikke er besluttet eller implementert |
+| `deployment.md` | Topologi og driftsoppsett (dev og server) |
+| `program-distribution.md` | Bygging av zip-distribusjoner |
+| `workflow.md` | Arbeidsflyt |
 
 ## Prinsipper
 
-- **`spec/`** er autoritativ. Kode skal reflektere spec, ikke omvendt.
-- **`decisions/`** forklarer kontekst og begrunnelse — les disse før du endrer etablerte mønstre.
+- **Koden og ADR-ene er fasit.** `spec/` skal speile faktisk tilstand — ved avvik oppdateres spec-filen, koden «rettes» ikke tilbake til gammel spec.
+- **`decisions/`** forklarer kontekst og begrunnelse — les relevante ADR-er før du endrer etablerte mønstre. Hver ADR har eget statusfelt; indeksen i `decisions/README.md` skal holdes à jour.
 - **`vision/`** er ikke krav. Dokumentene der brukes som strategisk kompass ved diskusjon om nye funksjoner, ikke som handlingsliste.
-- **`TODO.md`** er levende og oppdateres kontinuerlig. Gjennomgås ved hver arbeidsøkt.
-- **`CHANGELOG.md`** oppdateres hver gang noe av betydning endres i kodebasen.
+- **Endringshistorikk** dokumenteres av git-loggen og ADR-ene. Egne `TODO.md`/`CHANGELOG.md`-filer er avviklet (juli 2026) — de forfalt raskere enn de ga verdi.
 
 ## Eldre dokumenter
 

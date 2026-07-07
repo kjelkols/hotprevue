@@ -1,15 +1,20 @@
 # Backend-arkitektur
 
-## Lokal systemproxy
+## Ren API-server
 
-Backenden er ikke en server på internett. Den er et **lokalt program** som kjører på
-brukerens maskin og kommuniserer med nettleser-UI-et via HTTP på localhost.
+Backenden er en ren API-server (ADR-008): den lagrer metadata i PostgreSQL, lagrer
+coldpreviews på disk og serverer dem via HTTP. Den **leser aldri originalfiler**
+og har ingen filsystem-endepunkter mot brukerens bildekataloger — all
+filprosessering (skanning, EXIF, previews, hashing) skjer klientsiden i agenten.
 
-Dette gir backenden full OS-tilgang: filsystem, native dialoger, subprosesser. All
-funksjonalitet som nettleseren ikke kan gjøre selv — lese filer, bla i kataloger,
-åpne OS-dialoger — implementeres som endepunkter i `api/system.py`.
+Backenden kan kjøre lokalt (embedded PostgreSQL via pgserver, `HOTPREVUE_SERVER=local`,
+se ADR-009) eller på en server med ekstern PostgreSQL. Den serverer også den bygde
+frontenden som statiske filer (`HOTPREVUE_FRONTEND_DIR`).
 
-Se `docs/decisions/003-local-backend-as-system-proxy.md` for begrunnelse og regler.
+`api/system.py` inneholder kun flermaskinlåsen (ADR-010) og
+`folder-event-lookup` (ADR-024) — ingen filsystemoperasjoner.
+
+> Historikk: ADR-003 («lokal systemproxy» med OS-tilgang) er erstattet av ADR-008.
 
 ---
 
@@ -17,7 +22,7 @@ Se `docs/decisions/003-local-backend-as-system-proxy.md` for begrunnelse og regl
 
 **Backend er synkron. Bruk aldri `async def`, `await`, `AsyncSession` eller `asyncpg`.**
 
-Hotprevue er et én-bruker-system. Async gir ingen concurrency-gevinst og øker kompleksiteten uten nytte. Pillow (preview-generering) er synkront uansett. Sync er det riktige valget.
+Hotprevue er et system med svært få samtidige brukere. Async gir ingen concurrency-gevinst og øker kompleksiteten uten nytte. Pillow (preview-generering) er synkront uansett. Sync er det riktige valget.
 
 | Synkron (brukes) | Asynkron (brukes ikke) |
 |---|---|
@@ -27,6 +32,14 @@ Hotprevue er et én-bruker-system. Async gir ingen concurrency-gevinst og øker 
 | `psycopg2-binary` | `asyncpg` |
 | `TestClient` (tester) | `AsyncClient` |
 | Lazy loading fungerer normalt | `selectinload()` påkrevd |
+
+---
+
+## Autentisering og tilgang
+
+- Maskiner (agent/klient) autentiserer med Bearer-token utstedt via invitasjonskode (`/auth/enroll`, ADR-040). Token-hash lagres i `machine_tokens`.
+- Fotografer har `access_level` (`owner`/`guest`, ADR-044). `services/access_filter.py` filtrerer hva en gjest ser.
+- Forespørsler uten token behandles i dag som eier («legacy owner»-modus bak Tailscale). Obligatorisk håndheving er en forutsetning for ADR-032 (eksponering uten Tailscale).
 
 ---
 
@@ -53,12 +66,16 @@ HTTP-forespørsel
 
 **Ingen repository-lag.** SQLAlchemy ORM er allerede et abstraksjonslag mot databasen. Et ekstra repository-lag dupliserer dette uten gevinst. Service-laget kaller ORM direkte.
 
+Merk: enkle ressurser (f.eks. kinds, tags, shortcuts) kan ha logikken rett i
+route-handleren når det ikke finnes forretningsregler å isolere — service-fil
+opprettes når logikken vokser.
+
 ---
 
 ## Hvert lags ansvar
 
 ### `api/`
-- Route-handlere kun — ingen forretningslogikk, ingen SQL
+- Route-handlere kun — ingen forretningslogikk, ingen SQL (unntak: trivielle CRUD-ressurser)
 - Mottar request, validerer via Pydantic-schema
 - Kaller én service-funksjon
 - Konverterer returnert ORM-objekt til Pydantic-responsschema
@@ -178,7 +195,6 @@ class PhotoListItem(BaseModel):
     # ... øvrige liste-felt
 
 class PhotoDetail(PhotoListItem):
-    coldpreview_path: str | None
     exif_data: dict | None
     taken_at_source: int
     location_source: int | None
@@ -194,61 +210,27 @@ class PhotoDetail(PhotoListItem):
 
 ## Mappestruktur
 
+Én fil per ressurs i hvert lag. Faktisk innhold per juli 2026:
+
 ```
 backend/
-  api/
-    __init__.py
-    photos.py
-    events.py
-    collections.py
-    stacks.py
-    input_sessions.py
-    photographers.py
-    categories.py
-    duplicates.py
-    settings.py
-  models/
-    __init__.py
-    base.py
-    photo.py
-    event.py
-    collection.py
-    input_session.py
-    photographer.py
-    category.py
-    settings.py
-  schemas/
-    __init__.py
-    photo.py
-    event.py
-    collection.py
-    input_session.py
-    photographer.py
-    category.py
-    settings.py
-    common.py            # delte typer, f.eks. BatchResult
-  services/
-    __init__.py
-    photo_service.py
-    event_service.py
-    collection_service.py
-    input_session_service.py
-    photographer_service.py
-    category_service.py
-    settings_service.py
-  utils/
-    __init__.py
-    exif.py
-    previews.py
-  core/
-    __init__.py
-    config.py
-  database/
-    __init__.py
-    session.py
-  tests/
-    ...
-  alembic/
-    ...
+  api/        auth, admin, ai, photos, input_sessions, events, collections,
+              text_items, stacks, tags, kinds, photographers, machines,
+              searches, settings, share, shortcuts, stats, system, file_copy
+  models/     photo (Photo, ImageFile, DuplicateFile, PhotoCorrection),
+              input_session (InputSession, SessionError), event, collection,
+              text_item, stack, tag (Tag, PhotoTag), kind, category,
+              photographer, machine (Machine, MachineToken, MachineInviteCode),
+              machine_lock, saved_search, settings, shortcut, ai,
+              photo_field_edit, file_copy
+  schemas/    speiler api/-ressursene
+  services/   photo, input_session, event, collection, text_item, stack, tag,
+              kind, photographer, search, shortcut, file_copy,
+              access_filter, public_share
+  utils/      exif, previews m.m.
+  core/       config
+  database/   session
+  tests/      pytest (kjøres via scripts/run-tests.sh)
+  alembic/    migrasjoner (kjøres via scripts/alembic-upgrade.sh)
   main.py
 ```

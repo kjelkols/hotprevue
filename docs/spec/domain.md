@@ -9,21 +9,21 @@ Denne filen er den autoritative kilden til terminologi i Hotprevue. Ved tvil om 
 | Norsk | Engelsk (kode) | Komponent | Beskrivelse |
 |---|---|---|---|
 | Utvalg | `Browse` | `BrowseView` | Spørringsbasert, ikke-sekvensiell bildeliste. Grunnlag for avkryssingstilstand og batch-operasjoner. |
-| Kolleksjonsvisning | `Collection` | `CollectionView` | Kuratert, ordnet sekvens av CollectionItems. Caption, tekstkort, posisjonsmarkør. |
-| Lysbord | `Tray` | `SelectionTray` | Frittstående, flyttbart vindu med avkryssede bilder og handlingsverktøylinje. Midlertidig arbeidsflate. **NB:** «Lightbox» brukes ikke — det betyr fullskjermvisning av ett bilde i webprogrammering. |
+| Kolleksjonsvisning | `Collection` | `CollectionView` | Kuratert, ordnet sekvens av CollectionItems. Caption, tekstkort. |
+| Lysbord | `Tray` | `SelectionTray` | Overlegg nederst i vinduet med avkryssede bilder og handlinger. Vises når utvalget er ikke-tomt. **NB:** «Lightbox» brukes ikke — det betyr fullskjermvisning av ett bilde i webprogrammering. |
 | Avkryssingstilstand | `Selection` | `useSelectionStore` | Hvilke photos er avkrysset. Deles mellom BrowseView og SelectionTray. Intern tilstand, ikke et domeneobjekt. |
 | Kontekstmeny | `ContextMenu` | `useContextMenuStore` + `ContextMenuOverlay` | Flytende meny utløst av høyreklikk. Innholdet avhenger av seleksjonstilstand og hva som ble høyreklikket. Globalt system — se `context-menu.md`. |
-| Posisjonsmarkør | `InsertionPoint` | `InsertionPoint` | Innsettingspunkt i en kolleksjon — angir hvor avkryssede bilder settes inn. |
-| Hjem | `Home` | `HomePage` | Startside med programoversikt. Ingen bildestrøm. |
-| Taskbar | `Taskbar` | `Taskbar` | Persistent navigasjonslinje for funksjonsområder. |
+| Hjem | `Home` | `HomePage` | Startside med statistikk, snarveier og bildemosaikk. |
+| Toppmeny | `TopNav` | `TopNav` | Persistent navigasjonslinje med primærlenker og nedtrekksgrupper. |
 
 **«Gallery» brukes ikke** — verken i UI-tekst, komponentnavn eller kode.
+**«Import» brukes ikke** — bilder *registreres*, de importeres aldri.
 
 ---
 
 ## Photo
 
-Den grunnleggende enheten i systemet. Et Photo representerer ett logisk fotografi — ett opptak, én kreativ enhet. Knyttes til events og collections, og får rating. Et Photo kan ha én eller flere tilknyttede originalfiler (se ImageFile).
+Den grunnleggende enheten i systemet. Et Photo representerer ett logisk fotografi — ett opptak, én kreativ enhet. Knyttes til events, collections, tags, kind og fotograf, og får rating. Et Photo kan ha én eller flere tilknyttede originalfiler (se ImageFile).
 
 ## ImageFile
 
@@ -35,29 +35,31 @@ Filtyper som lagres: `RAW`, `JPEG`, `TIFF`, `PNG`, `HEIC`, `XMP`. XMP-sidecar-fi
 
 ## Registrering
 
-Prosessen der bilder legges inn i systemet. Aldri kalt "import". Frontend scanner katalogen lokalt og sender filinnhold til backend (multipart), som trekker ut EXIF, genererer hotpreview og coldpreview — originalfilene røres ikke.
+Prosessen der bilder legges inn i systemet. Aldri kalt «import». Agenten (lokalt Python-program med filsystemtilgang) skanner katalogen, leser filene, trekker ut EXIF og genererer previews; frontend orkestrerer og sender resultatene som JSON (base64-previews) til backend. Backend leser aldri originalfiler (ADR-008/024).
 
 ## Fotograf
 
-En person som har tatt ett eller flere Photos i systemet. Ikke en systembruker — ingen innlogging eller tilgangskontroll. Eieren av systemet administrerer fotograflisten på vegne av alle. Hvert Photo må ha én fotograf (aldri null). Systemet har alltid én standardfotograf (`is_default`) og én plassholder for ukjent fotograf (`is_unknown`).
+En person som har tatt ett eller flere Photos — og samtidig systemets brukeridentitet (ADR-044). Hver fotograf har et tilgangsnivå: `owner` (full tilgang, inkl. administrasjon) eller `guest` (ser eget innhold og det som er delt). Hvert Photo må ha én fotograf (aldri null). Systemet har alltid én standardfotograf (`is_default`) og én plassholder for ukjent fotograf (`is_unknown`).
 
-Fotograf settes automatisk ved registrering basert på input-sesjonen, men kan korrigeres i etterkant på enkeltbilder eller i batch.
+Fotograf settes automatisk ved registrering basert på maskinen/sesjonen, men kan korrigeres i etterkant på enkeltbilder eller i batch.
 
-Feltene `name`, `website` og `bio` er de som publiseres til Hotprevue Global. `notes` er intern og publiseres aldri.
+Feltene `name`, `website` og `bio` er offentlige (deling); `notes` er intern og publiseres aldri.
+
+## Maskin
+
+Hver klientinstallasjon er en registrert maskin (`machines`-tabellen) med nøyaktig én fotograf (ADR-011). `photos.registered_by_machine_id` sporer hvilken maskin som registrerte et bilde. Maskiner autentiseres med API-token (`machine_tokens`, hash lagret) utstedt ved innrullering med invitasjonskode (`machine_invite_codes`, ADR-040). Maskinen har egne innstillinger (JSONB) og katalogsnarveier.
+
+**Identitetsvalg i nettleser (ADR-012):** en nettleser uten Python-klient velger fotografidentitet fra en liste; valget persisteres i `localStorage` og kreves for skriveoperasjoner.
 
 ## Input-sesjon
 
 En navngitt registreringskjøring som kombinerer kildeaspektet (hvem sitt utstyr, hvilken kilde) med hendelsesaspektet (én konkret kjøring med tidspunkt og filsti). Eksempler: "Kjells iPhone", "Familiekamera SD-kort", "Arkiv 1990–2000".
 
-Alle Photos registrert i en sesjon knyttes til den og kan alltid søkes ut via `input_session_id`. Sesjonen er et organisatorisk ankerpunkt — Photos behøver ikke ha event ved registrering.
+Alle Photos registrert i en sesjon knyttes til den og kan alltid søkes ut via `input_session_id`. Sesjonen er et organisatorisk ankerpunkt — Photos behøver ikke ha event ved registrering, men registreringsflyten kan sette `event_id` per gruppe basert på katalogkartet (ADR-024).
 
-**Standardverdier:** Sesjonen har en obligatorisk standardfotograf (`default_photographer_id`) og et valgfritt standardevent (`default_event_id`). Photos arver disse som standardverdier. Begge kan overstyres per Photo i etterkant.
+**Standardverdier:** Sesjonen har en obligatorisk standardfotograf (`default_photographer_id`) og et valgfritt standardevent (`default_event_id`). Photos arver disse som standardverdier. Begge kan overstyres per Photo.
 
-**Event-tilknytning:** To alternativer — ingen event (`default_event_id` er null) eller ett spesifikt event (satt av brukeren). Automatisk event-generering fra katalogstruktur er et frontend-ansvar og skjer ikke i backend.
-
-**Rekursiv skanning:** `recursive`-flagget (standard: true) er et informasjonsfelt — backend leser ikke filsystemet direkte. Frontend bruker flagget til å styre sin egen skannelogikk.
-
-**Status:** Sesjonen har en livssyklus: `pending` (opprettet, ingen grupper mottatt) → `uploading` (første gruppe registrert) → `completed` (`/complete` er kalt).
+**Status:** `pending` (opprettet, ingen grupper mottatt) → `uploading` (første gruppe registrert) → `completed` (`/complete` er kalt).
 
 **Duplikater:** Filer med hothash som matcher et eksisterende Photo, men med en ny ukjent filsti, registreres i `DuplicateFile`-tabellen og telles i `duplicate_count`.
 
@@ -65,19 +67,13 @@ Alle Photos registrert i en sesjon knyttes til den og kan alltid søkes ut via `
 
 ## DuplicateFile
 
-Et register over filer oppdaget under skanning som har identisk hothash som et eksisterende Photo, men en ukjent filsti. Indikerer at samme bilde finnes på flere steder i filsystemet — en uønsket tilstand brukeren bør rydde opp i.
+Et register over filer oppdaget under skanning som har identisk hothash som et eksisterende Photo, men en ukjent filsti. Indikerer at samme bilde finnes på flere steder i filsystemet — en uønsket tilstand brukeren bør rydde opp i. Hotprevue sletter eller flytter aldri filer på egen hånd.
 
-Backend registrerer duplikater passivt under skanning. Ingen statuslogikk, ingen arbeidsflyt i backend. Frontend presenterer listen og gir brukeren informasjonen som trengs for å handle utenfor systemet. Hotprevue sletter eller flytter aldri filer.
-
-En DuplicateFile-rad fjernes stille fra databasen når filen ikke lenger finnes på disk — oppdaget under neste skanning av samme katalog eller ved manuell filsti-validering. Cascade-slettes når tilhørende Photo slettes.
-
-Unik constraint på `file_path`: samme fil registreres aldri to ganger som duplikat, uavhengig av hvilken sesjon som finner den.
+Unik constraint på `file_path`: samme fil registreres aldri to ganger som duplikat. Cascade-slettes når tilhørende Photo slettes.
 
 ## SessionError
 
-En logg over filer som feilet under prosessering i en InputSession — f.eks. ulesbare filer, ødelagte bildefiler eller manglende lesetilgang. Gir sporbarhet for problemer brukeren bør undersøke.
-
-Cascade-slettes når sesjonen de tilhører slettes.
+En logg over filer som feilet under prosessering i en InputSession — f.eks. ulesbare filer, ødelagte bildefiler eller manglende lesetilgang. Cascade-slettes med sesjonen.
 
 ## Hothash
 
@@ -85,73 +81,63 @@ SHA256 av hotpreview-JPEG-bytene. Brukes som unik ID for et Photo i hele systeme
 
 ## Hotpreview
 
-150×150 px JPEG, base64-kodet, lagret direkte i databasen. Generert fra masterfilens innhold ved registrering. Brukes til rask visning i gallerier uten diskaksess.
+150×150 px JPEG, base64-kodet, lagret direkte i databasen. Generert fra masterfilens innhold ved registrering. Brukes til rask visning i grids uten diskaksess.
 
 ## Coldpreview
 
-Opptil 1200 px JPEG, lagret på disk i en hash-basert katalogstruktur (`$COLDPREVIEW_DIR/<ab>/<cd>/<hothash>.jpg`). Brukes til detaljvisning. Kan regenereres fra masterfilens originalfil hvis den er tilgjengelig.
+Opptil 1200 px JPEG, lagret på disk i en hash-basert katalogstruktur (`<ab>/<cd>/<hothash>.jpg`). Brukes til detaljvisning. Kan regenereres fra masterfilens originalfil hvis den er tilgjengelig.
+
+## Kind (ADR-034)
+
+Gjensidig utelukkende klassifikasjon av Photos etter *hva slags bilde det er* — f.eks. «Foto», «Skjermbilde», «Dokument», «Skannet». Hvert Photo har nøyaktig én kind (`kind_id`, aldri null; ny-registrerte får standard-kind). Kind har farge, sorteringsrekkefølge og `hidden_by_default` — KindFilterBar i frontend lar brukeren skjule kinds fra visningene, med tydelig indikator når noe er skjult.
+
+## Tags (ADR-035)
+
+Fritekstetiketter på Photos — f.eks. `solnedgang`, `fjell`, `familie`. Mange-til-mange via `tags`- og `photo_tags`-tabellene, med slug og trigram-likhetsøk ved oppretting (foreslår eksisterende lignende tags). Forvaltnings-UI med omdøping og sammenslåing. Tags er et søkeverktøy på tvers av alle andre organiseringsmekanismer.
+
+## Category (legacy)
+
+Eldre klassifikasjonsmekanisme (`category_id`, nullable, med `excluded_from_stream`). Tabellen og filtreringen finnes fortsatt, men det er ikke lenger noe forvaltnings-API — Kind (ADR-034) har overtatt rollen. Ikke bygg ny funksjonalitet på Category.
 
 ## Stack
 
-En visuell gruppering av flere Photos av samme motiv. Én stack vises som ett Photo (coverbilde) i galleriet, men kan ekspanderes. Stack har ingen egne metadata — all informasjon ligger på enkelt-Photos. Implementert via `stack_id` på Photo-entiteten.
+En visuell gruppering av flere Photos av samme motiv. Én stack vises som ett Photo (coverbilde) i gridet, men kan ekspanderes. Stack har ingen egne metadata — all informasjon ligger på enkelt-Photos (`stack_id` + `is_stack_cover`).
 
-**Coverbilde:** Alltid eksakt ett Photo per stack er markert som `is_stack_cover`. Coverbilde settes automatisk til det første Photo ved opprettelse. Hvis coverbilde fjernes fra stacken, settes det første gjenværende Photo automatisk som nytt coverbilde.
+**Coverbilde:** Alltid eksakt ett Photo per stack er `is_stack_cover`. Settes automatisk ved opprettelse; hvis coveret fjernes fra stacken, promoteres første gjenværende Photo.
 
-**Eksklusivt medlemskap:** Et Photo kan kun tilhøre én stack. Forsøk på å legge et Photo som allerede er i en annen stack inn i en ny stack avvises med feil.
+**Eksklusivt medlemskap:** Et Photo kan kun tilhøre én stack.
 
-**Levetid:** En stack opprettes alltid med minst ett Photo. Hvis siste Photo fjernes fra en stack, slettes stacken automatisk (`stack_id` settes til `null` på alle gjenværende Photos). En stack kan også slettes eksplisitt — da løses alle Photos fra stacken.
+**Levetid:** Hvis siste Photo fjernes, slettes stacken. En stack kan også oppløses eksplisitt — alle Photos løses fra den.
 
 ## Event
 
-En uordnet gruppe Photos knyttet til en hendelse, et tidspunkt eller et sted. Hvert Photo tilhører maksimalt én event (one-to-many). Ingen rekkefølge på Photos — alle er likestilte.
+En uordnet gruppe Photos knyttet til en hendelse, et tidspunkt eller et sted. Hvert Photo tilhører maksimalt én event (one-to-many).
 
-**Hierarki:** Events støtter ett nivå nesting — en rot-event kan ha child-events, men en child-event kan ikke ha egne children. Hierarkiet er rent organisatorisk: Photos knyttes alltid direkte til én event, og arver ingen tilhørighet oppover. `photo_count` er alltid kun direkte tilknyttede Photos.
+**Hierarki:** Ett nivå nesting — en rot-event kan ha child-events, en child kan ikke ha egne children. Photos knyttes alltid direkte til én event; `photo_count` teller kun direkte tilknyttede.
 
-**Sletting:** `DELETE /events/{id}` avvises med feil hvis eventen har child-events. Brukeren må slette children manuelt først. Photos som tilhørte eventen beholdes — `event_id` settes til `null`.
+**Sletting:** Avvises hvis eventen har children. Photos beholdes — `event_id` settes til `null`.
 
-**Flytte:** En event kan flyttes ved å endre `parent_id` via `PATCH`. En rot-event med children kan ikke gjøres om til child-event — det ville gitt tre nivåer. En child-event kan løsrives til rot-event ved å sette `parent_id` til `null`.
-
-**Navn:** Ingen unik constraint — brukeren bestemmer selv.
+**Flytte:** `parent_id` endres via `PATCH`. En rot-event med children kan ikke bli child (tre nivåer); en child kan løsrives med `parent_id = null`.
 
 ## Collection
 
 En ordnet gruppe Photos der rekkefølgen er viktig. Mange-til-mange: ett Photo kan inngå i flere collections. Brukes til lysbildeserier, porteføljer, leveranser og kuratering.
 
-**Rekkefølge:** Hvert CollectionItem har en heltallsposisjon. Rekkefølge endres via `PUT /collections/{id}/items` som tar inn en sortert liste av item-IDer og oppdaterer kun `position` — innhold røres ikke. Ingen unik constraint på `position`.
+**Rekkefølge:** Hvert CollectionItem har en heltallsposisjon. Rekkefølge endres via `PUT /collections/{id}/items` med sortert item-ID-liste — innhold røres ikke.
 
-**CollectionItem:** En selvstendig entitet med egen UUID. Innholdsendringer (caption, title, text_content) skjer via `PATCH /collections/{id}/items/{item_id}`. Item-IDer er stabile og endres ikke ved resortering.
+**CollectionItem:** Selvstendig entitet med egen UUID og stabil ID. Enten et foto-element (`hothash`) eller et tekstkort (`text_item_id`) — aldri begge.
 
-**Tekstkort:** Et CollectionItem uten tilknyttet Photo. Har `title` og `text_content` — vises som en visuell slide i collection. Kan brukes til å sette kontekst mellom bilder.
+**Tekstkort (TextItem):** Markdown-innhold som vises som egen slide. Kan settes inn mellom bilder for kontekst.
 
-**Coverbilde:** Se felles coverbilde-regel nedenfor. Cover settes via `PATCH /collections/{id}` (`cover_hothash`).
-
-## Tags
-
-> **Merk:** Den gamle `ARRAY(String)`-implementasjonen er fjernet (ADR-035, fase 1).
-> Ny entitetsmodell med `tags`- og `photo_tags`-tabell er planlagt (ADR-035, fase 2).
-
-Et sett med fritekstetiketter på et Photo — f.eks. `solnedgang`, `fjell`, `familie`. Et Photo kan ha mange tags. Tags er et søkeverktøy på tvers av alle andre organiseringsmekanismer.
-
-**Planlagt datamodell:** Egne tabeller `tags (id, name, slug)` og `photo_tags (photo_id, tag_id)` med trigram-indeks for likhetsøk ved oppretting. Se ADR-035 for full spesifikasjon.
-
-## Category
-
-En brukerdefinert kategori som klassifiserer et Photo etter type eller tema — f.eks. `"Botanikk"`, `"Geologi"`, `"Dokumentasjon"`. Kategorier varierer fra bruker til bruker og administreres i systemet.
-
-Hvert Photo har maksimalt én kategori (`category_id`, nullable). Null betyr ingen kategori — slike Photos er alltid synlige i hovedstrømmen.
-
-Kategorier kan merkes som ekskludert fra standard gallerivisning (`excluded_from_stream`). Dette brukes til å holde spesialiserte bilder ute av den vanlige strømmen uten å slette dem.
-
-`category_id`-parameteren i `GET /photos` er designet som array-parameter for fremtidig støtte for filtrering på flere kategorier og ekskludering av kategorier.
+**Presentasjon:** `/collections/:id/present` kjører kolleksjonen som lysbildefremvisning (se `collection-presentation.md`).
 
 ## Coverbilde
 
-Felles regel for alle modeller med coverbilde (Stack, Event, Collection):
+Felles regel for modeller med coverbilde (Stack, Event, Collection):
 
 1. Hvis et eksplisitt coverbilde er satt og Photo er aktivt — bruk det.
-2. Hvis coverbilde er mykt slettet — vis det med "slettet"-indikator. Brukeren velger nytt.
-3. Hvis ingen eksplisitt cover er satt — bruk første Photo etter modellens naturlige rekkefølge.
-4. Ved `empty-trash`: hvis cover-Photo hard-slettes, nullstilles `cover_hothash` automatisk og fallback-regelen trer i kraft.
+2. Hvis ingen eksplisitt cover er satt — bruk første Photo etter modellens naturlige rekkefølge.
+3. Ved `empty-trash`: hvis cover-Photo hard-slettes, nullstilles `cover_hothash` og fallback-regelen trer i kraft.
 
 | Modell | Cover lagret som | Fallback-rekkefølge |
 |---|---|---|
@@ -159,16 +145,14 @@ Felles regel for alle modeller med coverbilde (Stack, Event, Collection):
 | Event | `cover_hothash` på Event | `taken_at ASC` |
 | Collection | `cover_hothash` på Collection | `position ASC` |
 
-Stack skiller seg fra de andre ved at `is_stack_cover` alltid auto-settes (ved opprettelse og ved fjerning av cover). Event og Collection holder `cover_hothash` nullable — brukeren setter det manuelt.
-
 ## Soft delete
 
-Photos slettes ikke direkte fra databasen. `DELETE /photos/{hothash}` setter `deleted_at = now()` — Photo er fortsatt i databasen men filtreres ut fra alle visninger som standard.
+Photos slettes ikke direkte. `POST /photos/{hothash}/delete` setter `deleted_at = now()` — Photo er fortsatt i databasen men filtreres ut fra alle visninger som standard.
 
-- `POST /photos/{hothash}/restore` — gjenoppretter et mykt slettet Photo (`deleted_at = null`)
-- `POST /photos/empty-trash` — hard-sletter alle Photos med `deleted_at` satt, inkludert coldpreview-filer på disk
+- `POST /photos/{hothash}/restore` — gjenoppretter (`deleted_at = null`)
+- `POST /photos/empty-trash` — hard-sletter alle med `deleted_at` satt, inkludert coldpreview-filer på disk
 
-**Re-registrering:** Hvis en fil med samme hothash som et mykt slettet Photo skannes på nytt, gjenopprettes Photo stille (`deleted_at = null`) uten duplikatvarsel.
+**Re-registrering:** En fil med samme hothash som et mykt slettet Photo gjenoppretter det stille ved ny skanning.
 
 ## To verdener: organisering og presentasjon
 
@@ -176,142 +160,38 @@ Hotprevue skiller mellom to fundamentalt ulike kontekster. Å forstå dette skil
 
 | | Organisering (BrowseView) | Presentasjon (CollectionView) |
 |---|---|---|
-| **Formål** | Sortere, kategorisere, rydde metadata | Kuratere og fremføre et ferdig produkt |
+| **Formål** | Sortere, klassifisere, rydde metadata | Kuratere og fremføre et ferdig produkt |
 | **Innhold** | Spørringsresultat — bestemmes av filtre | Eksplisitt utvalgt og ordnet av brukeren |
 | **Rekkefølge** | Automatisk (dato, rating o.l.) | Manuell — brukerdefinert og meningsfull |
 | **Elementtype** | Photos uten presentasjonsattributter | CollectionItems: foto eller tekstkort |
-| **Ekstra attributter** | Ingen per element | caption, notes, posisjon |
-| **Operasjoner** | Sett event, legg til tag, sett fotograf, vurder, slett | Reorder, sett caption, legg til tekstkort, fjern fra samling |
-| **Avkryssingstilstand** | Ja — for batch-operasjoner | Nei — InsertionPoint brukes i stedet |
+| **Operasjoner** | Sett event/kind/tag/fotograf, vurder, slett | Reorder, caption, tekstkort, fjern fra samling |
+| **Avkryssingstilstand** | Ja — for batch-operasjoner | Nei |
 | **Kan være kilde** | Ja | **Aldri** |
-| **Kan være destinasjon** | Nei (events og tags er destinasjoner) | Ja — bilder settes inn fra BrowseView |
 
-**Collection er et sluttprodukt**, ikke et arbeidsverktøy for metadata-organisering. Den bygges *av* organiserte bilder, og er destinasjonen for kuratering — aldri kilden.
-
----
-
-## BrowseView (Utvalg)
-
-En spørringsbasert, ikke-sekvensiell liste av Photos — resultatet av en filtrering, et søk eller en kontekstside (event, fotograf, osv.). BrowseView er den mest vanlige visningsformen i systemet.
-
-**Kjennetegn:**
-- Innholdet bestemmes av spørringsparametre, ikke av brukerens kuratering
-- Ingen fast rekkefølge — sorteres etter valgt sorteringskriterium
-- Støtter avkryssingstilstand — brukeren kan merke bilder for batch-operasjoner
-- Ingen caption, ingen tekstkort, ingen posisjonsmarkør
-
-BrowseView er en gjenbrukbar komponent som brukes overalt der et spørringsresultat vises: på Hjem, Event-sider, Fotograf-sider, Søk og andre steder.
-
-**«Gallery» brukes ikke** om denne eller noen annen visning.
-
----
-
-## CollectionView (Kolleksjonsvisning)
-
-Visning av en Collection — et kuratert, ordnet presentasjonsmedium. CollectionView og BrowseView ser visuelt like ut, men representerer fundamentalt forskjellige kontekster (se tabellen over).
-
-**Kjennetegn:**
-- Innholdet er eksplisitt kuratert av brukeren
-- Rekkefølgen er brukerdefinert og semantisk meningsfull (presentasjonsrekkefølge)
-- Hvert foto-element kan ha caption og forelesningsnotater
-- Tekstkort (Markdown) kan blandes inn mellom bilder
-- Har en posisjonsmarkør (InsertionPoint) som viser hvor nye elementer settes inn
-- Batch-operasjoner på bildemetadata (sett event, legg til tag, osv.) er **ikke** tilgjengelig i CollectionView
-- CollectionView er **aldri** en kilde for assignment-operasjoner
-
-**Innsetting fra BrowseView:** Brukeren velger bilder i BrowseView via avkryssingstilstand og setter dem inn i en collection via CollectionPickerModal. InsertionPoint angir posisjon hvis brukeren er inne i CollectionView når innsettingen skjer.
-
----
+**Collection er et sluttprodukt**, ikke et arbeidsverktøy for metadata-organisering. Den bygges *av* organiserte bilder og er destinasjonen for kuratering — aldri kilden.
 
 ## SelectionTray (Lysbord)
 
-Et frittstående, flyttbart vindu som viser Photos i avkryssingstilstand. Lysbord er brukerens midlertidige arbeidsflate — analogt med et fysisk lysbord der fotografen legger ut dias for å sammenligne og velge.
+Overlegg nederst i vinduet som viser avkryssede bilder med handlingsknapper (tildeling m.m.). Vises automatisk når utvalget er ikke-tomt; SelectionModal gir full oversikt. Analogt med et fysisk lysbord der fotografen legger ut dias for å sammenligne og velge. Se `selection-tray.md`.
 
-**Kjennetegn:**
-- Samler avkryssede bilder fra alle kontekster (BrowseView, Event-sider, osv.)
-- Vises i et eget vindu utenfor hovedapplikasjonen
-- Har en verktøylinje med tilgjengelige handlinger
-- Beholdes inntil brukeren tømmer det manuelt
-
-**Handlinger fra Lysbord:**
-- Sett event, sett rating, legg til/fjern tags, sett fotograf
-- Legg til kolleksjon (med InsertionPoint)
-- Slett (soft delete)
-- Angre siste handling
-
-**Reversibilitet:** Én angre-operasjon per handling. Tidligere tilstand per photo lagres ved utføring og brukes til å PATCH tilbake. Multi-nivå angre støttes ikke — én angre-operasjon, deretter nullstilles angre-historikken.
-
-**NB:** «Lightbox» brukes ikke — dette begrepet betyr fullskjermvisning av ett bilde i webprogrammering og må ikke blandes med Lysbord.
-
----
-
-## Avkryssingstilstand (Selection)
-
-Hvilke Photos som er avkrysset av brukeren til enhver tid. Avkryssingstilstand er en ren klient-tilstand — den lagres ikke i databasen og nullstilles ved sidenavigasjon eller manuelt.
-
-Avkryssingstilstand deles mellom BrowseView (der bilder merkes) og SelectionTray (der de vises og prosesseres). Implementert som en Zustand-store (`useSelectionStore`).
-
-Avkryssingstilstand er ikke det samme som Lysbord — Lysbord er vinduet og handlingene, avkryssingstilstand er listen over merkede hothashes.
-
----
-
-## InsertionPoint (Posisjonsmarkør)
-
-Innsettingspunkt i en CollectionView — angir *mellom hvilke* CollectionItems nye elementer plasseres ved innsetting fra Lysbord. Analogt med tekstbehandlerens skrivemarkør.
-
-InsertionPoint settes av brukeren ved å klikke mellom elementer i CollectionView. Vises som en visuell indikator i rutenettet. Kun ett InsertionPoint er aktivt om gangen per Collection.
-
----
-
-## Hjem (Home)
-
-Applikasjonens startside. Fokuserer på programstruktur og oversikt — ikke en bildestrøm. Brukeren har for mange bilder til fri scrolling; Hjem gir tilgang til funksjonsområdene og viser relevant kontekstuell informasjon (siste registrering, statistikk, snarveier).
-
----
-
-## Taskbar
-
-Persistent navigasjonslinje som gir tilgang til applikasjonens funksjonsområder. Alltid synlig. Inkluderer indikator for aktiv avkryssingstilstand (antall merkede bilder).
-
----
-
-## Story (PhotoText)
-
-En blokk-basert artikkel som kombinerer Photos og tekst. Lar brukeren fortelle en historie rundt bildene.
+**NB:** «Lightbox» brukes ikke — det betyr fullskjermvisning av ett bilde i webprogrammering og må ikke blandes med Lysbord.
 
 ## Korreksjon
 
 To typer korreksjon i systemet:
 
-**1. Metadata-korreksjon** (`taken_at`, `location`) — se feltene `taken_at_source`, `taken_at_accuracy`, `location_source`, `location_accuracy` på Photo.
+### Visningskorreksjon (ADR-028)
 
-**2. Visningskorreksjon** — rotasjon, horisont, eksponering og crop. Lagres i `PhotoCorrection`-tabellen (kun Photos som har korreksjoner).
+Rotasjon, speiling, horisont, eksponering og crop. Lagres i `PhotoCorrection`-tabellen (kun Photos som har korreksjoner). Originalfil og coldpreview på disk røres aldri:
 
-### Tre-lags-modell
+- **Coldpreview:** korreksjonen appliseres **på-farten** når `GET /photos/{hothash}/coldpreview` serveres (rotation → flip → horisont → crop → eksponering). Ingen korrigert fil lagres.
+- **Hotpreview:** immutabel (hothash!). Rotasjon/flip er denormalisert til liste-responsen og appliseres som CSS-transform i frontend.
 
-| Lag | Hva | Endres? |
-|---|---|---|
-| Originalfil | Kildefilen på disk | Aldri |
-| Coldpreview | Generert fra masterfil ved registrering — statisk for alltid | Aldri |
-| PhotoCorrection | Korreksjonens parametere + sti til korrigert coldpreview | Ja — brukeren justerer fritt |
-| Korrigert coldpreview | Generert fra original coldpreview + korreksjon. Sti lagret i PhotoCorrection. | Regenereres ved hver korreksjonseendring |
+`PATCH /photos/{hothash}/correction` oppdaterer delvis; `DELETE` fjerner hele korreksjonen.
 
-**Coldpreview er kilden for korreksjon** — korrigert coldpreview genereres alltid fra original coldpreview, ikke fra originalfilen. Originalfilen er ikke nødvendig for å anvende eller endre korreksjoner.
+### Metadata-korreksjon (ADR-043)
 
-**Hotpreview er immutabel** — hothash er basert på hotpreview-bytes og kan ikke endres. Korreksjon på hotpreview anvendes kun ved visning i frontend (CSS transform/filter).
-
-**Coldpreview-logikk:** Frontend bruker `corrected_coldpreview_path` hvis den finnes, ellers `coldpreview_path`. Original coldpreview røres aldri.
-
-**Automatisk håndtering:**
-- `PUT /photos/{hothash}/correction` → lagrer korreksjon, genererer korrigert coldpreview fra original coldpreview
-- Korreksjon endres → korrigert coldpreview regenereres fra original coldpreview, overskrives
-- `DELETE /photos/{hothash}/correction` → sletter korreksjon og korrigert coldpreview-fil
-
-### Metadata-korreksjon
-
-Brukerkorrigering av `taken_at` og `location` — de to feltene som oftest trenger justering. Typiske tilfeller: feil klokke i kamera, manglende GPS, scannede bilder uten EXIF.
-
-Korreksjon lagres direkte i Photo-feltene (`taken_at`, `location_lat`, `location_lng`). Original-EXIF er alltid bevart i `exif_data` og kan brukes til å tilbakestille. To kildeflagg dokumenterer hvordan den gjeldende verdien ble satt:
+Brukerkorrigering av `taken_at` og posisjon — de to feltene som oftest trenger justering (feil kameraklokke, manglende GPS, skannede bilder). Verdien lagres direkte i Photo-feltene; original-EXIF er alltid bevart i `exif_data`. Hver endring logges i `PhotoFieldEdit` (gammel/ny verdi, metode, maskin, tidspunkt) — full provenans.
 
 **`taken_at_source` og `location_source`:**
 
@@ -321,36 +201,28 @@ Korreksjon lagres direkte i Photo-feltene (`taken_at`, `location_lat`, `location
 | `1` | Justert fra EXIF — f.eks. tidsoffset lagt til |
 | `2` | Satt manuelt — ingen EXIF-kilde |
 
-**`taken_at_accuracy`** — hvor presis er tidspunktet:
+**`taken_at_accuracy`:** `second` / `hour` / `day` / `month` / `year` — styrer hvordan tidspunktet vises («Juni 2023», «1975»).
 
-| Verdi | Visningseksempel |
-|---|---|
-| `second` | 15. juni 2023, 14:32:07 |
-| `hour` | 15. juni 2023, ca. 14:00 |
-| `day` | 15. juni 2023 |
-| `month` | Juni 2023 |
-| `year` | 1975 |
+**`location_accuracy`:** `exact` (<50 m) / `street` / `city` / `region` / `country` (+ `location_accuracy_meters`) — styrer kartvisning: presis pin ved `exact`, uskarpt område ved `city`, bare stedsnavn ved `region`/`country`.
 
-**`location_accuracy`** — hvor presis er posisjonen:
+## Kvalitetsmetrikker (ADR-021)
 
-| Verdi | Typisk radius |
-|---|---|
-| `exact` | < 50m — GPS eller presis kartpin |
-| `street` | ~500m — nabolag |
-| `city` | ~10km — by |
-| `region` | ~100km — fylke/region |
-| `country` | — |
+Beregnes av agenten fra originalfilen ved registrering: `sharpness_score`, `exposure_mean`, `exposure_clipping`, `noise_score`. Brukes som søkekriterier.
 
-Frontend bruker accuracy til å bestemme visning: presis pin på kart ved `exact`, uskarpt område ved `city`, bare stedsnavn ved `region`/`country`.
+## Deling (ADR-045)
+
+Et Photo kan deles: internt (visningsside med caption) og offentlig via relay-tjenesten (`public_share_token` + utløpsdato). Nedlasting av original går via backend som proxy mot maskinen som har filen.
 
 ## SystemSettings
 
-Én enkelt rad i databasen som representerer hele systemkonfigurasjonen. Opprettes automatisk ved første oppstart — ingen manuell initialisering nødvendig.
+Én enkelt rad i databasen som representerer global systemkonfigurasjon. Opprettes automatisk ved første oppstart.
 
-**Installasjons-ID:** En UUID som genereres én gang og aldri endres. Identifiserer denne installasjonen globalt — f.eks. mot Hotprevue Global. ID-en tilhører *arkivet*, ikke maskinen: ved synkronisering mellom maskiner følger ID-en med databasen og forblir den samme.
+**Installasjons-ID:** En UUID som genereres én gang og aldri endres. ID-en tilhører *arkivet*, ikke maskinen.
 
-**Eierinfo** (`owner_name`, `owner_website`, `owner_bio`, `instance_name`): Informasjon om hvem som driver installasjonen og hva den heter. Skilles bevisst fra Photographer-modellen — Photographer er kreativ attribuering per foto, eierinfo er avsenderidentitet på installasjons­nivå. Disse kan tilhøre samme person, men systemet kobler dem ikke automatisk.
+**Eierinfo** (`owner_name`, `owner_website`, `owner_bio`, `instance_name`): avsenderidentitet på installasjonsnivå — bevisst adskilt fra Photographer (kreativ attribuering per foto).
 
-**Visningsinnstillinger:** `default_sort`, `show_deleted_in_gallery` og `browse_buffer_size` styrer standardoppførselen i BrowseView. Frontend bør respektere disse som innledende tilstand, men kan la brukeren overstyre midlertidig i sesjonen.
+**Visnings- og previewinnstillinger:** `default_sort`, `show_deleted_in_gallery`, `browse_buffer_size`, `coldpreview_max_px` (1200), `coldpreview_quality` (85). Coldpreviews er statiske etter generering.
 
-**Coldpreview-innstillinger:** `coldpreview_max_px` og `coldpreview_quality` styrer generering av coldpreview ved registrering. Coldpreviews er statiske etter generering og påvirkes ikke av senere endringer i disse innstillingene. Standardverdiene (1200 px langside, 85 % kvalitet) er anbefalte verdier og vises som hint i UI.
+**Deling:** relay-URL, base-URL, API-nøkkel og standard TTL for offentlige lenker (ADR-045).
+
+**Maskininnstillinger:** innstillinger som er per maskin (ikke per installasjon) lagres i `machines.settings` (JSONB) og endres via `PATCH /settings/machine`.
