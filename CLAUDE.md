@@ -4,28 +4,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Hotprevue** is a photo management system for organizing, viewing, and accessing large image collections. It indexes images without moving or altering original files — only metadata is stored. The system is single-user with no authentication.
+**Hotprevue** is a photo management system for organizing, viewing, and accessing large image collections. It indexes images without moving or altering original files — only metadata is stored. Users are photographers: one owner plus optional guests (`photographers.access_level`, ADR-044); machines authenticate with API tokens issued via invite codes (ADR-040). Requests without a token are currently treated as owner (behind Tailscale) — mandatory enforcement is a precondition for ADR-032.
 
 ## Architecture
 
-Two separate components with clearly defined responsibilities:
-
-**Client** (locally installed on the user's machine):
-- Python process + React UI in browser — same distribution format as before (zip + uv binary)
-- Reads local image files directly from disk
-- Extracts EXIF, generates hotpreview (150×150), computes hothash, generates coldpreview (max 1200px)
-- Sends processed results to backend API — never writes to database or disk itself
-- Serves React UI on localhost
+Three components with clearly defined responsibilities:
 
 **Backend** (local or on a server):
 - FastAPI (Python), SQLAlchemy (sync, psycopg2), Alembic for migrations
 - Pure API server — never reads original image files
 - Stores metadata in PostgreSQL, stores coldpreviews on disk, serves coldpreviews via HTTP
+- Also serves the built frontend as static files (`HOTPREVUE_FRONTEND_DIR`)
 - Structure: `api/`, `core/`, `database/`, `models/`, `schemas/`, `services/`, `utils/`
 
-**Frontend** (React app, served by the client):
+**Agent** (local Python process in `client/`, port 8002):
+- Runs on machines that register photos; has full filesystem access
+- Scans directories, reads RAW/JPEG files, extracts EXIF, generates hotpreview (150×150), computes hothash, generates coldpreview (max 1200px)
+- Talks only to the browser — never to the backend or database
+- Started by `scripts/dev-local.sh` in dev; not yet part of the zip distribution (planned uploader-app split, see `docs/vision/tilgang-og-deling.md`)
+
+**Frontend** (React app in the browser, served by the backend — or Vite in dev):
 - React 18 + TypeScript + Tailwind CSS + Vite
 - State: React Query (server), Zustand (client). UI primitives: Radix UI
+- Talks to the backend API, and to the agent (port 8002) for registration and Lokale verktøy
 - Structure: `src/api/`, `src/types/`, `src/components/ui/`, `src/features/`, `src/pages/`, `src/stores/`, `src/hooks/`, `src/lib/`
 
 **Tests:** `backend/tests/` — pytest-based.
@@ -206,31 +207,30 @@ These rules apply to all frontend code and exist to prevent AI formatting errors
 - **React Query for all server state.** No `useState` for data that comes from the API.
 - **Zustand for client-only state** (selection mode, active filters, etc.).
 
-## Client Does File Processing
+## Agent Does File Processing
 
-The client is a **local process** running on the user's machine with full filesystem access. The browser UI has no filesystem access — all file operations go through the local Python process.
-
-The client (not the backend) owns all image processing:
+The agent is a **local process** running on the user's machine with full filesystem access. The browser UI has no filesystem access — all file operations go through the agent. The browser orchestrates: it asks the agent to scan and process, receives the results (base64 previews, EXIF), and forwards them to the backend.
 
 ```
-Browser (React)       Local Python (client)         Backend API (local or remote)
+Browser (React)          Agent (port 8002)             Backend API (local or remote)
       │                       │                              │
-      │  "scan directory"     │                              │
+      │  scan / process       │                              │
       │ ───────────────────►  │  os.scandir(path)            │
       │                       │  read RAW files              │
       │                       │  extract EXIF                │
       │                       │  generate hotpreview         │
       │                       │  compute hothash             │
       │                       │  generate coldpreview        │
-      │                       │                              │
-      │                       │  POST /input-sessions/{id}/groups
-      │                       │  { hothash, previews, exif } │
-      │                       │ ────────────────────────────►│
-      │                       │                              │  store in PostgreSQL
-      │                       │                              │  save coldpreview to disk
+      │  ◄─────────────────── │                              │
+      │  { hothash, previews (base64), exif }                │
+      │                                                      │
+      │  POST /input-sessions/{id}/groups                    │
+      │ ───────────────────────────────────────────────────► │
+      │                                                      │  store in PostgreSQL
+      │                                                      │  save coldpreview to disk
 ```
 
-**Rule:** The backend never reads original image files. All file processing happens client-side.
+**Rule:** The backend never reads original image files, and the agent never talks to the backend. All file processing happens client-side; the browser carries the results.
 
 See `docs/decisions/008-client-server-split.md` for full rationale.
 
@@ -345,20 +345,20 @@ Locks have a 30-minute TTL. See `docs/decisions/010-multi-machine-locking.md`.
 
 **Analyse (ingen sesjon opprettes ennå):**
 1. User opens the app in browser at `http://localhost:8000` (or `http://localhost:5173` during Vite dev).
-2. User selects a directory — the local Python client scans it directly.
-3. Client hashes each image (hotpreview → hothash).
-4. Client calls `POST /photos/check-hothashes` (session-independent) to find which are new.
+2. User selects a directory — the agent scans it directly.
+3. The agent hashes each image (hotpreview → hothash).
+4. Browser calls `POST /photos/check-hothashes` (session-independent) to find which are new.
 5. If no new images: user is informed, no session is created.
 6. Frontend shows StepFolderMap: one row per subdirectory, editable event names, automatic lookup of existing events via `POST /system/folder-event-lookup`.
 
 **Registrering (etter brukerbekreftelse):**
-7. Client creates a session via `POST /input-sessions`.
-8. Client processes each new image: generates coldpreview, reads full EXIF.
-9. Client sends each processed group to backend via `POST /input-sessions/{id}/groups`, including `event_id` per group based on the catalog map.
+7. Browser creates a session via `POST /input-sessions`.
+8. The agent processes each new image: generates coldpreview, reads full EXIF.
+9. Browser sends each processed group to backend via `POST /input-sessions/{id}/groups`, including `event_id` per group based on the catalog map.
 10. Backend stores metadata in PostgreSQL and writes coldpreview to disk.
 11. Frontend fetches and displays images via backend API (coldpreviews served as HTTP files).
 
 **Installation modes** (chosen in setup wizard, see ADR-009):
-- Local: client + backend + pgserver on same machine
-- Server: backend on server, one or more clients point to backend URL
-- Client-only: install only the client, point to existing backend URL
+- Local: backend + pgserver on the same machine (agent alongside for registration)
+- Server: backend on a server, one or more client machines point to the backend URL
+- Client-only: point a browser (and local agent) at an existing backend URL
