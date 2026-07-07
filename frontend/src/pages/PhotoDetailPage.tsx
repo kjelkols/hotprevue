@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { getPhoto } from '../api/photos'
@@ -40,16 +40,38 @@ export default function PhotoDetailPage() {
     enabled: !!hothash,
   })
 
+  // Tilbake = pop historikk når vi kom hit fra en annen side i appen — da
+  // gjenopprettes gridets scrollposisjon (useScrollRestoration). backUrl er
+  // fallback for direktelenke/refresh, der historikken er tom.
+  const goBack = useCallback(() => {
+    if ((window.history.state?.idx ?? 0) > 0) navigate(-1)
+    else navigate(backUrl)
+  }, [navigate, backUrl])
+
+  // Forrige/neste bytter bilde med replace slik at hele bildevandringen er
+  // én historikkoppføring — tilbakeknappen går rett til gridet.
+  const goTo = useCallback((hash: string) => {
+    navigate(`/photos/${hash}`, { replace: true })
+  }, [navigate])
+
+  // Capture + preventDefault på Escape: markerer eventen som håndtert slik
+  // at den globale Escape-kjeden i App.tsx ikke også tømmer bildeutvalget.
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') { fullscreen ? setFullscreen(false) : navigate(backUrl); return }
+      const t = e.target as HTMLElement
+      if (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable) return
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        fullscreen ? setFullscreen(false) : goBack()
+        return
+      }
       if (e.key === 'f' || e.key === 'F') { setFullscreen(f => !f); return }
-      if (e.key === 'ArrowLeft' && prevHash) navigate(`/photos/${prevHash}`)
-      if (e.key === 'ArrowRight' && nextHash) navigate(`/photos/${nextHash}`)
+      if (e.key === 'ArrowLeft' && prevHash) goTo(prevHash)
+      if (e.key === 'ArrowRight' && nextHash) goTo(nextHash)
     }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [prevHash, nextHash, navigate, backUrl, fullscreen])
+    window.addEventListener('keydown', onKeyDown, { capture: true })
+    return () => window.removeEventListener('keydown', onKeyDown, { capture: true })
+  }, [prevHash, nextHash, goTo, goBack, fullscreen])
 
   if (isLoading) return <div className="flex h-screen items-center justify-center bg-gray-950 text-gray-400">Laster…</div>
   if (isError || !photo) return <div className="flex h-screen items-center justify-center bg-gray-950 text-red-400">Fant ikke bildet.</div>
@@ -57,8 +79,8 @@ export default function PhotoDetailPage() {
   const cacheKey = photo.correction?.updated_at ? +new Date(photo.correction.updated_at) : 0
   const coldpreviewUrl = `${getBaseUrl()}/photos/${hothash}/coldpreview${cacheKey ? `?t=${cacheKey}` : ''}`
 
-  const onPrev = () => prevHash && navigate(`/photos/${prevHash}`)
-  const onNext = () => nextHash && navigate(`/photos/${nextHash}`)
+  const onPrev = () => prevHash && goTo(prevHash)
+  const onNext = () => nextHash && goTo(nextHash)
 
   const image = (
     <ZoomableImage
@@ -96,7 +118,7 @@ export default function PhotoDetailPage() {
     return (
       <div className="flex flex-col h-full bg-gray-950 text-white overflow-hidden">
         <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-800 shrink-0">
-          <button onClick={() => navigate(backUrl)} className="text-sm text-gray-300 hover:text-white">
+          <button onClick={goBack} className="text-sm text-gray-300 hover:text-white">
             ← Tilbake
           </button>
           <div className="ml-auto flex items-center gap-2">
@@ -117,7 +139,7 @@ export default function PhotoDetailPage() {
   return (
     <div className="flex flex-col h-full bg-gray-950 text-white">
       <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-800 shrink-0">
-        <button onClick={() => navigate(backUrl)} className="text-sm text-gray-300 hover:text-white transition-colors">
+        <button onClick={goBack} className="text-sm text-gray-300 hover:text-white transition-colors">
           ← Tilbake
         </button>
         <div className="ml-auto flex items-center gap-3">

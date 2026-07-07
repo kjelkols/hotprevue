@@ -50,16 +50,21 @@ Two separate components with clearly defined responsibilities:
 ```
 src/
   api/           Thin fetch-wrappers, én fil per ressurs (photos.ts, events.ts, …)
+                 agentClient.ts/agent.ts går mot lokal agent (port 8002), resten mot backend
   stores/        Zustand — kun global UI-tilstand (se tabell under)
-  hooks/         usePhotoSource.ts — universell bildehenting
+  hooks/         usePhotoSource (universell bildehenting), useScrollRestoration,
+                 useBrowse, useAiSearch, useImageZoom, useIsMobile, useEnsureMachine
   features/      Domenemapper:
     assignment/    EventPickerModal, CollectionPickerModal, AssignButton
-    browse/        PhotoGrid, PhotoThumbnail, PhotoTimeline
+    browse/        PhotoGrid, PhotoThumbnail (memoisert), PhotoTimeline, QuickView
     collection/    CollectionGrid, CollectionItemCell, TextCard
+    events/ home/ identity/ kinds/ location/ photographers/ photos/ stacks/ tags/
+    preorganisering/  Lokale verktøy (krever agent)
     search/        SearchCriteriaBuilder, TimelineDayNode, …
     selection/     SelectionTray, SelectionModal, SelectionThumbnail
-    registration/  RegistrationFlow og steg
+    registration/  RegistrationFlow og steg (krever agent)
     present/       SlidePresenter og visninger
+    settings/ setup/ timeline/
   components/    Generelle UI-komponenter: TopNav, ViewToggle, ContextMenuOverlay
   pages/         Route-komponenter (tynne, delegerer til features/)
   types/api.ts   Alle TypeScript-typer — énkildes sannhet
@@ -69,12 +74,18 @@ src/
 
 | Fil | Tilstand | Nøkkelmetoder |
 |-----|----------|---------------|
-| `useSelectionStore` | `selected: Set<string>` (hothashes) | `toggle(h)`, `clear()` |
+| `useSelectionStore` | `selected: Set<string>` (hothashes), `anchor` | `selectOnly`, `toggleOne`, `selectRange`, `selectAll`, `clear` |
 | `useContextMenuStore` | `open`, `position`, `items` | `openContextMenu({items, position})`, `closeContextMenu()` |
 | `useAssignmentStore` | `modal: 'event'\|'collection'\|null` | `open(modal)`, `close()` |
-| `useSessionStore` | Aktiv sesjon (registreringsflyt) | — |
-| `useViewStore` | `gridVariant`, `stacksCollapsed`, `timelineView: 'grid'\|'tree'\|'zoom'` | `setGridVariant`, `setStacksCollapsed`, `setTimelineView` |
-| `useLocationEditorStore` | Kart-editorstate | — |
+| `usePhotoNavStore` | `gridOrder` (synlig grid-rekkefølge), `hothashes` (bla-liste for detaljside), `backUrl` | `setGridOrder`, `setHothashes`, `setBackUrl` |
+| `useSessionStore` | Aktiv fotografidentitet (persisted) | — |
+| `useViewStore` | `gridVariant`, `stacksCollapsed`, `timelineView`, `browseView` (alle persisted) | `set*`-metoder |
+| `useKindFilterStore` | `selectedKindIds` (persisted!) — KindFilterBar viser rav-merke når kinds er skjult | `toggle`, `setAll`, `initFromKinds` |
+| `useTagSetStore` | Tag-utvalg (persisted) | — |
+| `useTimelineStore` | Zoom-tidslinje: `pxPerDay`, `topMs` (persisted) | — |
+| `useToastStore` | Toast-meldinger | — |
+| `usePreorganiserStore` | Lokale verktøy-state | — |
+| `useLocationEditorStore` | Kart-editorstate (persisted) | — |
 
 ### Globale overlays (montert i App.tsx, utenfor Routes)
 
@@ -85,7 +96,21 @@ src/
 <CollectionPickerModal />
 ```
 
-Escape-tast: lukker kontekstmeny først, deretter tømmer utvalg.
+### Navigasjons- og tastaturkonvensjoner
+
+- **Escape-kjede:** global handler i App.tsx lukker kontekstmeny først, deretter
+  tømmes utvalget. Sider som selv håndterer Escape (PhotoDetailPage navigerer
+  tilbake) registrerer lytteren med `{ capture: true }` og kaller
+  `e.preventDefault()` — App-handleren respekterer `defaultPrevented`.
+- **Scroll-restaurering:** all scrolling skjer i AppLayouts container (aldri i
+  vinduet). `useScrollRestoration` lagrer posisjon per `location.key` og
+  gjenoppretter ved tilbakenavigasjon (rAF-polling til async innhold har høyde).
+- **Tilbake fra detaljside:** `navigate(-1)` når historikken har oppføringer
+  (bevarer scrollposisjon), ellers fallback til `backUrl` fra usePhotoNavStore.
+  Forrige/neste-blaing bruker `navigate(..., { replace: true })` slik at hele
+  bildevandringen er én historikkoppføring.
+- **Åpne bilde fra grid:** dobbeltklikk eller kontekstmeny → `openPhoto()` i
+  PhotoThumbnail setter bla-kontekst (hothashes + backUrl) før navigering.
 
 ### Kontekstmeny-mønster
 
@@ -127,7 +152,8 @@ Collection-batch: `addCollectionItemsBatch` i `api/collections.ts`.
 
 ```
 /                       HomePage
-/browse                 BrowsePage  (?session_id= / ?event_id=)
+/browse                 BrowsePage  (?session_id= / ?event_id= / ?taken_from=&taken_to=)
+/timeline               TimelinePage  (grid/tre/zoom-visning)
 /photos/:hothash        PhotoDetailPage
 /collections            CollectionsListPage
 /collections/:id        CollectionPage
@@ -136,10 +162,16 @@ Collection-batch: `addCollectionItemsBatch` i `api/collections.ts`.
 /events / /events/:id   EventsListPage / EventPage
 /searches               SavedSearchesPage
 /searches/new / /:id    SearchPage
+/ai-search              AiSearchPage
 /settings               SettingsPage
 /sted                   LocationEditorPage
 /fotografer             PhotographersPage
-/register               RegisterPage  (ingen AppLayout)
+/maskiner               MachinesPage
+/kinds                  KindsPage
+/tags                   TagsPage
+/preorganisering        PreorganiseringPage  (Lokale verktøy, krever agent)
+/register               RegisterPage  (ingen AppLayout, krever agent)
+/share/photo/:hothash   SharedPhotoPage  (ingen AppLayout)
 ```
 
 ### usePhotoSource
@@ -151,11 +183,13 @@ usePhotoSource({ sessionId?, eventId?, logic?, criteria?, enabled? })
 // → { photos, isLoading, isError, hasMore, loadMore, isFetchingMore, infiniteScroll }
 ```
 
-### Deploy
+### Dev og deploy
 
 ```bash
-bash scripts/dev.sh                     # lokal Vite-dev mot VM (hot reload)
-bash scripts/deploy-frontend-local.sh   # bygg lokalt, rsync dist/ til server
+bash scripts/dev-local.sh        # tmux: backend (8000) + agent (8002) + Vite (5173),
+                                 # alle med hot reload rett fra arbeidstreet
+bash scripts/dev-stop.sh         # stopp dev-oppsettet
+bash scripts/deploy.sh user@host # tester + bygg + rsync til server (kjøres av brukeren)
 ```
 
 ---

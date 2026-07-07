@@ -1,9 +1,10 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { groupByDate } from '../../lib/groupByDate'
 import PhotoThumbnail from './PhotoThumbnail'
 import useSelectionStore from '../../stores/useSelectionStore'
 import useViewStore from '../../stores/useViewStore'
+import usePhotoNavStore from '../../stores/usePhotoNavStore'
 import { listStacks } from '../../api/stacks'
 import type { PhotoListItem } from '../../types/api'
 
@@ -56,7 +57,14 @@ export default function PhotoGrid({
   const stackCountMap = new Map(stacks?.map(s => [s.id, s.photo_count]) ?? [])
 
   const grouped = gridVariant === 'dato'
-  const orderedHashes = photos.map(p => p.hothash)
+  const orderedHashes = useMemo(() => photos.map(p => p.hothash), [photos])
+
+  // Publiser gjeldende rekkefølge slik at PhotoThumbnail-handlere (shift-
+  // klikk-range, åpne detaljside) kan lese den lazily fra navigasjonsstoren
+  // i stedet for å få den som prop — se usePhotoNavStore.
+  useEffect(() => {
+    usePhotoNavStore.getState().setGridOrder(orderedHashes)
+  }, [orderedHashes])
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -108,7 +116,6 @@ export default function PhotoGrid({
                   <PhotoThumbnail
                     key={photo.hothash}
                     photo={photo}
-                    orderedHashes={orderedHashes}
                     stackCount={photo.stack_id ? stackCountMap.get(photo.stack_id) : undefined}
                     stackColor={!stacksCollapsed && photo.stack_id ? stackIdToColorClass(photo.stack_id) : undefined}
                   />
@@ -123,7 +130,6 @@ export default function PhotoGrid({
             <PhotoThumbnail
               key={photo.hothash}
               photo={photo}
-              orderedHashes={orderedHashes}
               stackCount={photo.stack_id ? stackCountMap.get(photo.stack_id) : undefined}
               stackColor={!stacksCollapsed && photo.stack_id ? stackIdToColorClass(photo.stack_id) : undefined}
             />

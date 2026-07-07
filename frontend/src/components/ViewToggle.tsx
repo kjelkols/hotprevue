@@ -1,12 +1,10 @@
 import GridVariantDropdown from './GridVariantDropdown'
-import useViewStore from '../stores/useViewStore'
+import useViewStore, { type BrowseView } from '../stores/useViewStore'
 import useSelectionStore from '../stores/useSelectionStore'
 
-export type View = 'grid' | 'timeline'
-
 interface Props {
-  view: View
-  onChange: (v: View) => void
+  view: BrowseView
+  onChange: (v: BrowseView) => void
 }
 
 export default function ViewToggle({ view, onChange }: Props) {

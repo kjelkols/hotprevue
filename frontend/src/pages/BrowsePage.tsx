@@ -1,12 +1,11 @@
-import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import PhotoGrid from '../features/browse/PhotoGrid'
 import PhotoTimeline from '../features/browse/PhotoTimeline'
 import ViewToggle from '../components/ViewToggle'
-import type { View } from '../components/ViewToggle'
 import { usePhotoSource } from '../hooks/usePhotoSource'
 import KindFilterBar from '../features/kinds/KindFilterBar'
 import useKindFilterStore from '../stores/useKindFilterStore'
+import useViewStore from '../stores/useViewStore'
 
 export default function BrowsePage() {
   const navigate = useNavigate()
@@ -19,7 +18,9 @@ export default function BrowsePage() {
 
   const selectedKindIds = useKindFilterStore(s => s.selectedKindIds)
   const photoSource = usePhotoSource({ sessionId, eventId, takenFrom, takenTo, kindIds: selectedKindIds.length > 0 ? selectedKindIds : undefined })
-  const [view, setView] = useState<View>('grid')
+  // Persisted (useViewStore) slik at valget overlever tilbakenavigasjon og reload.
+  const view = useViewStore(s => s.browseView)
+  const setView = useViewStore(s => s.setBrowseView)
 
   const upUrl = eventId ? `/events/${eventId}` : sessionId ? '/sessions' : null
 

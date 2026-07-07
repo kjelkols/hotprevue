@@ -44,12 +44,15 @@ export default function App() {
   const contextMenuOpen = useContextMenuStore(s => s.open)
   const closeContextMenu = useContextMenuStore(s => s.closeContextMenu)
 
+  // Global Escape-kjede: lukk kontekstmeny først, deretter tøm bildeutvalget.
+  // Kontrakt: sider/overlays som selv håndterer Escape (f.eks. PhotoDetailPage
+  // som navigerer tilbake) registrerer sin lytter med { capture: true } og
+  // kaller e.preventDefault() — da lar vi utvalget stå urørt.
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
-        if (contextMenuOpen) closeContextMenu()
-        else clearPhotoSelection()
-      }
+      if (e.key !== 'Escape' || e.defaultPrevented) return
+      if (contextMenuOpen) closeContextMenu()
+      else clearPhotoSelection()
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)

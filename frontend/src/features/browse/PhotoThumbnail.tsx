@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { memo, useState, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { QueryClient } from '@tanstack/react-query'
@@ -57,12 +57,15 @@ const actionBtn = 'w-6 h-6 rounded bg-black/75 text-white text-base leading-none
 
 interface Props {
   photo: PhotoListItem
-  orderedHashes: string[]
   stackCount?: number
   stackColor?: string
 }
 
-export default function PhotoThumbnail({ photo, orderedHashes, stackCount, stackColor }: Props) {
+// Memoisert: gridet kan inneholde tusenvis av thumbnails, så komponenten må
+// bare re-rendres når dens egne props eller dens egen valgt-status endres.
+// Derfor abonnerer den kun på sitt eget `isSelected`-flagg — alt annet
+// (utvalgsstørrelse, grid-rekkefølge) leses lazily via getState() i handlere.
+function PhotoThumbnail({ photo, stackCount, stackColor }: Props) {
   const navigate = useNavigate()
   const location = useLocation()
   const [correctionOpen, setCorrectionOpen] = useState(false)
@@ -71,11 +74,8 @@ export default function PhotoThumbnail({ photo, orderedHashes, stackCount, stack
   const toggleOne = useSelectionStore(s => s.toggleOne)
   const selectRange = useSelectionStore(s => s.selectRange)
   const isSelected = useSelectionStore(s => s.selected.has(photo.hothash))
-  const selectedCount = useSelectionStore(s => s.selected.size)
   const openContextMenu = useContextMenuStore(s => s.openContextMenu)
   const openAssignment = useAssignmentStore(s => s.open)
-  const setHothashes = usePhotoNavStore(s => s.setHothashes)
-  const setBackUrl = usePhotoNavStore(s => s.setBackUrl)
   const qc = useQueryClient()
 
   const rotateMut = useMutation({
@@ -104,19 +104,23 @@ export default function PhotoThumbnail({ photo, orderedHashes, stackCount, stack
 
   function handleClick(e: React.MouseEvent) {
     e.preventDefault()
-    if (e.shiftKey) selectRange(photo.hothash, orderedHashes)
+    if (e.shiftKey) selectRange(photo.hothash, usePhotoNavStore.getState().gridOrder)
     else if (e.ctrlKey || e.metaKey) toggleOne(photo.hothash)
     else selectOnly(photo.hothash)
   }
 
-  function handleDoubleClick() {
-    setHothashes(orderedHashes)
-    setBackUrl(location.pathname + location.search)
+  // Åpne detaljsiden med bla-kontekst: øyeblikksbilde av grid-rekkefølgen
+  // (forrige/neste) og gjeldende URL som tilbake-fallback.
+  function openPhoto() {
+    const nav = usePhotoNavStore.getState()
+    nav.setHothashes(nav.gridOrder)
+    nav.setBackUrl(location.pathname + location.search)
     navigate(`/photos/${photo.hothash}`)
   }
 
   function handleContextMenu(e: React.MouseEvent) {
     e.preventDefault()
+    const selectedCount = useSelectionStore.getState().selected.size
 
     if (isSelected && selectedCount > 1) {
       const selected = useSelectionStore.getState().selected
@@ -129,14 +133,13 @@ export default function PhotoThumbnail({ photo, orderedHashes, stackCount, stack
         items: [
           { id: 'event',      label: `Sett event… (${selectedCount})`,        action: () => openAssignment('event') },
           { id: 'collection', label: `Legg til i samling… (${selectedCount})`, action: () => openAssignment('collection') },
-          { id: 'tag',        label: `Legg til tag… (${selectedCount})`,       action: () => openAssignment('tag') },
           { type: 'separator' },
           { id: 'stack-create',  label: `Opprett stack (${selectedCount})`, disabled: !a.canCreateStack,     action: () => createStackMut.mutate(selectedHashes) },
           { id: 'stack-add',     label: 'Legg til i stack',                  disabled: !a.canAddToStack,      action: () => a.targetStackId && addToStackMut.mutate({ stackId: a.targetStackId, hothashes: a.freeHashes }) },
           { id: 'stack-remove',  label: 'Fjern fra stack',                   disabled: !a.canRemoveFromStack, action: () => removeFromStackMut.mutate(a.memberHashes) },
           { id: 'stack-dissolve',label: 'Oppløs stack',                      disabled: !a.canDissolve,        action: () => dissolveMut.mutate(selectedHashes) },
           { type: 'separator' },
-          { id: 'open', label: 'Åpne dette bildet', action: () => navigate(`/photos/${photo.hothash}`) },
+          { id: 'open', label: 'Åpne dette bildet', action: openPhoto },
         ],
       })
       return
@@ -146,13 +149,12 @@ export default function PhotoThumbnail({ photo, orderedHashes, stackCount, stack
     openContextMenu({
       position: { x: e.clientX, y: e.clientY },
       items: [
-        { id: 'open',     label: 'Åpne',             isDefault: true, action: () => navigate(`/photos/${photo.hothash}`) },
+        { id: 'open',     label: 'Åpne',             isDefault: true, action: openPhoto },
         { id: 'correct',  label: 'Korriger bilde…',  action: () => setCorrectionOpen(true) },
         { id: 'download', label: 'Last ned (full)',   action: () => { window.location.href = `${getBaseUrl()}/photos/${photo.hothash}/download` } },
         { type: 'separator' },
         { id: 'event',      label: 'Sett event…',         action: () => openAssignment('event') },
         { id: 'collection', label: 'Legg til i samling…', action: () => openAssignment('collection') },
-        { id: 'tag',        label: 'Legg til tag…',       action: () => openAssignment('tag') },
         ...(photo.stack_id && !photo.is_stack_cover
           ? [{ id: 'stack-remove',  label: 'Fjern fra stack', action: () => removeFromStackMut.mutate([photo.hothash]) }]
           : []),
@@ -210,7 +212,7 @@ export default function PhotoThumbnail({ photo, orderedHashes, stackCount, stack
             correction={photo.has_correction ? photo : null}
             actions={rotateActions}
             onClick={handleClick}
-            onDoubleClick={handleDoubleClick}
+            onDoubleClick={openPhoto}
             onContextMenu={handleContextMenu}
             bottomOverlay={formatDate(photo.taken_at)}
           />
@@ -237,3 +239,5 @@ export default function PhotoThumbnail({ photo, orderedHashes, stackCount, stack
     </>
   )
 }
+
+export default memo(PhotoThumbnail)
